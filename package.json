@@ -1,12 +1,18 @@
 {
-	"devDependencies": {
-		"typescript": "^5.7.3",
-		"vite": "^6.0.7"
-	},
-	"dependencies": {
-		"@webgpu/glslang": "^0.0.15"
-	},
-	"scripts": {
-		"dev": "vite"
-	}
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  },
+  "dependencies": {
+    "@webgpu/glslang": "^0.0.15"
+  },
+  "scripts": {
+    "dev": "vite"
+  },
+  "name": "webgpu-module",
+  "description": "",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC"
 }
