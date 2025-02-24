@@ -31,13 +31,38 @@ context.configure({
 	format: presentationFormat,
 });
 
-// Pipeline
+// Vertex Buffer
+const triangleVertices = new Float32Array([
+	0.0, 0.5, 0.0, 0.0,   // Vertex 1 (x, y)
+	-0.5, -0.5, 0.0, 0.0, // Vertex 2 (x, y)
+	0.5, -0.5, 0.0, 0.0  // Vertex 3 (x, y)
+]);
+const vertexBuffer = device.createBuffer({
+	size: triangleVertices.byteLength,
+	usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+	mappedAtCreation: true,
+});
+const mapping = new Float32Array(vertexBuffer.getMappedRange());
+mapping.set(triangleVertices);
+vertexBuffer.unmap();
+
+// Piprline
 const pipeline = device.createRenderPipeline({
 	layout: 'auto',
 	vertex: {
 		module: device.createShaderModule({
 			code: vertexShaderCode,
 		}),
+		buffers: [{
+			arrayStride: 4 * 4,
+			attributes: [
+				{
+					shaderLocation: 0,
+					offset: 0,
+					format: 'float32x2',
+				},
+			],
+		}]
 	},
 	fragment: {
 		module: device.createShaderModule({
@@ -46,12 +71,13 @@ const pipeline = device.createRenderPipeline({
 		targets: [
 			{
 				format: presentationFormat,
+
 			},
 		],
 	},
 	primitive: {
 		topology: 'triangle-list',
-	},
+	}
 });
 
 function frame() {
@@ -71,6 +97,7 @@ function frame() {
 
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 	passEncoder.setPipeline(pipeline);
+	passEncoder.setVertexBuffer(0, vertexBuffer);
 	passEncoder.draw(3);
 	passEncoder.end();
 
@@ -94,26 +121,9 @@ requestAnimationFrame(frame);
 // 	// console.log("Canvas size:", canvas.width, canvas.height);
 // 	// console.log("Expected texture size:", canvas.width * canvas.height * 3); // Assuming RGBA8 format
 
-// 	const triangleVertices = new Float32Array([
-// 		0.0, 0.5, 0.0, 0.0,   // Vertex 1 (x, y)
-// 		-0.5, -0.5, 0.0, 0.0, // Vertex 2 (x, y)
-// 		0.5, -0.5, 0.0, 0.0  // Vertex 3 (x, y)
-// 	]);
 
-// 	const vertexBuffer = device.createBuffer({
-// 		size: triangleVertices.byteLength,
-// 		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-// 	});
 // 	device.queue.writeBuffer(vertexBuffer, 0, triangleVertices);
 
-// 	const vertexBufferLayout: GPUVertexBufferLayout = {
-// 		arrayStride: 4 * Float32Array.BYTES_PER_ELEMENT, // Each vertex has 2 floats (x, y)
-// 		attributes: [{
-// 			shaderLocation: 0, // Matches @location(0) in shader
-// 			offset: 0,
-// 			format: "float32x2", // vec2<f32>
-// 		}],
-// 	};
 
 // 	// Render Pipeline
 // 	const renderPipelineBindGroupLayout = device.createBindGroupLayout({
