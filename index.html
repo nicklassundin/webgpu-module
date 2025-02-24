@@ -4,8 +4,24 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>WebGPU Project</title>
+		<style type="text/css">
+html, body {
+	height: 95vh;
+	max-width: min(95vh, 8190px);
+	max-height: min(95vh, 8190px);
+	margin: 0;
+	aspectRatio: 16 / 9;
+
+}
+
+	#canvas {
+		min-height: 10vh;
+
+	}
+		</style>
 	</head>
 	<body>
+		<canvas id="canvas"></canvas>
 		<script type="module" src="./src/main.ts"></script>
 	</body>
 </html>
