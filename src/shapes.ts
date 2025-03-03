@@ -40,3 +40,4 @@ class Hexagon extends Shape {
 }
 
 export { Shape, Triangle, Hexagon };
+

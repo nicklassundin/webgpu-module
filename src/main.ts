@@ -21,7 +21,7 @@ if (!device) {
 	throw new Error("Failed to get WebGPU device.");
 }
 
-const devicePixelRatio = window.devicePixelRatio;
+const devicePixelRatio = window.devicePixelRatio | 1;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -30,20 +30,32 @@ context.configure({
 	device,
 	format: presentationFormat,
 });
+// Create view texture manually
+console.log(presentationFormat);
+const texture = device.createTexture({
+	size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1  },
+	format: presentationFormat,
+	usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+});
+const textureView = texture.createView();
 
 // Vertex Buffer
-const triangleVertices = new Float32Array([
-	0.0, 0.5,   // Vertex 1 (x, y)
-	-0.5, -0.5, // Vertex 2 (x, y)
-	0.5, -0.5  // Vertex 3 (x, y)
-]);
+const Vertices = new Float32Array([
+		-1.0, 1.0,   // Vertex 1 (x, y)
+		-1.0, -1.0, // Vertex 2 (x, y)
+		1.0, -1.0,  // Vertex 3 (x, y)
+		-1.0, 1.0,   // Vertex 1 (x, y)
+		1.0, -1.0,  // Vertex 2 (x, y)
+		1.0, 1.0    // Vertex 3 (x, y)
+])
+
 const vertexBuffer = device.createBuffer({
-	size: triangleVertices.byteLength,
+	size: Vertices.byteLength,
 	usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 	mappedAtCreation: true,
 });
 const mapping = new Float32Array(vertexBuffer.getMappedRange());
-mapping.set(triangleVertices);
+mapping.set(Vertices);
 vertexBuffer.unmap();
 
 // Piprline
@@ -54,7 +66,7 @@ const pipeline = device.createRenderPipeline({
 			code: vertexShaderCode,
 		}),
 		buffers: [{
-			arrayStride: 2 * 4,
+			arrayStride: 4 * 2,
 			attributes: [
 				{
 					shaderLocation: 0,
@@ -70,8 +82,8 @@ const pipeline = device.createRenderPipeline({
 		}),
 		targets: [
 			{
-				format: presentationFormat,
 
+				format: presentationFormat,
 			},
 		],
 	},
@@ -80,29 +92,61 @@ const pipeline = device.createRenderPipeline({
 	}
 });
 
+const renderPassDescriptor: GPURenderPassDescriptor = {
+	colorAttachments: [
+		{
+			view: undefined,
+			clearValue: [0, 0, 0, 0], // Clear to transparent
+			loadOp: 'clear',
+			storeOp: 'store',
+		},
+	],
+};
+let frameCount = 0;
+let lastFrameTime = Date.now()
 function frame() {
-	const commandEncoder = device.createCommandEncoder();
-	const textureView = context.getCurrentTexture().createView();
+	if (lastFrameTime + 1000 < Date.now()) {
+		const commandEncoder = device.createCommandEncoder();
+		const currentTexture = context.getCurrentTexture();
+		if (!currentTexture) {
+			console.error("Failed to retrieve current texture.");
+			return;
+		}
+		const textureView = currentTexture.createView();
+		renderPassDescriptor.colorAttachments[0].view = textureView;
 
-	const renderPassDescriptor: GPURenderPassDescriptor = {
-		colorAttachments: [
-			{
-				view: textureView,
-				clearValue: [0, 0, 0, 0], // Clear to transparent
-				loadOp: 'clear',
-				storeOp: 'store',
-			},
-		],
-	};
 
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-	passEncoder.setPipeline(pipeline);
-	passEncoder.setVertexBuffer(0, vertexBuffer);
-	passEncoder.draw(3);
-	passEncoder.end();
+		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+		passEncoder.setPipeline(pipeline);
+		passEncoder.setVertexBuffer(0, vertexBuffer);
+		passEncoder.draw(6);
+		passEncoder.end();
 
-	device.queue.submit([commandEncoder.finish()]);
-	requestAnimationFrame(frame);
+		device.queue.submit([commandEncoder.finish()]);
+		frameCount++;
+	}
+	if (frameCount % 60*1000 === 0) {
+		requestAnimationFrame(frame);
+	}
 }
+
+function resizeCanvas() {
+	const devicePixelRatio = window.devicePixelRatio || 1;
+	const newWidth = Math.floor(canvas.clientWidth * devicePixelRatio);
+	const newHeight = Math.floor(canvas.clientHeight * devicePixelRatio);
+
+	if (canvas.width !== newWidth || canvas.height !== newHeight) {
+		canvas.width = newWidth;
+		canvas.height = newHeight;
+		console.log(`Resized canvas to ${canvas.width}x${canvas.height}`);
+
+		context.configure({ device, format: presentationFormat  });
+		createCustomTexture(device); // Recreate texture after resizing
+
+	}
+
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas(); // Ensure correct size on startup
 requestAnimationFrame(frame);
 
