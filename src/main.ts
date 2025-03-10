@@ -5,6 +5,8 @@ import { Triangle, Hexagon } from "./shape";
 import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
 import quadvertexShaderCode from "./shaders/quad.vert.wgsl?raw";
 
+import { GUI  } from 'dat.gui';
+
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
 
@@ -66,12 +68,15 @@ vertexBuffer.unmap();
 
 // Uniform Buffer
 // containing the resolution of the canvas
-const uniformBufferSize = 4 * 2;
+// Resolution 4 * 2; Mipmap level 4 * 1
+const uniformBufferSize = 4 * 2 + 4 * 2;
 const uniformBuffer = device.createBuffer({
 	size: uniformBufferSize,
 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
-const resolution = new Float32Array([canvas.width, canvas.height]);
+const resolution = new Float32Array([canvas.width,
+				    canvas.height,
+3.0]);
 device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 
 
@@ -313,9 +318,9 @@ function frame() {
 		device.queue.submit([commandEncoder.finish()]);
 		frameCount++;
 	}
-	if (frameCount % 60*1000 === 0) {
+	// if (frameCount % 60*1000 === 0) {
 		requestAnimationFrame(frame);
-	}
+	// }
 }
 
 function resizeCanvas() {
@@ -334,6 +339,20 @@ function resizeCanvas() {
 	}
 
 }
+
+// TODO GUI
+const gui = new GUI();
+{
+	const folder = gui.addFolder("Mipmap");
+	folder.add({ value: 3}, 'value', 1, mipLevelCount, 1).name("Mip Level").onChange((value) => {
+		const resolution = new Float32Array([canvas.width,
+						    canvas.height,
+		value]);
+		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
+	});
+	folder.open();
+}
+
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas(); // Ensure correct size on startup
 requestAnimationFrame(frame);
