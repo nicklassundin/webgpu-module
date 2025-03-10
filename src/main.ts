@@ -5,7 +5,7 @@ import { Triangle, Hexagon } from "./shape";
 import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
 import quadvertexShaderCode from "./shaders/quad.vert.wgsl?raw";
 
-import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
+// import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
 
 
@@ -85,7 +85,10 @@ const textureSize = image.width; // Assume square texture
 const textureMipmap = device.createTexture({
 	size: [ textureSize, textureSize, 1 ],
 	format: 'rgba8unorm',
-	usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+	usage: 	GPUTextureUsage.TEXTURE_BINDING |
+		GPUTextureUsage.COPY_DST |
+		GPUTextureUsage.RENDER_ATTACHMENT |
+		GPUTextureUsage.COPY_SRC,
 	mipLevelCount: mipLevelCount
 });
 // print byte size of image
@@ -176,28 +179,19 @@ const pipelineMipmap = device.createRenderPipeline({
 			code: quadfragmentShaderCode,
 			// code: quadtestfragmentShaderCode,
 		}),
-		targets: [
-			{
-				format: presentationFormat,
-			},
-		],
+		targets: [{ format: 'rgba8unorm', }],
 	},
 	primitive: {
 		topology: 'triangle-list',
 	}
 });
 // Mipmap render pass
+const commandEncoder = device.createCommandEncoder();
 for (let i = 1; i < mipLevelCount; i++) {
 	const prevLevelSize = textureSize.width >> (i - 1);
 	const newLevelSize = Math.max(1, prevLevelSize >> 1);
 	const view = textureMipmap.createView({ baseMipLevel: i, mipLevelCount: 1  });
 
-	// const view = textureMipmap.createView({
-	// 	format: 'rgba8unorm',
-	// 	dimension: '2d',
-	// 	baseMipLevel: i-1,
-	// 	mipLevelCount: 1,
-	// });
 	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
 		colorAttachments: [
 			{
@@ -221,14 +215,16 @@ for (let i = 1; i < mipLevelCount; i++) {
 		],
 	});
 
-	const commandEncoder = device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
 	passEncoder.setPipeline(pipelineMipmap);
 	passEncoder.setBindGroup(0, bindGroupMip);
-	// passEncoder.setBindGroup(1, bindGroupUniform);
+	passEncoder.setVertexBuffer(0, vertexBuffer);
 	passEncoder.draw(6);
 	passEncoder.end();
+
 }
+device.queue.submit([commandEncoder.finish()]);
+
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
 	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform],

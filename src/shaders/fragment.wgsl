@@ -8,9 +8,8 @@ resolution: vec2<f32>
 
 @fragment
 fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
-	let uv = fragCoord.xy / uniforms.resolution;
-	let numLevels = textureNumLevels(heatMapTexture);
-	let color = textureSampleLevel(heatMapTexture, heatSampler, uv, 0.5);
-	//return vec4f(uv, numLevels, 1.0);
+	let uv = (fragCoord.xy / uniforms.resolution);
+	let color = textureSampleLevel(heatMapTexture, heatSampler, uv, 2.0);
 	return color;
+	//return vec4f(uv, 0.0, 1.0);
 }

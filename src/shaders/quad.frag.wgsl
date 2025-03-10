@@ -8,7 +8,8 @@
 
 @fragment
 fn fs_main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4<f32> {
-	let texSize = vec2<f32>(textureDimensions(myTexture));
+	let mipLevel = textureNumLevels(myTexture);
+	let texSize = vec2<f32>(textureDimensions(myTexture)) / f32(1 << mipLevel);
 	let uv = fragCoord.xy / texSize;
 	return textureSample(myTexture, mySampler, uv);
 }
