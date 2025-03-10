@@ -1,3 +1,5 @@
+/// <reference types="@webgpu/types" />
+
 import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
 import vertexShaderCode from "./shaders/vertex.wgsl?raw";
 import { Triangle, Hexagon } from "./shape";
@@ -19,16 +21,20 @@ if (!navigator.gpu) {
 
 // const canvas = document.createElement("canvas");
 const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+if (!canvas) {
+	console.error("Failed to get canvas element.");
+	throw new Error("Failed to get canvas element.");
+}
 const adapter = await navigator.gpu?.requestAdapter();
 const device = await adapter?.requestDevice();
-
-
-const context = canvas.getContext('webgpu') as GPUCanvasContext;
-
 if (!device) {
 	console.error("Failed to get WebGPU device.");
 	throw new Error("Failed to get WebGPU device.");
 }
+
+
+const context = canvas.getContext('webgpu') as GPUCanvasContext;
+
 
 const devicePixelRatio = window.devicePixelRatio || 1;
 canvas.width = canvas.clientWidth * devicePixelRatio;
@@ -104,6 +110,13 @@ const imageCanvas = document.createElement('canvas');
 imageCanvas.width = textureSize; 
 imageCanvas.height = textureSize;
 const ctx = imageCanvas.getContext('2d');
+
+// ensure ctx is not null
+if (!ctx) {
+	console.error("Failed to get 2d context.");
+	throw new Error("Failed to get 2d context.");
+}
+
 ctx.drawImage(imageBitmap, 0, 0);
 
 const imageData = ctx.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
@@ -332,10 +345,7 @@ function resizeCanvas() {
 		canvas.width = newWidth;
 		canvas.height = newHeight;
 		console.log(`Resized canvas to ${canvas.width}x${canvas.height}`);
-
 		context.configure({ device, format: presentationFormat  });
-		createCustomTexture(device); // Recreate texture after resizing
-
 	}
 
 }
@@ -344,7 +354,7 @@ function resizeCanvas() {
 const gui = new GUI();
 {
 	const folder = gui.addFolder("Mipmap");
-	folder.add({ value: 3}, 'value', 1, mipLevelCount, 1).name("Mip Level").onChange((value) => {
+	folder.add({ value: 3}, 'value', 1, mipLevelCount, 1).name("Mip Level").onChange((value: number) => {
 		const resolution = new Float32Array([canvas.width,
 						    canvas.height,
 		value]);
@@ -358,7 +368,7 @@ resizeCanvas(); // Ensure correct size on startup
 requestAnimationFrame(frame);
 
 
-async function loadImageBitmap(url) {
+async function loadImageBitmap(url: string) {
 	const response = await fetch(url);
 	const blob = await response.blob();
 	return createImageBitmap(blob);

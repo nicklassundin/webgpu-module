@@ -3,11 +3,11 @@
 class Shape {
 	constructor(public x: number, public y: number) {
 		this.arrayStrid = 2 * 4
+		this.byteLength = 0;
+		this.vertices = [];
 	}
 	// Array of Float32Array
 	vertices: Float32Array[];
-	constructor(public x: number, public y: number) {
-	}
 	// map and sum all Float32Array.byteLength
 	byteLength: number;
 	// get all Float32Array
