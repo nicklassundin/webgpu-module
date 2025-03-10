@@ -29,7 +29,6 @@ if (!device) {
 }
 
 const devicePixelRatio = window.devicePixelRatio || 1;
-console.log(canvas.clientWidth, canvas.clientHeight, devicePixelRatio);
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -39,7 +38,6 @@ context.configure({
 	format: presentationFormat,
 });
 // Create view texture manually
-console.log(presentationFormat);
 const texture = device.createTexture({
 	size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1  },
 	format: presentationFormat,
@@ -66,6 +64,17 @@ const mapping = new Float32Array(vertexBuffer.getMappedRange());
 mapping.set(Vertices);
 vertexBuffer.unmap();
 
+// Uniform Buffer
+// containing the resolution of the canvas
+const uniformBufferSize = 4 * 2;
+const uniformBuffer = device.createBuffer({
+	size: uniformBufferSize,
+	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+const resolution = new Float32Array([canvas.width, canvas.height]);
+device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
+
+
 // Mipmap pipeline
 // load image
 // Load Textures
@@ -75,14 +84,14 @@ const textureSize = image.width; // Assume square texture
 // Create texture with mipmap levels
 const textureMipmap = device.createTexture({
 	size: [ textureSize, textureSize, 1 ],
-	mipLevelCount,
-	sampleCount: 1,
 	format: 'rgba8unorm',
 	usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+	mipLevelCount: mipLevelCount
 });
 // print byte size of image
 // Upload image data to texture level 0
 const imageBitmap = image;
+// const imageCanvas = document.createElement('canvas');
 const imageCanvas = document.createElement('canvas');
 imageCanvas.width = textureSize; 
 imageCanvas.height = textureSize;
@@ -102,9 +111,50 @@ const sampler = device.createSampler({
 	minFilter: 'linear',
 	mipmapFilter: 'linear',
 });
+// binding group layout for mipmap
+const bindGroupLayoutUniform = device.createBindGroupLayout({
+	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: {}  }],
+})
+// Create binding group layout Used for mipmap and normal rendering
+const bindGroupLayout = device.createBindGroupLayout({
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.FRAGMENT,
+			sampler: {
+				type: 'filtering',
+			},
+		},
+		{
+			binding: 1,
+			visibility: GPUShaderStage.FRAGMENT,
+			texture: {
+				sampleType: 'float',
+			},
+		},
+	],
+});
+// Create pipeline layout for mipmap
+const pipelineLayoutMipmap = device.createPipelineLayout({
+	bindGroupLayouts: [bindGroupLayout],
+});
+// Create bind group for uniform buffer
+const bindGroupUniform = device.createBindGroup({
+	layout: bindGroupLayoutUniform,
+	entries: [
+		{
+			binding: 0,
+			resource: {
+				buffer: uniformBuffer,
+				offset: 0,
+				size: uniformBufferSize,
+			},
+		},
+	],
+});
 // Pipeline for mipmap
 const pipelineMipmap = device.createRenderPipeline({
-	layout: 'auto',
+	layout: pipelineLayoutMipmap,
 	vertex: {
 		module: device.createShaderModule({
 			code: quadvertexShaderCode,
@@ -140,12 +190,14 @@ const pipelineMipmap = device.createRenderPipeline({
 for (let i = 1; i < mipLevelCount; i++) {
 	const prevLevelSize = textureSize.width >> (i - 1);
 	const newLevelSize = Math.max(1, prevLevelSize >> 1);
-	const view = textureMipmap.createView({
-		format: 'rgba8unorm',
-		dimension: '2d',
-		baseMipLevel: i,
-		mipLevelCount: 1,
-	});
+	const view = textureMipmap.createView({ baseMipLevel: i, mipLevelCount: 1  });
+
+	// const view = textureMipmap.createView({
+	// 	format: 'rgba8unorm',
+	// 	dimension: '2d',
+	// 	baseMipLevel: i-1,
+	// 	mipLevelCount: 1,
+	// });
 	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
 		colorAttachments: [
 			{
@@ -156,7 +208,7 @@ for (let i = 1; i < mipLevelCount; i++) {
 		],
 	};
 	const bindGroupMip = device.createBindGroup({
-		layout: pipelineMipmap.getBindGroupLayout(0),
+		layout: bindGroupLayout,
 		entries: [
 			{
 				binding: 0,
@@ -164,39 +216,22 @@ for (let i = 1; i < mipLevelCount; i++) {
 			},
 			{
 				binding: 1,
-				resource: view,
+				resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevelCount: 1}),
 			},
 		],
 	});
+
 	const commandEncoder = device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
 	passEncoder.setPipeline(pipelineMipmap);
 	passEncoder.setBindGroup(0, bindGroupMip);
+	// passEncoder.setBindGroup(1, bindGroupUniform);
 	passEncoder.draw(6);
 	passEncoder.end();
 }
-// Create binding group layout
-const bindGroupLayout = device.createBindGroupLayout({
-	entries: [
-		{
-			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT,
-			sampler: {
-				type: 'filtering',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.FRAGMENT,
-			texture: {
-				sampleType: 'float',
-			},
-		},
-	],
-});
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayout],
+	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform],
 });
 // Piprline
 const pipeline = device.createRenderPipeline({
@@ -242,24 +277,24 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
 	],
 };
 
-// Render pass bindGroup
-const bindGroup = device.createBindGroup({
-	layout: bindGroupLayout,
-	entries: [
-		{
-			binding: 0,
-			resource: sampler,
-		},
-		{
-			binding: 1,
-			resource: textureMipmap.createView(),
-		},
-	],
-});
 
 let frameCount = 0;
 let lastFrameTime = Date.now()
 function frame() {
+	// Render pass bindGroup
+	const bindGroup = device.createBindGroup({
+		layout: bindGroupLayout,
+		entries: [
+			{
+				binding: 0,
+				resource: sampler,
+			},
+			{
+				binding: 1,
+				resource: textureMipmap.createView(),
+			},
+		],
+	});
 	if (lastFrameTime + 1000 < Date.now()) {
 		const commandEncoder = device.createCommandEncoder();
 		const currentTexture = context.getCurrentTexture();
@@ -275,6 +310,7 @@ function frame() {
 		passEncoder.setPipeline(pipeline);
 		passEncoder.setVertexBuffer(0, vertexBuffer);
 		passEncoder.setBindGroup(0, bindGroup);
+		passEncoder.setBindGroup(1, bindGroupUniform);
 		passEncoder.draw(6);
 		passEncoder.end();
 
