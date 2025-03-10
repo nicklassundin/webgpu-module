@@ -2,6 +2,13 @@ import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
 import vertexShaderCode from "./shaders/vertex.wgsl?raw";
 import { Triangle, Hexagon } from "./shape";
 
+import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
+import quadvertexShaderCode from "./shaders/quad.vert.wgsl?raw";
+
+import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
+
+
+
 if (!navigator.gpu) {
 	console.error("WebGPU is not supported in your browser.");
 	throw new Error("WebGPU is not supported in your browser.");
@@ -21,7 +28,8 @@ if (!device) {
 	throw new Error("Failed to get WebGPU device.");
 }
 
-const devicePixelRatio = window.devicePixelRatio | 1;
+const devicePixelRatio = window.devicePixelRatio || 1;
+console.log(canvas.clientWidth, canvas.clientHeight, devicePixelRatio);
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -41,12 +49,12 @@ const textureView = texture.createView();
 
 // Vertex Buffer
 const Vertices = new Float32Array([
-		-1.0, 1.0,   // Vertex 1 (x, y)
-		-1.0, -1.0, // Vertex 2 (x, y)
-		1.0, -1.0,  // Vertex 3 (x, y)
-		-1.0, 1.0,   // Vertex 1 (x, y)
-		1.0, -1.0,  // Vertex 2 (x, y)
-		1.0, 1.0    // Vertex 3 (x, y)
+	-1.0, 1.0,   // Vertex 1 (x, y)
+	-1.0, -1.0, // Vertex 2 (x, y)
+	1.0, -1.0,  // Vertex 3 (x, y)
+	-1.0, 1.0,   // Vertex 1 (x, y)
+	1.0, -1.0,  // Vertex 2 (x, y)
+	1.0, 1.0    // Vertex 3 (x, y)
 ])
 
 const vertexBuffer = device.createBuffer({
@@ -58,9 +66,141 @@ const mapping = new Float32Array(vertexBuffer.getMappedRange());
 mapping.set(Vertices);
 vertexBuffer.unmap();
 
+// Mipmap pipeline
+// load image
+// Load Textures
+const image = await loadImageBitmap('./data/obs/heatmap_Phylloscopus trochilus.png'); 
+const mipLevelCount = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
+const textureSize = image.width; // Assume square texture 
+// Create texture with mipmap levels
+const textureMipmap = device.createTexture({
+	size: [ textureSize, textureSize, 1 ],
+	mipLevelCount,
+	sampleCount: 1,
+	format: 'rgba8unorm',
+	usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+});
+// print byte size of image
+// Upload image data to texture level 0
+const imageBitmap = image;
+const imageCanvas = document.createElement('canvas');
+imageCanvas.width = textureSize; 
+imageCanvas.height = textureSize;
+const ctx = imageCanvas.getContext('2d');
+ctx.drawImage(imageBitmap, 0, 0);
+
+const imageData = ctx.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
+device.queue.writeTexture(
+	{ texture: textureMipmap, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
+	imageData.data,
+	{ bytesPerRow: textureSize * 4 },
+	[textureSize, textureSize, 1]
+);
+// sampler with mipmap enabled
+const sampler = device.createSampler({
+	magFilter: 'linear',
+	minFilter: 'linear',
+	mipmapFilter: 'linear',
+});
+// Pipeline for mipmap
+const pipelineMipmap = device.createRenderPipeline({
+	layout: 'auto',
+	vertex: {
+		module: device.createShaderModule({
+			code: quadvertexShaderCode,
+		}),
+		buffers: [{
+			arrayStride: 4 * 2,
+			attributes: [
+				{
+					shaderLocation: 0,
+					offset: 0,
+					format: 'float32x2',
+				},
+			],
+		}]
+	},
+	fragment: {
+		module: device.createShaderModule({
+			// TODO replace
+			code: quadfragmentShaderCode,
+			// code: quadtestfragmentShaderCode,
+		}),
+		targets: [
+			{
+				format: presentationFormat,
+			},
+		],
+	},
+	primitive: {
+		topology: 'triangle-list',
+	}
+});
+// Mipmap render pass
+for (let i = 1; i < mipLevelCount; i++) {
+	const prevLevelSize = textureSize.width >> (i - 1);
+	const newLevelSize = Math.max(1, prevLevelSize >> 1);
+	const view = textureMipmap.createView({
+		format: 'rgba8unorm',
+		dimension: '2d',
+		baseMipLevel: i,
+		mipLevelCount: 1,
+	});
+	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
+		colorAttachments: [
+			{
+				view,
+				loadOp: 'clear',
+				storeOp: 'store',
+			},
+		],
+	};
+	const bindGroupMip = device.createBindGroup({
+		layout: pipelineMipmap.getBindGroupLayout(0),
+		entries: [
+			{
+				binding: 0,
+				resource: sampler,
+			},
+			{
+				binding: 1,
+				resource: view,
+			},
+		],
+	});
+	const commandEncoder = device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
+	passEncoder.setPipeline(pipelineMipmap);
+	passEncoder.setBindGroup(0, bindGroupMip);
+	passEncoder.draw(6);
+	passEncoder.end();
+}
+// Create binding group layout
+const bindGroupLayout = device.createBindGroupLayout({
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.FRAGMENT,
+			sampler: {
+				type: 'filtering',
+			},
+		},
+		{
+			binding: 1,
+			visibility: GPUShaderStage.FRAGMENT,
+			texture: {
+				sampleType: 'float',
+			},
+		},
+	],
+});
+// Create Pipeline Layout
+const pipelineLayout = device.createPipelineLayout({
+	bindGroupLayouts: [bindGroupLayout],
+});
 // Piprline
 const pipeline = device.createRenderPipeline({
-	layout: 'auto',
+	layout: pipelineLayout, 
 	vertex: {
 		module: device.createShaderModule({
 			code: vertexShaderCode,
@@ -82,7 +222,6 @@ const pipeline = device.createRenderPipeline({
 		}),
 		targets: [
 			{
-
 				format: presentationFormat,
 			},
 		],
@@ -102,6 +241,22 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
 		},
 	],
 };
+
+// Render pass bindGroup
+const bindGroup = device.createBindGroup({
+	layout: bindGroupLayout,
+	entries: [
+		{
+			binding: 0,
+			resource: sampler,
+		},
+		{
+			binding: 1,
+			resource: textureMipmap.createView(),
+		},
+	],
+});
+
 let frameCount = 0;
 let lastFrameTime = Date.now()
 function frame() {
@@ -119,6 +274,7 @@ function frame() {
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 		passEncoder.setPipeline(pipeline);
 		passEncoder.setVertexBuffer(0, vertexBuffer);
+		passEncoder.setBindGroup(0, bindGroup);
 		passEncoder.draw(6);
 		passEncoder.end();
 
@@ -150,3 +306,10 @@ window.addEventListener("resize", resizeCanvas);
 resizeCanvas(); // Ensure correct size on startup
 requestAnimationFrame(frame);
 
+
+async function loadImageBitmap(url) {
+	const response = await fetch(url);
+	const blob = await response.blob();
+	return createImageBitmap(blob);
+
+}
