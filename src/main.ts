@@ -7,11 +7,16 @@ import { Triangle, Hexagon } from "./shape";
 import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
 import quadvertexShaderCode from "./shaders/quad.vert.wgsl?raw";
 
-import { GUI  } from 'dat.gui';
+import { GUI } from 'dat.gui';
 
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
+// Make list of all .png files in public/data/obs
+const files = import.meta.glob('/public/data/obs/*', { eager: true  });
+const filePaths = Object.keys(files).map(path => path.replace('/public', ''));
 
+console.log("Files: ", files);
+console.log(filePaths);
 
 if (!navigator.gpu) {
 	console.error("WebGPU is not supported in your browser.");
