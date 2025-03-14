@@ -268,13 +268,17 @@ const bindGroupLayoutQuadTree = device.createBindGroupLayout({
 	entries: [
 		{
 			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT,
-			buffer: {},
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage',
+			},
 		},
 		{
 			binding: 1,
-			visibility: GPUShaderStage.FRAGMENT,
-			buffer: {},
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage',
+			},
 		},
 	],
 });
