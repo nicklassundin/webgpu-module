@@ -7,19 +7,16 @@ import { Triangle, Hexagon } from "./shape";
 import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
 import quadvertexShaderCode from "./shaders/quad.vert.wgsl?raw";
 
-import quadTraversalComputeShaderCode from "./shaders/quad.traversal.comp.wgsl?raw";
-
 import { GUI } from 'dat.gui';
 
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
 // Load fileList from public/data/obs
 const response = await fetch('/data/obs/fileList.json');
-const fileList = (await response.json()).files
+const fileList = await response.json();
 // Filter out non png files
 const textureList = fileList.filter((file: string) => file.endsWith('.png'));
-// Filter out non .json files
-const quadTreeList = fileList.filter((file: string) => file.endsWith('.json'));
+console.log(textureList);
 
 if (!navigator.gpu) {
 	console.error("WebGPU is not supported in your browser.");
@@ -283,100 +280,6 @@ for (let i = 0; i < textureList.length; i++) {
 	}
 }
 device.queue.submit([commandEncoder.finish()]);
-// TODO: QuadTree buffers
-let quadTreeBuffers: GPUBuffer[] = [];
-let quadTreeValues: GPUBuffer[] = [];
-for (let i = 0; i < quadTreeList.length; i++) {
-	const quadTree = quadTreeList[i];
-	const response = await fetch(`${quadTree}`);
-	console.log(`Loading ${response.url}`);
-	const quadTreeData = await response.json();
-	const Values = new Float32Array(quadTreeData['values']);
-	const valuesBuffer = device.createBuffer({
-		size: Values.byteLength,
-		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
-	});
-	device.queue.writeBuffer(valuesBuffer, 0, Values.buffer);
-	quadTreeValues.push(valuesBuffer);
-	const nodes = new Float32Array(quadTreeData['nodes']);
-	const quadTreeBuffer = device.createBuffer({
-		size: nodes.byteLength,
-		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
-	});
-	device.queue.writeBuffer(quadTreeBuffer, 0, nodes.buffer);
-	quadTreeBuffers.push(quadTreeBuffer);
-	device.queue.writeBuffer(quadTreeBuffer, 0, new Uint8Array(quadTreeData).buffer);
-}
-// Create bindGroupLayout for QuadTree
-// const bindGroupLayoutQuadTree = device.createBindGroupLayout({
-// 	entries: [
-// 		{
-// 			binding: 0,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			sampler: {
-// 				type: 'filtering',
-// 			},
-// 		},
-// 		{
-// 			binding: 1,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			texture: {
-// 				sampleType: 'float',
-// 			},
-// 		},
-// 		{
-// 			binding: 2,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			buffer: {},
-// 		},
-// 		{
-// 			binding: 3,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			buffer: {},
-// 		},
-// 	],
-// });
-// // Create bindGroup for QuadTree
-// const bindGroupQuadTree = device.createBindGroup({
-// 	layout: bindGroupLayoutQuadTree,
-// 	entries: [
-// 		{
-// 			binding: 0,
-// 			resource: sampler,
-// 		},
-// 		{
-// 			binding: 1,
-// 			resource: textures[0].createView(),
-// 		},
-// 		{
-// 			binding: 2,
-// 			resource: quadTreeBuffers[0],
-// 		},
-// 		{
-// 			binding: 3,
-// 			resource: quadTreeValues[0],
-// 		},
-// 	],
-// });
-// Create QuadTree Compute pipeline Traversal
-// const computePipeline = device.createComputePipeline({
-// 	compute: {
-// 		module: device.createShaderModule({
-// 			code: quadTraversalComputeShaderCode,
-// 		}),
-// 		entryPoint: 'main',
-// 	},
-// });
-// QuadTree Compute Pass
-// const commandEncoderCompute = device.createCommandEncoder();
-// const computePass = commandEncoderCompute.beginComputePass();
-// computePass.setPipeline(computePipeline);
-// computePass.setBindGroup(0, bindGroupQuadTree);
-// computePass.dispatch(1);
-// computePass.endPass();
-// device.queue.submit([commandEncoderCompute.finish()]);
-
-
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
 	bindGroupLayouts: [bindGroupLayouts[0], bindGroupLayoutUniforms[0]],

@@ -1,5 +1,8 @@
-[
-  "/data/obs/fileList.json",
-  "/data/obs/heatmap_Phylloscopus collybita.png",
-  "/data/obs/heatmap_Phylloscopus trochilus.png"
-]
+{
+  "files": [
+    "./data/obs/heatmap_Phylloscopus_collybita.png",
+    "./data/obs/heatmap_Phylloscopus_trochilus.png",
+    "./data/obs/quadtree_Phylloscopus_collybita.json",
+    "./data/obs/quadtree_Phylloscopus_trochilus.json"
+  ]
+}

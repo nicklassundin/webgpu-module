@@ -10,7 +10,12 @@ if (!fs.existsSync(DATA_DIR)) {
 
 }
 
-const files = fs.readdirSync(DATA_DIR).map(file => `/data/obs/${file}`);
+let files = fs.readdirSync(DATA_DIR).map(file => `./data/obs/${file}`);
+// filter out fileList.json
+files = files.filter(file => file !== './data/obs/fileList.json');
+files = {
+	files: files
+}
 fs.writeFileSync(FILE_LIST_PATH, JSON.stringify(files, null, 2));
 
 console.log(`✅ File list generated: ${FILE_LIST_PATH}`);
