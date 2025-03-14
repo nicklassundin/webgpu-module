@@ -7,19 +7,16 @@ import { Triangle, Hexagon } from "./shape";
 import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
 import quadvertexShaderCode from "./shaders/quad.vert.wgsl?raw";
 
-import quadTraversalComputeShaderCode from "./shaders/quad.traversal.comp.wgsl?raw";
-
 import { GUI } from 'dat.gui';
 
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
-// Load fileList from public/data/obs
-const response = await fetch('/data/obs/fileList.json');
-const fileList = (await response.json()).files
-// Filter out non png files
-const textureList = fileList.filter((file: string) => file.endsWith('.png'));
-// Filter out non .json files
-const quadTreeList = fileList.filter((file: string) => file.endsWith('.json'));
+// Make list of all .png files in public/data/obs
+const files = import.meta.glob('/public/data/obs/*', { eager: true  });
+const filePaths = Object.keys(files).map(path => path.replace('/public', ''));
+
+console.log("Files: ", files);
+console.log(filePaths);
 
 if (!navigator.gpu) {
 	console.error("WebGPU is not supported in your browser.");
@@ -95,291 +92,165 @@ device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 
 
 // Mipmap pipeline
+// load image
+// Load Textures
+const image = await loadImageBitmap('./data/obs/heatmap_Phylloscopus trochilus.png'); 
+const mipLevelCount = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
+const textureSize = image.width; // Assume square texture 
+// Create texture with mipmap levels
+const textureMipmap = device.createTexture({
+	size: [ textureSize, textureSize, 1 ],
+	format: 'rgba8unorm',
+	usage: 	GPUTextureUsage.TEXTURE_BINDING |
+		GPUTextureUsage.COPY_DST |
+		GPUTextureUsage.RENDER_ATTACHMENT |
+		GPUTextureUsage.COPY_SRC,
+	mipLevelCount: mipLevelCount
+});
+// print byte size of image
+// Upload image data to texture level 0
+const imageBitmap = image;
+// const imageCanvas = document.createElement('canvas');
+const imageCanvas = document.createElement('canvas');
+imageCanvas.width = textureSize; 
+imageCanvas.height = textureSize;
+const ctx = imageCanvas.getContext('2d');
+
+// ensure ctx is not null
+if (!ctx) {
+	console.error("Failed to get 2d context.");
+	throw new Error("Failed to get 2d context.");
+}
+
+ctx.drawImage(imageBitmap, 0, 0);
+
+const imageData = ctx.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
+device.queue.writeTexture(
+	{ texture: textureMipmap, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
+	imageData.data,
+	{ bytesPerRow: textureSize * 4 },
+	[textureSize, textureSize, 1]
+);
 // sampler with mipmap enabled
 const sampler = device.createSampler({
 	magFilter: 'linear',
 	minFilter: 'linear',
 	mipmapFilter: 'linear',
 });
-// List of all textures with size of textureList
-let textures: GPUTexture[] = [];
-// List of MipMap pipelines
-let pipelines: GPURenderPipeline[] = [];
-// List of bindGroupLayouts
-let bindGroupLayouts: GPUBindGroupLayout[] = [];
-// List of bindGroups
-let bindGroupUniforms: GPUBindGroup[] = [];
-// List of bindGroupLayoutUniforms
-let bindGroupLayoutUniforms: GPUBindGroupLayout[] = [];
-// Mipmap Level Count
-let mipLevelCounts: number[] = [];
-// load image
-// Load Textures
-// for loop with index
-for (let i = 0; i < textureList.length; i++) {
-	const texture = textureList[i];
-	// const image = await loadImageBitmap('./data/obs/trochilus.png'); 
-	const image = await loadImageBitmap(texture);
-	const mipLevelCount = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
-	const textureSize = image.width; // Assume square texture 
-	// Create texture with mipmap levels
-	const textureMipmap = device.createTexture({
-		size: [ textureSize, textureSize, 1 ],
-		format: 'rgba8unorm',
-		usage: 	GPUTextureUsage.TEXTURE_BINDING |
-			GPUTextureUsage.COPY_DST |
-			GPUTextureUsage.RENDER_ATTACHMENT |
-			GPUTextureUsage.COPY_SRC,
-		mipLevelCount: mipLevelCount
-	});
-	// print byte size of image
-	// Upload image data to texture level 0
-	const imageBitmap = image;
-	// const imageCanvas = document.createElement('canvas');
-	const imageCanvas = document.createElement('canvas');
-	imageCanvas.width = textureSize; 
-	imageCanvas.height = textureSize;
-	const ctx = imageCanvas.getContext('2d');
-
-	// ensure ctx is not null
-	if (!ctx) {
-		console.error("Failed to get 2d context.");
-		throw new Error("Failed to get 2d context.");
+// binding group layout for mipmap
+const bindGroupLayoutUniform = device.createBindGroupLayout({
+	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: {}  }],
+})
+// Create binding group layout Used for mipmap and normal rendering
+const bindGroupLayout = device.createBindGroupLayout({
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.FRAGMENT,
+			sampler: {
+				type: 'filtering',
+			},
+		},
+		{
+			binding: 1,
+			visibility: GPUShaderStage.FRAGMENT,
+			texture: {
+				sampleType: 'float',
+			},
+		},
+	],
+});
+// Create pipeline layout for mipmap
+const pipelineLayoutMipmap = device.createPipelineLayout({
+	bindGroupLayouts: [bindGroupLayout],
+});
+// Create bind group for uniform buffer
+const bindGroupUniform = device.createBindGroup({
+	layout: bindGroupLayoutUniform,
+	entries: [
+		{
+			binding: 0,
+			resource: {
+				buffer: uniformBuffer,
+				offset: 0,
+				size: uniformBufferSize,
+			},
+		},
+	],
+});
+// Pipeline for mipmap
+const pipelineMipmap = device.createRenderPipeline({
+	layout: pipelineLayoutMipmap,
+	vertex: {
+		module: device.createShaderModule({
+			code: quadvertexShaderCode,
+		}),
+		buffers: [{
+			arrayStride: 4 * 2,
+			attributes: [
+				{
+					shaderLocation: 0,
+					offset: 0,
+					format: 'float32x2',
+				},
+			],
+		}]
+	},
+	fragment: {
+		module: device.createShaderModule({
+			// TODO replace
+			code: quadfragmentShaderCode,
+			// code: quadtestfragmentShaderCode,
+		}),
+		targets: [{ format: 'rgba8unorm', }],
+	},
+	primitive: {
+		topology: 'triangle-list',
 	}
+});
+// Mipmap render pass
+const commandEncoder = device.createCommandEncoder();
+for (let i = 1; i < mipLevelCount; i++) {
+	const prevLevelSize = textureSize.width >> (i - 1);
+	const newLevelSize = Math.max(1, prevLevelSize >> 1);
+	const view = textureMipmap.createView({ baseMipLevel: i, mipLevelCount: 1  });
 
-	ctx.drawImage(imageBitmap, 0, 0);
-
-	const imageData = ctx.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
-	device.queue.writeTexture(
-		{ texture: textureMipmap, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-		imageData.data,
-		{ bytesPerRow: textureSize * 4 },
-		[textureSize, textureSize, 1]
-	);
-	// binding group layout for mipmap
-	const bindGroupLayoutUniform = device.createBindGroupLayout({
-		entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: {}  }],
-	})
-	// Create binding group layout Used for mipmap and normal rendering
-	const bindGroupLayout = device.createBindGroupLayout({
+	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
+		colorAttachments: [
+			{
+				view,
+				loadOp: 'clear',
+				storeOp: 'store',
+			},
+		],
+	};
+	const bindGroupMip = device.createBindGroup({
+		layout: bindGroupLayout,
 		entries: [
 			{
 				binding: 0,
-				visibility: GPUShaderStage.FRAGMENT,
-				sampler: {
-					type: 'filtering',
-				},
+				resource: sampler,
 			},
 			{
 				binding: 1,
-				visibility: GPUShaderStage.FRAGMENT,
-				texture: {
-					sampleType: 'float',
-				},
+				resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevelCount: 1}),
 			},
 		],
 	});
-	// Create pipeline layout for mipmap
-	const pipelineLayoutMipmap = device.createPipelineLayout({
-		bindGroupLayouts: [bindGroupLayout],
-	});
-	// Create bind group for uniform buffer
-	const bindGroupUniform = device.createBindGroup({
-		layout: bindGroupLayoutUniform,
-		entries: [
-			{
-				binding: 0,
-				resource: {
-					buffer: uniformBuffer,
-					offset: 0,
-					size: uniformBufferSize,
-				},
-			},
-		],
-	});
-	// Pipeline for mipmap
-	const pipelineMipmap = device.createRenderPipeline({
-		layout: pipelineLayoutMipmap,
-		vertex: {
-			module: device.createShaderModule({
-				code: quadvertexShaderCode,
-			}),
-			buffers: [{
-				arrayStride: 4 * 2,
-				attributes: [
-					{
-						shaderLocation: 0,
-						offset: 0,
-						format: 'float32x2',
-					},
-				],
-			}]
-		},
-		fragment: {
-			module: device.createShaderModule({
-				// TODO replace
-				code: quadfragmentShaderCode,
-				// code: quadtestfragmentShaderCode,
-			}),
-			targets: [{ format: 'rgba8unorm', }],
-		},
-		primitive: {
-			topology: 'triangle-list',
-		}
-	});
 
-	textures.push(textureMipmap);
-	pipelines.push(pipelineMipmap);
-	bindGroupLayouts.push(bindGroupLayout);
-	bindGroupUniforms.push(bindGroupUniform);
-	bindGroupLayoutUniforms.push(bindGroupLayoutUniform);
-	mipLevelCounts.push(mipLevelCount);
-}
-// Mipmap render pass
-const commandEncoder = device.createCommandEncoder();
-for (let i = 0; i < textureList.length; i++) {
-	const textureMipmap = textureList[i];
-	const pipelineMipmap = pipelines[i];
-	const bindGroupLayout = bindGroupLayouts[i];
-	const bindGroupUniform = bindGroupUniforms[i];
-	const mipLevelCount = textureMipmap.mipLevelCount;
-	const textureSize = textureMipmap.size;
-	// Generate Mipmaps
-	for (let i = 1; i < mipLevelCount; i++) {
-		const prevLevelSize = textureSize.width >> (i - 1);
-		const newLevelSize = Math.max(1, prevLevelSize >> 1);
-		const view = textureMipmap.createView({ baseMipLevel: i, mipLevelCount: 1  });
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
+	passEncoder.setPipeline(pipelineMipmap);
+	passEncoder.setBindGroup(0, bindGroupMip);
+	passEncoder.setVertexBuffer(0, vertexBuffer);
+	passEncoder.draw(6);
+	passEncoder.end();
 
-		const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
-			colorAttachments: [
-				{
-					view,
-					loadOp: 'clear',
-					storeOp: 'store',
-				},
-			],
-		};
-		const bindGroupMip = device.createBindGroup({
-			layout: bindGroupLayout,
-			entries: [
-				{
-					binding: 0,
-					resource: sampler,
-				},
-				{
-					binding: 1,
-					resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevelCount: 1}),
-				},
-			],
-		});
-
-		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
-		passEncoder.setPipeline(pipelineMipmap);
-		passEncoder.setBindGroup(0, bindGroupMip);
-		passEncoder.setVertexBuffer(0, vertexBuffer);
-		passEncoder.draw(6);
-		passEncoder.end();
-
-	}
 }
 device.queue.submit([commandEncoder.finish()]);
-// TODO: QuadTree buffers
-let quadTreeBuffers: GPUBuffer[] = [];
-let quadTreeValues: GPUBuffer[] = [];
-for (let i = 0; i < quadTreeList.length; i++) {
-	const quadTree = quadTreeList[i];
-	const response = await fetch(`${quadTree}`);
-	console.log(`Loading ${response.url}`);
-	const quadTreeData = await response.json();
-	const Values = new Float32Array(quadTreeData['values']);
-	const valuesBuffer = device.createBuffer({
-		size: Values.byteLength,
-		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
-	});
-	device.queue.writeBuffer(valuesBuffer, 0, Values.buffer);
-	quadTreeValues.push(valuesBuffer);
-	const nodes = new Float32Array(quadTreeData['nodes']);
-	const quadTreeBuffer = device.createBuffer({
-		size: nodes.byteLength,
-		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
-	});
-	device.queue.writeBuffer(quadTreeBuffer, 0, nodes.buffer);
-	quadTreeBuffers.push(quadTreeBuffer);
-	device.queue.writeBuffer(quadTreeBuffer, 0, new Uint8Array(quadTreeData).buffer);
-}
-// Create bindGroupLayout for QuadTree
-// const bindGroupLayoutQuadTree = device.createBindGroupLayout({
-// 	entries: [
-// 		{
-// 			binding: 0,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			sampler: {
-// 				type: 'filtering',
-// 			},
-// 		},
-// 		{
-// 			binding: 1,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			texture: {
-// 				sampleType: 'float',
-// 			},
-// 		},
-// 		{
-// 			binding: 2,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			buffer: {},
-// 		},
-// 		{
-// 			binding: 3,
-// 			visibility: GPUShaderStage.FRAGMENT,
-// 			buffer: {},
-// 		},
-// 	],
-// });
-// // Create bindGroup for QuadTree
-// const bindGroupQuadTree = device.createBindGroup({
-// 	layout: bindGroupLayoutQuadTree,
-// 	entries: [
-// 		{
-// 			binding: 0,
-// 			resource: sampler,
-// 		},
-// 		{
-// 			binding: 1,
-// 			resource: textures[0].createView(),
-// 		},
-// 		{
-// 			binding: 2,
-// 			resource: quadTreeBuffers[0],
-// 		},
-// 		{
-// 			binding: 3,
-// 			resource: quadTreeValues[0],
-// 		},
-// 	],
-// });
-// Create QuadTree Compute pipeline Traversal
-// const computePipeline = device.createComputePipeline({
-// 	compute: {
-// 		module: device.createShaderModule({
-// 			code: quadTraversalComputeShaderCode,
-// 		}),
-// 		entryPoint: 'main',
-// 	},
-// });
-// QuadTree Compute Pass
-// const commandEncoderCompute = device.createCommandEncoder();
-// const computePass = commandEncoderCompute.beginComputePass();
-// computePass.setPipeline(computePipeline);
-// computePass.setBindGroup(0, bindGroupQuadTree);
-// computePass.dispatch(1);
-// computePass.endPass();
-// device.queue.submit([commandEncoderCompute.finish()]);
-
 
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayouts[0], bindGroupLayoutUniforms[0]],
+	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform],
 });
 // Piprline
 const pipeline = device.createRenderPipeline({
@@ -431,7 +302,7 @@ let lastFrameTime = Date.now()
 function frame() {
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
-		layout: bindGroupLayouts[0],
+		layout: bindGroupLayout,
 		entries: [
 			{
 				binding: 0,
@@ -439,7 +310,7 @@ function frame() {
 			},
 			{
 				binding: 1,
-				resource: textures[0].createView(),
+				resource: textureMipmap.createView(),
 			},
 		],
 	});
@@ -458,7 +329,7 @@ function frame() {
 		passEncoder.setPipeline(pipeline);
 		passEncoder.setVertexBuffer(0, vertexBuffer);
 		passEncoder.setBindGroup(0, bindGroup);
-		passEncoder.setBindGroup(1, bindGroupUniforms[0]);
+		passEncoder.setBindGroup(1, bindGroupUniform);
 		passEncoder.draw(6);
 		passEncoder.end();
 
@@ -466,7 +337,7 @@ function frame() {
 		frameCount++;
 	}
 	// if (frameCount % 60*1000 === 0) {
-	requestAnimationFrame(frame);
+		requestAnimationFrame(frame);
 	// }
 }
 
@@ -488,16 +359,12 @@ function resizeCanvas() {
 const gui = new GUI();
 {
 	const folder = gui.addFolder("Mipmap");
-	folder.add({ value: 3}, 'value', 1, mipLevelCounts[0], 1).name("Mip Level").onChange((value: number) => {
+	folder.add({ value: 3}, 'value', 1, mipLevelCount, 1).name("Mip Level").onChange((value: number) => {
 		const resolution = new Float32Array([canvas.width,
 						    canvas.height,
 		value]);
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 	});
-	// select Texture to display
-	// folder.add({ texture: textureList[0] }, 'texture', textureList).name("Texture").onChange(async (value: string) => {
-
-	// }
 	folder.open();
 }
 
