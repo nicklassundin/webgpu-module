@@ -12,11 +12,10 @@ import { GUI } from 'dat.gui';
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
 // Make list of all .png files in public/data/obs
-const files = import.meta.glob('/public/data/obs/*', { eager: true  });
-const filePaths = Object.keys(files).map(path => path.replace('/public', ''));
-
-console.log("Files: ", files);
-console.log(filePaths);
+const response = await fetch('/data/obs/fileList.json');
+const files = (await response.json()).files
+const textureList = files.filter((file: string) => file.endsWith('.png'));
+const quadTreeList = files.filter((file: string) => file.endsWith('.json'));
 
 if (!navigator.gpu) {
 	console.error("WebGPU is not supported in your browser.");
@@ -94,7 +93,7 @@ device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 // Mipmap pipeline
 // load image
 // Load Textures
-const image = await loadImageBitmap('./data/obs/heatmap_Phylloscopus trochilus.png'); 
+const image = await loadImageBitmap(textureList[0]);
 const mipLevelCount = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
 const textureSize = image.width; // Assume square texture 
 // Create texture with mipmap levels
@@ -247,6 +246,99 @@ for (let i = 1; i < mipLevelCount; i++) {
 
 }
 device.queue.submit([commandEncoder.finish()]);
+
+// TODO: QuadTree buffers
+const quadTree = await fetch(quadTreeList[0]);
+const quadTreeJson = await quadTree.json();
+const values = new Float32Array(quadTreeJson.values);
+const valuesBuffer = device.createBuffer({
+	size: values.byteLength,
+	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(valuesBuffer, 0, values.buffer);
+
+const nodes = new Float32Array(quadTreeJson.nodes);
+const nodesBuffer = device.createBuffer({
+	size: nodes.byteLength,
+	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(nodesBuffer, 0, nodes.buffer);
+// create bindgrouopLayout for quadtree
+const bindGroupLayoutQuadTree = device.createBindGroupLayout({
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.FRAGMENT,
+			buffer: {},
+		},
+		{
+			binding: 1,
+			visibility: GPUShaderStage.FRAGMENT,
+			buffer: {},
+		},
+	],
+});
+// create bindGroup for quadTree
+const bindGroupQuadTree = device.createBindGroup({
+	layout: bindGroupLayoutQuadTree,
+	entries: [
+		{
+			binding: 0,
+			resource: {
+				buffer: valuesBuffer,
+				offset: 0,
+				size: values.byteLength,
+			},
+		},
+		{
+			binding: 1,
+			resource: {
+				buffer: nodesBuffer,
+				offset: 0,
+				size: nodes.byteLength,
+			},
+		},
+	],
+});
+// Create texture for quadtree bindGroupQuad
+const bindGroupQuadTreeTexture = device.createBindGroup({
+	layout: bindGroupLayout,
+	entries: [
+		{
+			binding: 0,
+			resource: sampler,
+		},
+		{
+			binding: 1,
+			resource: textureMipmap.createView(),
+		},
+	],
+});
+// Create pipeline layout for quadTree
+const pipelineLayoutQuadTree = device.createPipelineLayout({
+	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutQuadTree],
+});
+// create compute pipeline for quad traversal
+const quad_pipeline = device.createComputePipeline({
+	layout: pipelineLayoutQuadTree,
+	compute: {
+		module: device.createShaderModule({
+			code: quadfragmentShaderCode,
+		}),
+		entryPoint: 'main',
+	},
+});
+// QuadTree compute pass
+const commandEncoderQuad = device.createCommandEncoder();
+const computePass = commandEncoderQuad.beginComputePass();
+computePass.setPipeline(quad_pipeline);
+computePass.setBindGroup(0, bindGroupQuadTreeTexture);
+computePass.setBindGroup(1, bindGroupQuadTree);
+computePass.dispatchWorkgroups(1)
+computePass.end();
+device.queue.submit([commandEncoderQuad.finish()]);
+
+
 
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
