@@ -143,7 +143,7 @@ const sampler = device.createSampler({
 });
 // binding group layout for mipmap
 const bindGroupLayoutUniform = device.createBindGroupLayout({
-	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: {}  }],
+	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, buffer: {}  }],
 })
 // Create binding group layout Used for mipmap and normal rendering
 const bindGroupLayout = device.createBindGroupLayout({
@@ -252,121 +252,14 @@ for (let i = 1; i < mipLevelCount; i++) {
 }
 device.queue.submit([commandEncoder.finish()]);
 
-// Frame Texture
-const frameTexture = device.createTexture({
-	size: [ textureSize, textureSize, 1 ],
-	format: 'rgba8unorm',
-	usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
-});
-
+import QuadTree from "./quadTree";
 
 // TODO: QuadTree buffers
-const quadTree = await fetch(quadTreeList[0]);
-const quadTreeJsonString = await quadTree.json();
+const quadTreeData = await fetch(quadTreeList[0]);
+const quadTreeJsonString = await quadTreeData.json();
 const quadTreeJson = JSON.parse(quadTreeJsonString);
-const values = new Float32Array(quadTreeJson.values);
-const valuesBuffer = device.createBuffer({
-	size: values.byteLength,
-	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-});
-device.queue.writeBuffer(valuesBuffer, 0, values.buffer);
 
-
-const nodes = new Float32Array(quadTreeJson.nodes);
-const nodesBuffer = device.createBuffer({
-	size: nodes.byteLength,
-	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-});
-device.queue.writeBuffer(nodesBuffer, 0, nodes.buffer);
-// create bindgrouopLayout for quadtree
-// Texture Storage Layout
-const bindGroupLayoutTextureStorage = device.createBindGroupLayout({
-	entries: [
-		{
-			binding: 0,
-			visibility: GPUShaderStage.COMPUTE,
-			sampler: {
-				type: 'filtering',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.COMPUTE,
-			storageTexture: { access: "write-only", format: "rgba8unorm"  }
-		},
-	],
-});
-
-// Quad Tree bindGroupLayout
-const bindGroupLayoutQuadTree = device.createBindGroupLayout({
-	entries: [
-		{
-			binding: 0,
-			visibility: GPUShaderStage.COMPUTE,
-			buffer: {
-				type: 'storage',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.COMPUTE,
-			buffer: {
-				type: 'storage',
-			},
-		},
-	],
-});
-// create bindGroup for quadTree
-const bindGroupQuadTree = device.createBindGroup({
-	layout: bindGroupLayoutQuadTree,
-	entries: [
-		{
-			binding: 0,
-			resource: {
-				buffer: valuesBuffer,
-				offset: 0,
-				size: values.byteLength,
-			},
-		},
-		{
-			binding: 1,
-			resource: {
-				buffer: nodesBuffer,
-				offset: 0,
-				size: nodes.byteLength,
-			},
-		},
-	],
-});
-// Create texture for quadtree bindGroupQuad
-const bindGroupQuadTreeTexture = device.createBindGroup({
-	layout: bindGroupLayoutTextureStorage,
-	entries: [
-		{
-			binding: 0,
-			resource: sampler,
-		},
-		{
-			binding: 1,
-			resource: frameTexture.createView(),
-		},
-	],
-});
-// Create pipeline layout for quadTree
-const pipelineLayoutQuadTree = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayoutTextureStorage, bindGroupLayoutQuadTree],
-});
-// create compute pipeline for quad traversal
-const quad_pipeline = device.createComputePipeline({
-	layout: pipelineLayoutQuadTree,
-	compute: {
-		module: device.createShaderModule({
-			code: quadTraversalComputeShaderCode,
-		}),
-		entryPoint: 'main',
-	},
-});
-
+const quadTree = new QuadTree(device, quadTreeJson, textureSize, sampler, bindGroupUniform, bindGroupLayoutUniform)
 
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
@@ -416,20 +309,27 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
 	],
 };
 
+// TODO GUI
+const gui = new GUI();
+{
+	const folder = gui.addFolder("Mipmap");
+	folder.add({ value: 3}, 'value', 0, mipLevelCount, 1).name("Mip Level").onChange((value: number) => {
+		const resolution = new Float32Array([canvas.width,
+						    canvas.height,
+		value]);
+		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
+	});
+	folder.open();
+}
 
+
+// Main loop
 let frameCount = 0;
 let lastFrameTime = Date.now()
 function frame() {
 	// QuadTree compute pass
-	const commandEncoderQuad = device.createCommandEncoder();
-	const computePass = commandEncoderQuad.beginComputePass();
-	computePass.setPipeline(quad_pipeline);
-	computePass.setBindGroup(0, bindGroupQuadTreeTexture);
-	computePass.setBindGroup(1, bindGroupQuadTree);
-	computePass.dispatchWorkgroups(64)
-	computePass.end();
-	device.queue.submit([commandEncoderQuad.finish()]);
-
+	const mipLevel = gui.__folders.Mipmap.__controllers[0].object.value;
+	quadTree.pass(mipLevel);
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,
@@ -441,7 +341,7 @@ function frame() {
 			{
 				binding: 1,
 				// resource: textureMipmap.createView(),
-				resource: frameTexture.createView(),
+				resource: quadTree.texture.createView(),
 			},
 		],
 	});
@@ -486,18 +386,6 @@ function resizeCanvas() {
 
 }
 
-// TODO GUI
-const gui = new GUI();
-{
-	const folder = gui.addFolder("Mipmap");
-	folder.add({ value: 3}, 'value', 0, mipLevelCount, 1).name("Mip Level").onChange((value: number) => {
-		const resolution = new Float32Array([canvas.width,
-						    canvas.height,
-		value]);
-		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
-	});
-	folder.open();
-}
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas(); // Ensure correct size on startup
