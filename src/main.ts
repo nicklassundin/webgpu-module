@@ -82,7 +82,7 @@ vertexBuffer.unmap();
 // Uniform Buffer
 // containing the resolution of the canvas
 // Resolution 4 * 2; Mipmap level 4 * 1
-const uniformBufferSize = 4 * 2 + 4 * 2;
+const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
 const uniformBuffer = device.createBuffer({
 	size: uniformBufferSize,
 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -262,7 +262,7 @@ const quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson, textureSize, bindGroupUniform, bindGroupLayoutUniform)
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
+const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffer, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
 
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
@@ -312,6 +312,51 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
 	],
 };
 
+async function fromBufferToLog(storageBuffer: GPUbuffer,  offset: number = 0, size: number = 4) {
+	// Create a readback buffer
+	const readBuffer = device.createBuffer({
+		size: size*Float32Array.BYTES_PER_ELEMENT,
+		usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+	});
+	const commandEncoder = device.createCommandEncoder();
+	commandEncoder.copyBufferToBuffer(storageBuffer, 0, readBuffer, 0, size*Float32Array.BYTES_PER_ELEMENT);
+	const commands = commandEncoder.finish();
+	device.queue.submit([commands]);
+	await device.queue.onSubmittedWorkDone();
+
+	// Map the readback buffer and read the integer
+	await readBuffer.mapAsync(GPUMapMode.READ);
+	const arrayBuffer = readBuffer.getMappedRange();
+	const view = new Float32Array(arrayBuffer);
+	
+	console.log(view);
+	readBuffer.unmap();
+}
+async function updateTravBufferCoord(uv: number[]) {
+	const travBuffer = quadTree.buffers.travBuffer;
+	let byteOffset = 0;
+	const mipLevel = new Float32Array([0]);
+
+	device.queue.writeBuffer(travBuffer, byteOffset, mipLevel, 0, 1);
+	byteOffset += mipLevel.byteLength;
+	
+	const boundBox = new Float32Array([0.0, 0.0, 1.0, 1.0]);
+	device.queue.writeBuffer(travBuffer, byteOffset, boundBox, 0, 4);
+	byteOffset += boundBox.byteLength;
+
+	const targetCoords = new Float32Array(uv);
+	device.queue.writeBuffer(travBuffer, byteOffset, targetCoords, 0, 2);
+	byteOffset += targetCoords.byteLength;
+
+	const address = new Float32Array([42]);
+	device.queue.writeBuffer(travBuffer, byteOffset, address, 0, 1);
+	byteOffset += address.byteLength;
+	
+	await device.queue.onSubmittedWorkDone();
+	await fromBufferToLog(travBuffer, 0, 4*4);
+	await fromBufferToLog(travBuffer, 4 * 1 + 4 * 4, 4 * 2);
+}
+
 // TODO GUI
 const gui = new GUI();
 {
@@ -320,10 +365,26 @@ const gui = new GUI();
 		const resolution = new Float32Array([canvas.width,
 						    canvas.height,
 		value]);
-		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
+		device.queue.writeBuffer(uniformBuffer, 0, resolution);
 	});
+	// Add folder for uv coordinates
+	const uvFolder = gui.addFolder("UV Coordinates");
+	uvFolder.add({ value: 0.5 }, 'value', 0, 1, 0.01).name("U").onChange((value: number) => {
+		updateTravBufferCoord([value, uvFolder.__controllers[1].object.value]);
+	})
+	uvFolder.add({ value: 0.5 }, 'value', 0, 1, 0.01).name("V");
 	folder.open();
 }
+
+
+// listen and find uv coordinates of mouse on click
+canvas.addEventListener('click', (event) => {
+	const rect = canvas.getBoundingClientRect();
+	const x = event.clientX - rect.left;
+	const y = event.clientY - rect.top;
+	const uv = [x / canvas.width, y / canvas.height];
+	updateTravBufferCoord(uv);
+});
 
 
 // Main loop
@@ -333,7 +394,8 @@ function frame() {
 	// QuadTree compute pass
 	const mipLevel = gui.__folders.Mipmap.__controllers[0].object.value;
 	quadTree.pass(mipLevel);
-	quadTree.pass(mipLevel);
+	// Evaluation compute pass
+	// evaluation.pass(mipLevel);
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,

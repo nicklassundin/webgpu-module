@@ -1,5 +1,7 @@
 import quadEvaluationComputeShaderCode from './shaders/quad.eval.comp.wgsl?raw';
 
+
+const travValues = new Float32Array(64);
 class Eval {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
@@ -8,9 +10,15 @@ class Eval {
 	layout: GPUPipelineLayout;
 	texture: GPUTexture;
 	device: GPUDevice;
+	levelBuffer: GPUBuffer;
+	bindGroupLayouts: {
+		quadTree: GPUBindGroupLayout,
+		textureStorage: GPUBindGroupLayout,
+	};
 	constructor(device: GPUDevice,
 		    textureSize,
-		    buffer: GPUBuffer,
+		    travBuffer: GPUBuffer,
+		    levelBuffer: GPUBuffer,
 		    sampler: GPUTextureSampler,
 		    bindGroupUniform: GPUBindGroup,
 		    bindGroupLayoutUniform: GPUBindGroupLayout,
@@ -25,14 +33,7 @@ class Eval {
 		});
 
 		// Create empty uniform buffer
-		const uniformBuffer = device.createBuffer({
-			size: ( 4 * 1 * // Current Mip Level
-			       4 * 4 * // Bound Box
-			       4 * 2 * // Target Coordinates
-			       4 * 1 // Address
-			      )  * Float32Array.BYTES_PER_ELEMENT,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST ,
-		});
+		this.travBuffer = travBuffer;
 
 		// create bindgrouopLayout for quadtree
 		// Texture Storage Layout
@@ -59,14 +60,16 @@ class Eval {
 				{
 					binding: 0,
 					visibility: GPUShaderStage.COMPUTE,
-					buffer: {}
+					buffer: {
+						type: 'storage'
+					}
 				},
 				{
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
 						type: 'storage',
-					},
+					}, 
 				}
 			],
 		});
@@ -77,19 +80,17 @@ class Eval {
 				{
 					binding: 0,
 					resource: {
-						buffer: uniformBuffer,
+						buffer: travBuffer,
 						offset: 0,
-						size: 4 * 1 * // Current Mip Level
-						       4 * 4 * // Bound Box
-						       4 * 2 // Target Coordinates
+						size: travValues.byteLength, 
 					},
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: buffer,
+						buffer: levelBuffer,
 						offset: 0,
-						size: buffer.size,
+						size: levelBuffer.size,
 					},
 				},
 			],
@@ -132,8 +133,13 @@ class Eval {
 		this.bindGroupQuadTree = bindGroupQuadTree;
 		this.bindGroupTexture = bindGroupQuadTreeTexture;
 		this.bindGroupLayoutTextureStorage = bindGroupLayoutTextureStorage;
+		this.bindGroupLayouts = {
+			quadTree: bindGroupLayoutQuadTree,
+			textureStorage: bindGroupLayoutTextureStorage,
+		}
 		this.layout = pipelineLayoutQuadTree;
 		this.texture = frameTexture;
+		this.levelBuffer = levelBuffer;
 		this.device = device;
 		this.sampler = sampler;
 		this.mipmapLevel = mipLevelCount;
@@ -145,7 +151,7 @@ class Eval {
 		const sampler = this.sampler;
 
 		this.bindGroupTexture = device.createBindGroup({
-			layout: this.bindGroupLayoutTextureStorage,
+			layout: this.bindGroupLayouts.textureStorage,
 			entries: [
 				{
 					binding: 0,
@@ -160,6 +166,28 @@ class Eval {
 				},
 			],
 		});
+		this.bindGroupQuadTree = device.createBindGroup({
+			layout: this.bindGroupLayouts.quadTree,
+			entries: [
+				{
+					binding: 0,
+					resource: {
+						buffer: this.travBuffer,
+						offset: 0,
+						size: travValues.byteLength,
+					},
+				},
+				{
+					binding: 1,
+					resource: {
+						buffer: this.levelBuffer,
+						offset: 0,
+						size: this.levelBuffer.size,
+					},
+				},
+			],
+		});
+
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
 		computePass.setPipeline(this.pipeline);
