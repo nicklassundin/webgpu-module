@@ -395,7 +395,7 @@ function frame() {
 	const mipLevel = gui.__folders.Mipmap.__controllers[0].object.value;
 	quadTree.pass(mipLevel);
 	// Evaluation compute pass
-	// evaluation.pass(mipLevel);
+	evaluation.pass(mipLevel);
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,
