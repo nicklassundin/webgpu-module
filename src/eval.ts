@@ -1,6 +1,6 @@
-import quadTraversalComputeShaderCode from './shaders/quad.trav.comp.wgsl?raw';
+import quadEvaluationComputeShaderCode from './shaders/quad.eval.comp.wgsl?raw';
 
-class QuadTree {
+class Eval {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
 	bindGroupUniform: GPUBindGroup;
@@ -16,9 +16,7 @@ class QuadTree {
 		    bindGroupLayoutUniform: GPUBindGroupLayout,
 		    mipLevelCount: number = 11) {
 		// create textureSize from mipLevel
-		// const mipLevel = 30;
-		// const textureSizez = Math.pow(2, mipLevel);
-		// console.log(textureSizez)
+		// const textureSize = Math.pow(2, mipLevelCount);
 		const frameTexture = device.createTexture({
 			size: [textureSize, textureSize, 1],
 			format: 'rgba8unorm',
@@ -122,7 +120,7 @@ class QuadTree {
 			layout: pipelineLayoutQuadTree,
 			compute: {
 				module: device.createShaderModule({
-					code: quadTraversalComputeShaderCode,
+					code: quadEvaluationComputeShaderCode,
 				}),
 				entryPoint: 'main',
 			},
@@ -173,4 +171,4 @@ class QuadTree {
 		device.queue.submit([commandEncoderQuad.finish()]);
 	}
 }
-export default QuadTree;
+export default Eval;

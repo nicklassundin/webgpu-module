@@ -259,7 +259,10 @@ const quadTreeData = await fetch(quadTreeList[0]);
 const quadTreeJsonString = await quadTreeData.json();
 const quadTreeJson = JSON.parse(quadTreeJsonString);
 
-const quadTree = new QuadTree(device, quadTreeJson, textureSize, sampler, bindGroupUniform, bindGroupLayoutUniform)
+const quadTree = new QuadTree(device, quadTreeJson, textureSize, bindGroupUniform, bindGroupLayoutUniform)
+
+import Eval from "./eval";
+const evaluation = new Eval(device, textureSize, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
 
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
@@ -330,6 +333,7 @@ function frame() {
 	// QuadTree compute pass
 	const mipLevel = gui.__folders.Mipmap.__controllers[0].object.value;
 	quadTree.pass(mipLevel);
+	quadTree.pass(mipLevel);
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,
@@ -341,7 +345,7 @@ function frame() {
 			{
 				binding: 1,
 				// resource: textureMipmap.createView(),
-				resource: quadTree.texture.createView(),
+				resource: evaluation.texture.createView(),
 			},
 		],
 	});

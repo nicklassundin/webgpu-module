@@ -5,8 +5,6 @@ struct Uniforms {
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms; 
 
-@group(1) @binding(0) var samplerTex: sampler;
-@group(1) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
 
 struct Node {
 	valueAddress: f32,
@@ -22,14 +20,21 @@ struct Traversal {
 	coord: vec2<f32>,
 	address: f32,
 };
-@group(2) @binding(0) var<storage, read_write> traversal: Traversal;
-@group(2) @binding(1) var<storage, read_write> values: array<f32>;
-@group(2) @binding(2) var<storage, read_write> nodes: array<Node>;
 
-@compute @workgroup_size(2,2)
+@group(1) @binding(0) var<storage, read_write> traversal: Traversal;
+@group(1) @binding(1) var<storage, read_write> values: array<f32>;
+@group(1) @binding(2) var<storage, read_write> nodes: array<Node>;
+@group(1) @binding(3) var<storage, read_write> result: array<f32>;
+
+@compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	let pos = vec2<u32>(global_id.xy);
-	let id = f32(pos.x + pos.y) * 2.0;
+	let depth = traversal.depth;
+	let id = global_id.x % u32(depth);
+	
+	let traversalNode = traversal.address;
+	let node = nodes[u32(traversalNode)];
+	let value = values[u32(node.valueAddress)];
+	result[u32(depth)] = value;
 
-     	textureStore(outputTexture, pos, vec4<f32>(1.0, 0.0, 0.0, 1.0)); // Red
+	traversal.address = f32(node.children[0]);
 }
