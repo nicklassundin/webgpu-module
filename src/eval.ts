@@ -144,7 +144,7 @@ class Eval {
 		this.sampler = sampler;
 		this.mipmapLevel = mipLevelCount;
 	}
-	pass(mipLevel){
+	async pass(mipLevel){
 		// calculate workgroup based on mipmap
 		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
 		const device = this.device;
@@ -196,7 +196,7 @@ class Eval {
 		computePass.setBindGroup(2, this.bindGroupQuadTree);
 		computePass.dispatchWorkgroups(1)
 		computePass.end();
-		device.queue.submit([commandEncoderQuad.finish()]);
+		await device.queue.submit([commandEncoderQuad.finish()]);
 	}
 }
 export default Eval;

@@ -397,7 +397,7 @@ const renderPassDescriptorDepth: GPURenderPassDescriptor = {
 
 // Create Depth Texture TODO
 const depthTextures: GPUTexture[] = [];
-const frames = 10;
+const frames = 2;
 for (let i = 0; i < frames; i++) {
 	depthTextures.push(device.createTexture({
 		// size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
@@ -496,25 +496,22 @@ let frameCount = 0;
 let lastFrameTime = Date.now()
 const mipLevel = 11; 
 // QuadTree compute pass
-function quadTreePass() {
+async function quadTreePass() {
 	console.log("QuadTree pass");
 	for (let i = 0; i < mipLevel; i++) {
 		quadTree.pass(i);
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
-		evaluation.pass(i);
+		await evaluation.pass(i);
 	}
 }
-quadTreePass();
+await quadTreePass();
 // fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
-async function frame() {
-	fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
 
-	// quadTree.pass(mipLevel);
-	// Evaluation compute pass
-	// evaluation.pass(mipLevel);
-	// Depth pass bindgroup
+
+async function dephtFrame(mipLevel: number = 0){
+	fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
 	const bindGroupDepth = device.createBindGroup({
 		layout: bindGroupLayoutDepth,
 		entries: [
@@ -536,15 +533,11 @@ async function frame() {
 	});
 	// Render Depth pass
 	// const mipLevelDepth = frameCount % (mipLevel + 2)
-	const mipLevelDepth = mipLevel - frameCount % (mipLevel + 2);
-	const mipLevelDepthArray = [canvas.width, canvas.height, mipLevelDepth];
+	const mipLevelDepthArray = [canvas.width, canvas.height, mipLevel];
 	await updateUniformBuffer(mipLevelDepthArray);
 	const commandEncoderDepth = device.createCommandEncoder();
 	// const currentDepthTexture = context.getCurrentTexture();
 	const currentDepthTexture = depthTextures[(frameCount+1) % frames]
-	// console.log('mipLevel', mipLevelDepth);
-	// console.log('previous', frameCount % frames);
-	// console.log('index', (frameCount + 1) % frames);
 
 	if (!currentDepthTexture) {
 		console.error("Failed to retrieve current texture.");
@@ -561,6 +554,16 @@ async function frame() {
 	passEncoderDepth.end();
 	device.queue.submit([commandEncoderDepth.finish()]);
 
+
+}
+
+let current_mipLevel = mipLevel;;
+async function frame() {
+	// const mipLevelDepth = mipLevel - frameCount % (mipLevel + 2);
+	if (current_mipLevel <= mipLevel) {
+		await dephtFrame(current_mipLevel);
+		current_mipLevel--;
+	}
 
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
