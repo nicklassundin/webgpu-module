@@ -15,9 +15,9 @@ struct Node {
 };
 
 struct Traversal {
-	depth: f32,
+	depth: vec4<f32>,
 	boundBox: vec4<f32>,
-	coord: vec2<f32>,
+	coord: vec4<f32>,
 	address: f32,
 };
 
@@ -45,7 +45,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	if traversal.boundBox.z == 0.0  {
 		traversal.boundBox = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 	}
-	let depth = traversal.depth;
+	let depth = traversal.depth.x;
 	let id = global_id.x % u32(depth);
 	
 	let traversalNode = traversal.address;
@@ -53,8 +53,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let value = values[u32(node.valueAddress)];
 	result[u32(depth)] = value;
 	
-	let quad = getQuadIndex(traversal.coord, traversal.boundBox);
-	let coord = traversal.coord;
+	let coord = traversal.coord.xy;
+	let quad = getQuadIndex(coord, traversal.boundBox);
 	for (var i: u32 = 0; i < 4; i = i + 1) {
 		let child = node.children[i];
 		if (child == 0.0) {

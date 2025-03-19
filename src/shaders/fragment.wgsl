@@ -11,7 +11,7 @@ mipLevel: f32,
 @fragment
 fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let uv = (fragCoord.xy / uniforms.resolution);
-	//let color = textureSampleLevel(heatMapTexture, heatSampler, uv, 10);
+	//let color = textureSampleLevel(heatMapTexture, heatSampler, uv, 0);
 	let color = textureSample(heatMapTexture, heatSampler, uv);
 
 	// chess board pattern
@@ -19,11 +19,11 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let y = i32(floor(uv.y * 10));
 	let c = (x + y) % 2;
 	
-	let checker_color = vec4<f32>(0.0, 1.0 - f32(c), f32(c), 1-(color.r + color.g) / 2.0);
-
+	let checker_color = vec4<f32>(uv.x, uv.y - f32(c), f32(c), 1.0 -(color.r + color.g) / 2.0);
 
 	if (color.r + color.g + color.b > 0.0) {
-	 	return vec4<f32>(uniforms.mipLevel/11.0, 0.0, 0.0, 1.0);
+	 	return vec4<f32>(color.r, color.g, color.b, 1.0);
+		//return vec4<f32>(uv, 0.0, 1.0);
 	}else{
 		return checker_color;
 	}

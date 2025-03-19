@@ -392,17 +392,17 @@ const renderPassDescriptorDepth: GPURenderPassDescriptor = {
 
 // Create Depth Texture TODO
 const depthTextures: GPUTexture[] = [];
-const frames = 5;
+const frames = 10;
 for (let i = 0; i < frames; i++) {
 	depthTextures.push(device.createTexture({
 		// size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
 		// format: 'depth24plus-stencil8',
 		// usage: GPUTextureUsage.RENDER_ATTACHMENT,
-	size: [ textureSize, textureSize, 1 ],
-	format: 'bgra8unorm',
-	// format: 'rgba8unorm',
-	usage: 	GPUTextureUsage.TEXTURE_BINDING |
-		GPUTextureUsage.RENDER_ATTACHMENT,
+		size: [ textureSize, textureSize, 1 ],
+		format: 'bgra8unorm',
+		// format: 'rgba8unorm',
+		usage: 	GPUTextureUsage.TEXTURE_BINDING |
+			GPUTextureUsage.RENDER_ATTACHMENT,
 	}));
 }
 
@@ -423,33 +423,26 @@ async function fromBufferToLog(storageBuffer: GPUbuffer,  offset: number = 0, si
 	await readBuffer.mapAsync(GPUMapMode.READ);
 	const arrayBuffer = readBuffer.getMappedRange();
 	const view = new Float32Array(arrayBuffer);
-	
-	console.log(view);
+
+	console.log('view', view);
 	readBuffer.unmap();
 }
 async function updateTravBufferCoord(uv: number[]) {
 	const travBuffer = quadTree.buffers.travBuffer;
 	let byteOffset = 0;
 	const mipLevel = new Float32Array([0]);
-
-	device.queue.writeBuffer(travBuffer, byteOffset, mipLevel, 0, 1);
-	byteOffset += mipLevel.byteLength;
 	
-	const boundBox = new Float32Array([0.0, 0.0, 1.0, 1.0]);
-	device.queue.writeBuffer(travBuffer, byteOffset, boundBox, 0, 4);
-	byteOffset += boundBox.byteLength;
-
-	const targetCoords = new Float32Array(uv);
-	device.queue.writeBuffer(travBuffer, byteOffset, targetCoords, 0, 2);
-	byteOffset += targetCoords.byteLength;
-
-	const address = new Float32Array([42]);
-	device.queue.writeBuffer(travBuffer, byteOffset, address, 0, 1);
-	byteOffset += address.byteLength;
-	
+	console.log(uv[0])
+	const allValues = new Float32Array([
+		0, // Mip Level 
+		0, 0, 0, // Padding
+		0, 0, 1, 1, // bound box 
+		uv[0], uv[1], 0, 0, // target coordinates
+		0]); // address
+	device.queue.writeBuffer(travBuffer, byteOffset, allValues, 0, 13);
 	await device.queue.onSubmittedWorkDone();
-	await fromBufferToLog(travBuffer, 0, 4*4);
-	await fromBufferToLog(travBuffer, 4 * 1 + 4 * 4, 4 * 2);
+	await fromBufferToLog(travBuffer, 0, 4 * 2);
+	await fromBufferToLog(travBuffer, 4 * 2, 4 * 2*2);
 }
 
 
@@ -470,12 +463,15 @@ const gui = new GUI();
 	});
 	// Add folder for uv coordinates
 	const uvFolder = gui.addFolder("UV Coordinates");
-	uvFolder.add({ value: 0.5 }, 'value', 0, 1, 0.01).name("U").onChange((value: number) => {
-		updateTravBufferCoord([value, uvFolder.__controllers[1].object.value]);
+	uvFolder.add({ value: 0.5 }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
+		await updateTravBufferCoord([value, uvFolder.__controllers[1].object.value]);
+		quadTreePass();
 	})
 	uvFolder.add({ value: 0.5 }, 'value', 0, 1, 0.01).name("V");
 	folder.open();
 }
+// update TravBuffer from gui
+await updateTravBufferCoord([0.5, 0.5]);
 
 
 // listen and find uv coordinates of mouse on click
@@ -491,12 +487,23 @@ canvas.addEventListener('click', (event) => {
 // Main loop
 let frameCount = 0;
 let lastFrameTime = Date.now()
-async function frame() {
-	// QuadTree compute pass
-	const mipLevel = 10; 
-	quadTree.pass(mipLevel);
+const mipLevel = 11; 
+// QuadTree compute pass
+function quadTreePass() {
+	console.log("QuadTree pass");
+	for (let i = 0; i < mipLevel; i++) {
+		quadTree.pass(i);
+	}
 	// Evaluation compute pass
-	evaluation.pass(mipLevel);
+	for (let i = 0; i < mipLevel; i++) {
+		evaluation.pass(i);
+	}
+}
+quadTreePass();
+async function frame() {
+	// quadTree.pass(mipLevel);
+	// Evaluation compute pass
+	// evaluation.pass(mipLevel);
 	// Depth pass bindgroup
 	const bindGroupDepth = device.createBindGroup({
 		layout: bindGroupLayoutDepth,
@@ -513,20 +520,22 @@ async function frame() {
 				binding: 2,
 				// TODO need to use the evaluation texture instead and pass it through
 				// resource: depthTextures[frameCount % frames].createView(),
-				resource: depthTextures[frameCount % frames].createView(),
+				resource: depthTextures[(frameCount) % frames].createView(),
 			},
 		],
 	});
 	// Render Depth pass
-	const mipLevelDepth = mipLevelCount - 1 - frameCount % mipLevelCount;
-	// const mipLevelDepth = frameCount % mipLevelCount;
+	// const mipLevelDepth = frameCount % (mipLevel + 2)
+	const mipLevelDepth = mipLevel - frameCount % (mipLevel + 2);
 	const mipLevelDepthArray = [canvas.width, canvas.height, mipLevelDepth];
 	await updateUniformBuffer(mipLevelDepthArray);
 	const commandEncoderDepth = device.createCommandEncoder();
 	// const currentDepthTexture = context.getCurrentTexture();
-	const currentDepthTexture = depthTextures[(frameCount + 1) % frames]
+	const currentDepthTexture = depthTextures[(frameCount+1) % frames]
 	// console.log('mipLevel', mipLevelDepth);
+	// console.log('previous', frameCount % frames);
 	// console.log('index', (frameCount + 1) % frames);
+
 	if (!currentDepthTexture) {
 		console.error("Failed to retrieve current texture.");
 		return;
@@ -554,7 +563,7 @@ async function frame() {
 			{
 				binding: 1,
 				// resource: evaluation.texture.createView(),
-				resource: depthTextures[frameCount % frames].createView(), 
+				resource: depthTextures[(frameCount+2) % frames].createView(), 
 			},
 		],
 	});
@@ -581,9 +590,9 @@ async function frame() {
 		device.queue.submit([commandEncoder.finish()]);
 		frameCount++;
 	}
-	// if (frameCount % 60*1000 === 0) {
+	await new Promise((resolve) => setTimeout(resolve, 300));
+
 	requestAnimationFrame(frame);
-	// }
 }
 
 function resizeCanvas() {
