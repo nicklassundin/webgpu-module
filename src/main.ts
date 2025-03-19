@@ -573,7 +573,7 @@ async function frame() {
 			{
 				binding: 1,
 				// resource: evaluation.texture.createView(),
-				resource: depthTextures[(frameCount+2) % frames].createView(), 
+				resource: depthTextures[(frameCount) % frames].createView(), 
 			},
 		],
 	});
