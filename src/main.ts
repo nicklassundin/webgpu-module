@@ -122,6 +122,7 @@ imageCanvas.width = textureSize;
 imageCanvas.height = textureSize;
 const ctx = imageCanvas.getContext('2d');
 
+		// Read 
 // ensure ctx is not null
 if (!ctx) {
 	console.error("Failed to get 2d context.");
@@ -151,6 +152,7 @@ const bindGroupLayoutUniform = device.createBindGroupLayout({
 const bindGroupLayout = device.createBindGroupLayout({
 	entries: [
 		{
+		// Read 
 			binding: 0,
 			visibility: GPUShaderStage.FRAGMENT,
 			sampler: {
@@ -183,6 +185,7 @@ const bindGroupLayoutDepth = device.createBindGroupLayout({
 				sampleType: 'float',
 			},
 		},
+		// Read 
 		{
 			binding: 2,
 			visibility: GPUShaderStage.FRAGMENT,
@@ -212,6 +215,7 @@ const bindGroupUniform = device.createBindGroup({
 });
 // Pipeline for mipmap
 const pipelineMipmap = device.createRenderPipeline({
+		// Read 
 	layout: pipelineLayoutMipmap,
 	vertex: {
 		module: device.createShaderModule({
@@ -274,6 +278,7 @@ for (let i = 1; i < mipLevelCount; i++) {
 	passEncoder.setPipeline(pipelineMipmap);
 	passEncoder.setBindGroup(0, bindGroupMip);
 	passEncoder.setVertexBuffer(0, vertexBuffer);
+		// Read 
 	passEncoder.draw(6);
 	passEncoder.end();
 
@@ -427,6 +432,8 @@ async function fromBufferToLog(storageBuffer: GPUbuffer,  offset: number = 0, si
 	console.log('view', view);
 	readBuffer.unmap();
 }
+
+
 async function updateTravBufferCoord(uv: number[]) {
 	const travBuffer = quadTree.buffers.travBuffer;
 	let byteOffset = 0;
@@ -438,7 +445,7 @@ async function updateTravBufferCoord(uv: number[]) {
 		0, 0, 0, // Padding
 		0, 0, 1, 1, // bound box 
 		uv[0], uv[1], 0, 0, // target coordinates
-		0]); // address
+		0]); // addressArrayBuffer
 	device.queue.writeBuffer(travBuffer, byteOffset, allValues, 0, 13);
 	await device.queue.onSubmittedWorkDone();
 	await fromBufferToLog(travBuffer, 0, 4 * 2);
@@ -463,15 +470,15 @@ const gui = new GUI();
 	});
 	// Add folder for uv coordinates
 	const uvFolder = gui.addFolder("UV Coordinates");
-	uvFolder.add({ value: 0.5 }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
+	uvFolder.add({ value: 0.6 }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
 		await updateTravBufferCoord([value, uvFolder.__controllers[1].object.value]);
 		quadTreePass();
 	})
-	uvFolder.add({ value: 0.5 }, 'value', 0, 1, 0.01).name("V");
+	uvFolder.add({ value: 0.4 }, 'value', 0, 1, 0.01).name("V");
 	folder.open();
 }
 // update TravBuffer from gui
-await updateTravBufferCoord([0.5, 0.5]);
+await updateTravBufferCoord([0.6, 0.4]);
 
 
 // listen and find uv coordinates of mouse on click
@@ -500,7 +507,10 @@ function quadTreePass() {
 	}
 }
 quadTreePass();
+// fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 async function frame() {
+	fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
+
 	// quadTree.pass(mipLevel);
 	// Evaluation compute pass
 	// evaluation.pass(mipLevel);
@@ -590,6 +600,7 @@ async function frame() {
 		device.queue.submit([commandEncoder.finish()]);
 		frameCount++;
 	}
+	// await new Promise((resolve) => setTimeout(resolve, 3000));
 	await new Promise((resolve) => setTimeout(resolve, 300));
 
 	requestAnimationFrame(frame);
