@@ -168,13 +168,13 @@ const bindGroupLayout = device.createBindGroupLayout({
 				sampleType: 'float',
 			},
 		},
-		// {
-		// 	binding: 2,
-		// 	visibility: GPUShaderStage.FRAGMENT,
-		// 	texture: {
-		// 		sampleType: 'float',
-		// 	},
-		// },
+		{
+			binding: 2,
+			visibility: GPUShaderStage.FRAGMENT,
+			texture: {
+				sampleType: 'float',
+			},
+		},
 	],
 });
 // Create binding group depth layout
@@ -554,10 +554,10 @@ async function frame() {
 				binding: 1,
 				resource: depthTextures[(frameCount) % frames].createView(), 
 			},
-			// {
-			// 	binding: 2,
-			// 	resource: evaluation.texture.createView(),
-			// },
+			{
+				binding: 2,
+				resource: evaluation.texture.createView(),
+			},
 		],
 	});
 	// Render pass
