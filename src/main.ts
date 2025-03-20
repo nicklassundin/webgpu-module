@@ -435,8 +435,8 @@ async function updateTravBufferCoord(uv: number[]) {
 		0]); // addressArrayBuffer
 	device.queue.writeBuffer(travBuffer, byteOffset, allValues, 0, 13);
 	await device.queue.onSubmittedWorkDone();
-	await dbug_mngr.fromBufferToLog(travBuffer, 0, 4 * 2);
-	await dbug_mngr.fromBufferToLog(travBuffer, 4 * 2, 4 * 2*2);
+	//await dbug_mngr.fromBufferToLog(travBuffer, 0, 4 * 2);
+	//await dbug_mngr.fromBufferToLog(travBuffer, 4 * 2, 4 * 2*2);
 }
 
 
@@ -476,7 +476,8 @@ const mipLevel = 11;
 async function quadTreePass() {
 	console.log("QuadTree pass");
 	for (let i = 0; i < mipLevel; i++) {
-		quadTree.pass(i);
+		await quadTree.pass(i);
+		dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
