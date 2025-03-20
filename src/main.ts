@@ -203,9 +203,9 @@ const bindGroupLayoutDepth = device.createBindGroupLayout({
 	],
 });
 // Create pipeline layout for mipmap
-const pipelineLayoutMipmap = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayout],
-});
+// const pipelineLayoutMipmap = device.createPipelineLayout({
+// 	bindGroupLayouts: [bindGroupLayout],
+// });
 // Create bind group for uniform buffer
 const bindGroupUniform = device.createBindGroup({
 	layout: bindGroupLayoutUniform,
@@ -221,76 +221,76 @@ const bindGroupUniform = device.createBindGroup({
 	],
 });
 // Pipeline for mipmap
-const pipelineMipmap = device.createRenderPipeline({
-		// Read 
-	layout: pipelineLayoutMipmap,
-	vertex: {
-		module: device.createShaderModule({
-			code: quadvertexShaderCode,
-		}),
-		buffers: [{
-			arrayStride: 4 * 2,
-			attributes: [
-				{
-					shaderLocation: 0,
-					offset: 0,
-					format: 'float32x2',
-				},
-			],
-		}]
-	},
-	fragment: {
-		module: device.createShaderModule({
-			// TODO replace
-			code: quadfragmentShaderCode,
-			// code: quadtestfragmentShaderCode,
-		}),
-		targets: [{ format: 'rgba8unorm', }],
-	},
-	primitive: {
-		topology: 'triangle-list',
-	}
-});
-// Mipmap render pass
-const commandEncoder = device.createCommandEncoder();
-for (let i = 1; i < mipLevelCount; i++) {
-	const prevLevelSize = textureSize.width >> (i - 1);
-	const newLevelSize = Math.max(1, prevLevelSize >> 1);
-	const view = textureMipmap.createView({ baseMipLevel: i, mipLevelCount: 1  });
+// const pipelineMipmap = device.createRenderPipeline({
+// 		// Read 
+// 	layout: pipelineLayoutMipmap,
+// 	vertex: {
+// 		module: device.createShaderModule({
+// 			code: quadvertexShaderCode,
+// 		}),
+// 		buffers: [{
+// 			arrayStride: 4 * 2,
+// 			attributes: [
+// 				{
+// 					shaderLocation: 0,
+// 					offset: 0,
+// 					format: 'float32x2',
+// 				},
+// 			],
+// 		}]
+// 	},
+// 	fragment: {
+// 		module: device.createShaderModule({
+// 			// TODO replace
+// 			code: quadfragmentShaderCode,
+// 			// code: quadtestfragmentShaderCode,
+// 		}),
+// 		targets: [{ format: 'rgba8unorm', }],
+// 	},
+// 	primitive: {
+// 		topology: 'triangle-list',
+// 	}
+// });
+// // Mipmap render pass
+// const commandEncoder = device.createCommandEncoder();
+// for (let i = 1; i < mipLevelCount; i++) {
+// 	const prevLevelSize = textureSize.width >> (i - 1);
+// 	const newLevelSize = Math.max(1, prevLevelSize >> 1);
+// 	const view = textureMipmap.createView({ baseMipLevel: i, mipLevelCount: 1  });
 
-	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
-		colorAttachments: [
-			{
-				view,
-				loadOp: 'clear',
-				storeOp: 'store',
-			},
-		],
-	};
-	const bindGroupMip = device.createBindGroup({
-		layout: bindGroupLayout,
-		entries: [
-			{
-				binding: 0,
-				resource: sampler,
-			},
-			{
-				binding: 1,
-				resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevelCount: 1}),
-			},
-		],
-	});
+// 	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
+// 		colorAttachments: [
+// 			{
+// 				view,
+// 				loadOp: 'clear',
+// 				storeOp: 'store',
+// 			},
+// 		],
+// 	};
+// 	const bindGroupMip = device.createBindGroup({
+// 		layout: bindGroupLayout,
+// 		entries: [
+// 			{
+// 				binding: 0,
+// 				resource: sampler,
+// 			},
+// 			{
+// 				binding: 1,
+// 				resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevelCount: 1}),
+// 			},
+// 		],
+// 	});
 
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
-	passEncoder.setPipeline(pipelineMipmap);
-	passEncoder.setBindGroup(0, bindGroupMip);
-	passEncoder.setVertexBuffer(0, vertexBuffer);
-		// Read 
-	passEncoder.draw(6);
-	passEncoder.end();
+// 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
+// 	passEncoder.setPipeline(pipelineMipmap);
+// 	passEncoder.setBindGroup(0, bindGroupMip);
+// 	passEncoder.setVertexBuffer(0, vertexBuffer);
+// 		// Read 
+// 	passEncoder.draw(6);
+// 	passEncoder.end();
 
-}
-device.queue.submit([commandEncoder.finish()]);
+// }
+// device.queue.submit([commandEncoder.finish()]);
 
 import QuadTree from "./quadTree";
 
@@ -507,7 +507,7 @@ await quadTreePass();
 // fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 
 
-async function dephtFrame(mipLevel: number = 0){
+async function dephtFrame(mipLevel: number = 0, pipe, textures: GPUTextures[]){
 	// fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
 	const bindGroupDepth = device.createBindGroup({
 		layout: bindGroupLayoutDepth,
@@ -524,7 +524,7 @@ async function dephtFrame(mipLevel: number = 0){
 				binding: 2,
 				// TODO need to use the evaluation texture instead and pass it through
 				// resource: depthTextures[frameCount % frames].createView(),
-				resource: depthTextures[(frameCount) % frames].createView(),
+				resource: textures[(frameCount) % frames].createView(),
 			},
 		],
 	});
@@ -534,7 +534,7 @@ async function dephtFrame(mipLevel: number = 0){
 	await updateUniformBuffer(mipLevelDepthArray);
 	const commandEncoderDepth = device.createCommandEncoder();
 	// const currentDepthTexture = context.getCurrentTexture();
-	const currentDepthTexture = depthTextures[(frameCount+1) % frames]
+	const currentDepthTexture = textures[(frameCount+1) % frames]
 
 	if (!currentDepthTexture) {
 		console.error("Failed to retrieve current texture.");
@@ -543,7 +543,7 @@ async function dephtFrame(mipLevel: number = 0){
 	const depthTextureView = currentDepthTexture.createView();
 	renderPassDescriptorDepth.colorAttachments[0].view = depthTextureView;
 	const passEncoderDepth = commandEncoderDepth.beginRenderPass(renderPassDescriptorDepth);
-	passEncoderDepth.setPipeline(pipelineDepth);	
+	passEncoderDepth.setPipeline(pipe);	
 	passEncoderDepth.setVertexBuffer(0, vertexBuffer);
 	passEncoderDepth.setBindGroup(0, bindGroupDepth);
 	passEncoderDepth.setBindGroup(1, bindGroupUniform);
@@ -558,7 +558,7 @@ let current_mipLevel = mipLevel;
 async function frame() {
 	// const mipLevelDepth = mipLevel - frameCount % (mipLevel + 2);
 	if (current_mipLevel >= 0) {
-		await dephtFrame(current_mipLevel);
+		await dephtFrame(current_mipLevel, pipelineDepth, depthTextures);
 		current_mipLevel--;
 	}
 
