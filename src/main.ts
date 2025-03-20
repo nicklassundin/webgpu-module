@@ -166,6 +166,13 @@ const bindGroupLayout = device.createBindGroupLayout({
 				sampleType: 'float',
 			},
 		},
+		// {
+		// 	binding: 2,
+		// 	visibility: GPUShaderStage.FRAGMENT,
+		// 	texture: {
+		// 		sampleType: 'float',
+		// 	},
+		// },
 	],
 });
 // Create binding group depth layout
@@ -481,16 +488,6 @@ const gui = new GUI();
 await updateTravBufferCoord([0.6, 0.4]);
 
 
-// listen and find uv coordinates of mouse on click
-canvas.addEventListener('click', (event) => {
-	const rect = canvas.getBoundingClientRect();
-	const x = event.clientX - rect.left;
-	const y = event.clientY - rect.top;
-	const uv = [x / canvas.width, y / canvas.height];
-	updateTravBufferCoord(uv);
-});
-
-
 // Main loop
 let frameCount = 0;
 let lastFrameTime = Date.now()
@@ -511,7 +508,7 @@ await quadTreePass();
 
 
 async function dephtFrame(mipLevel: number = 0){
-	fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
+	// fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
 	const bindGroupDepth = device.createBindGroup({
 		layout: bindGroupLayoutDepth,
 		entries: [
@@ -557,10 +554,10 @@ async function dephtFrame(mipLevel: number = 0){
 
 }
 
-let current_mipLevel = mipLevel;;
+let current_mipLevel = mipLevel;
 async function frame() {
 	// const mipLevelDepth = mipLevel - frameCount % (mipLevel + 2);
-	if (current_mipLevel <= mipLevel) {
+	if (current_mipLevel >= 0) {
 		await dephtFrame(current_mipLevel);
 		current_mipLevel--;
 	}
@@ -575,9 +572,12 @@ async function frame() {
 			},
 			{
 				binding: 1,
-				// resource: evaluation.texture.createView(),
 				resource: depthTextures[(frameCount) % frames].createView(), 
 			},
+			// {
+			// 	binding: 2,
+			// 	resource: evaluation.texture.createView(),
+			// },
 		],
 	});
 	// Render pass
@@ -604,7 +604,7 @@ async function frame() {
 		frameCount++;
 	}
 	// await new Promise((resolve) => setTimeout(resolve, 3000));
-	await new Promise((resolve) => setTimeout(resolve, 300));
+	// await new Promise((resolve) => setTimeout(resolve, 300));
 
 	requestAnimationFrame(frame);
 }
@@ -635,3 +635,18 @@ async function loadImageBitmap(url: string) {
 	return createImageBitmap(blob);
 
 }
+// listen and find uv coordinates of mouse on click
+canvas.addEventListener('click', async (event) => {
+
+	const rect = canvas.getBoundingClientRect();
+	const x = event.clientX - rect.left;
+	const y = event.clientY - rect.top;
+	const uv = [x / canvas.width, y / canvas.height];
+	current_mipLevel = mipLevel;
+	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
+	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
+	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
+	await updateTravBufferCoord(uv);
+});
+
+

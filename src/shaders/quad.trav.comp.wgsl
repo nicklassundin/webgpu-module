@@ -46,7 +46,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		traversal.boundBox = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 	}
 	let depth = traversal.depth.x;
-	let id = global_id.x % u32(depth);
 	
 	let traversalNode = traversal.address;
 	let node: Node = nodes[u32(traversalNode)];
