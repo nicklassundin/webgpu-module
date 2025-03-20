@@ -12,6 +12,7 @@ import quadTraversalComputeShaderCode from "./shaders/quad.trav.comp.wgsl?raw";
 import depthFragmentShaderCode from "./shaders/depth.frag.wgsl?raw";
 
 import { GUI } from 'dat.gui';
+import Debugger from "./debug";
 
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
@@ -39,6 +40,7 @@ if (!device) {
 	console.error("Failed to get WebGPU device.");
 	throw new Error("Failed to get WebGPU device.");
 }
+const dbug_mngr = new Debugger(device);
 
 
 const context = canvas.getContext('webgpu') as GPUCanvasContext;
@@ -419,28 +421,6 @@ for (let i = 0; i < frames; i++) {
 }
 
 
-async function fromBufferToLog(storageBuffer: GPUbuffer,  offset: number = 0, size: number = 4) {
-	// Create a readback buffer
-	const readBuffer = device.createBuffer({
-		size: size*Float32Array.BYTES_PER_ELEMENT,
-		usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-	});
-	const commandEncoder = device.createCommandEncoder();
-	commandEncoder.copyBufferToBuffer(storageBuffer, 0, readBuffer, 0, size*Float32Array.BYTES_PER_ELEMENT);
-	const commands = commandEncoder.finish();
-	device.queue.submit([commands]);
-	await device.queue.onSubmittedWorkDone();
-
-	// Map the readback buffer and read the integer
-	await readBuffer.mapAsync(GPUMapMode.READ);
-	const arrayBuffer = readBuffer.getMappedRange();
-	const view = new Float32Array(arrayBuffer);
-
-	console.log('view', view);
-	readBuffer.unmap();
-}
-
-
 async function updateTravBufferCoord(uv: number[]) {
 	const travBuffer = quadTree.buffers.travBuffer;
 	let byteOffset = 0;
@@ -455,8 +435,8 @@ async function updateTravBufferCoord(uv: number[]) {
 		0]); // addressArrayBuffer
 	device.queue.writeBuffer(travBuffer, byteOffset, allValues, 0, 13);
 	await device.queue.onSubmittedWorkDone();
-	await fromBufferToLog(travBuffer, 0, 4 * 2);
-	await fromBufferToLog(travBuffer, 4 * 2, 4 * 2*2);
+	await dbug_mngr.fromBufferToLog(travBuffer, 0, 4 * 2);
+	await dbug_mngr.fromBufferToLog(travBuffer, 4 * 2, 4 * 2*2);
 }
 
 
@@ -504,11 +484,11 @@ async function quadTreePass() {
 	}
 }
 await quadTreePass();
-// fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
+// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 
 
 async function dephtFrame(mipLevel: number = 0, pipe, textures: GPUTextures[]){
-	// fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
+	// dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
 	const bindGroupDepth = device.createBindGroup({
 		layout: bindGroupLayoutDepth,
 		entries: [
