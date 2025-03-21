@@ -101,7 +101,7 @@ device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 // load image
 // Load Textures
 const image = await loadImageBitmap(textureList[0]);
-const mipLevelCount = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
+const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
 const textureSize = image.width; // Assume square texture 
 // Create texture with mipmap levels
 const textureMipmap = device.createTexture({
@@ -113,7 +113,7 @@ const textureMipmap = device.createTexture({
 		GPUTextureUsage.COPY_SRC |
 		GPUTextureUsage.STORAGE |
 		GPUTextureUsage.STORAGE_BINDING,
-	mipLevelCount: mipLevelCount
+	mipLevelCount: mipLevel
 });
 // print byte size of image
 // Upload image data to texture level 0
@@ -124,7 +124,7 @@ imageCanvas.width = textureSize;
 imageCanvas.height = textureSize;
 const ctx = imageCanvas.getContext('2d');
 
-		// Read 
+// Read 
 // ensure ctx is not null
 if (!ctx) {
 	console.error("Failed to get 2d context.");
@@ -154,7 +154,7 @@ const bindGroupLayoutUniform = device.createBindGroupLayout({
 const bindGroupLayout = device.createBindGroupLayout({
 	entries: [
 		{
-		// Read 
+			// Read 
 			binding: 0,
 			visibility: GPUShaderStage.FRAGMENT,
 			sampler: {
@@ -255,10 +255,10 @@ const bindGroupUniform = device.createBindGroup({
 // });
 // // Mipmap render pass
 // const commandEncoder = device.createCommandEncoder();
-// for (let i = 1; i < mipLevelCount; i++) {
+// for (let i = 1; i < mipLevel; i++) {
 // 	const prevLevelSize = textureSize.width >> (i - 1);
 // 	const newLevelSize = Math.max(1, prevLevelSize >> 1);
-// 	const view = textureMipmap.createView({ baseMipLevel: i, mipLevelCount: 1  });
+// 	const view = textureMipmap.createView({ baseMipLevel: i, mipLevel: 1  });
 
 // 	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
 // 		colorAttachments: [
@@ -278,7 +278,7 @@ const bindGroupUniform = device.createBindGroup({
 // 			},
 // 			{
 // 				binding: 1,
-// 				resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevelCount: 1}),
+// 				resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevel: 1}),
 // 			},
 // 		],
 // 	});
@@ -406,7 +406,8 @@ const renderPassDescriptorDepth: GPURenderPassDescriptor = {
 
 // Create Depth Texture TODO
 const depthTextures: GPUTexture[] = [];
-const frames = 2;
+// const frames = mipLevel;
+const frames = 3;
 for (let i = 0; i < frames; i++) {
 	depthTextures.push(device.createTexture({
 		// size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
@@ -419,13 +420,26 @@ for (let i = 0; i < frames; i++) {
 			GPUTextureUsage.RENDER_ATTACHMENT,
 	}));
 }
+class Params {
+	travelValues: number[];
+	change: boolean = false;
+	constructor(travelValues: number[]) {
+		this.travelValues = travelValues;
+	}
+	updateTravelValues(travelValues: number[]) {
+		this.change = true;
+		this.travelValues = travelValues;
+	}
+
+}
+const params = new Params([0.6, 0.4]);
 
 
-async function updateTravBufferCoord(uv: number[]) {
+function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder) {
 	const travBuffer = quadTree.buffers.travBuffer;
 	let byteOffset = 0;
 	const mipLevel = new Float32Array([0]);
-	
+
 	console.log(uv[0])
 	const allValues = new Float32Array([
 		0, // Mip Level 
@@ -433,10 +447,16 @@ async function updateTravBufferCoord(uv: number[]) {
 		0, 0, 1, 1, // bound box 
 		uv[0], uv[1], 0, 0, // target coordinates
 		0]); // addressArrayBuffer
-	device.queue.writeBuffer(travBuffer, byteOffset, allValues, 0, 13);
-	await device.queue.onSubmittedWorkDone();
-	//await dbug_mngr.fromBufferToLog(travBuffer, 0, 4 * 2);
-	//await dbug_mngr.fromBufferToLog(travBuffer, 4 * 2, 4 * 2*2);
+
+	const stagingBuffer = device.createBuffer({
+		size: allValues.byteLength,
+		usage: GPUBufferUsage.COPY_SRC,
+		mappedAtCreation: true
+	});
+	const arrayBuffer = stagingBuffer.getMappedRange();
+	new Float32Array(arrayBuffer).set(allValues);
+	stagingBuffer.unmap();
+	commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffer, byteOffset, allValues.byteLength);
 }
 
 
@@ -446,10 +466,12 @@ async function updateUniformBuffer(values: number[]) {
 	await device.queue.onSubmittedWorkDone();
 }
 // TODO GUI
+
+
 const gui = new GUI();
 {
 	const folder = gui.addFolder("Mipmap");
-	folder.add({ value: 3}, 'value', 0, mipLevelCount, 1).name("Mip Level").onChange(async (value: number) => {
+	folder.add({ value: 3}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
 		const resolution = new Float32Array([canvas.width,
 						    canvas.height,
 		value]);
@@ -458,26 +480,26 @@ const gui = new GUI();
 	// Add folder for uv coordinates
 	const uvFolder = gui.addFolder("UV Coordinates");
 	uvFolder.add({ value: 0.6 }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
-		await updateTravBufferCoord([value, uvFolder.__controllers[1].object.value]);
+		params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
+		// const commandEncoderArg = device.createCommandEncoder();
+		// updateTravBufferCoord([value, uvFolder.__controllers[1].object.value], commandEncoderArg);
+		// const commandBufferArg = commandEncoderArg.finish();
+		// device.queue.submit([commandBufferArg]);
 		quadTreePass();
 	})
 	uvFolder.add({ value: 0.4 }, 'value', 0, 1, 0.01).name("V");
 	folder.open();
 }
-// update TravBuffer from gui
-await updateTravBufferCoord([0.6, 0.4]);
 
 
 // Main loop
 let frameCount = 0;
 let lastFrameTime = Date.now()
-const mipLevel = 11; 
 // QuadTree compute pass
 async function quadTreePass() {
-	console.log("QuadTree pass");
 	for (let i = 0; i < mipLevel; i++) {
 		await quadTree.pass(i);
-		dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
+		// dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
@@ -487,6 +509,11 @@ async function quadTreePass() {
 await quadTreePass();
 // dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 
+const commandEncoderArg = device.createCommandEncoder();
+updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
+const commandBufferArg = commandEncoderArg.finish();
+device.queue.submit([commandBufferArg]);
+await device.queue.onSubmittedWorkDone();
 
 async function dephtFrame(mipLevel: number = 0, pipe, textures: GPUTextures[]){
 	// dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
@@ -535,8 +562,24 @@ async function dephtFrame(mipLevel: number = 0, pipe, textures: GPUTextures[]){
 
 }
 
+let renderPass 
+
+const commandEncoder = device.createCommandEncoder();
+updateTravBufferCoord([0.6, 0.4], commandEncoder);
+const commandBuffer = commandEncoder.finish();
+device.queue.submit([commandBuffer]);
+await device.queue.onSubmittedWorkDone();
 let current_mipLevel = mipLevel;
 async function frame() {
+	if (params.change) {
+		current_mipLevel = mipLevel;
+		const commandEncoderArg = device.createCommandEncoder();
+		updateTravBufferCoord(params.travelValues, commandEncoderArg);
+		const commandBufferArg = commandEncoderArg.finish();
+		device.queue.submit([commandBufferArg]);
+		await device.queue.onSubmittedWorkDone();
+		params.change = false;
+	}
 	// const mipLevelDepth = mipLevel - frameCount % (mipLevel + 2);
 	if (current_mipLevel >= 0) {
 		await dephtFrame(current_mipLevel, pipelineDepth, depthTextures);
@@ -562,7 +605,7 @@ async function frame() {
 		],
 	});
 	// Render pass
-	if (lastFrameTime < Date.now()) {
+	if (lastFrameTime < Date.now() && current_mipLevel < mipLevel) {
 		const commandEncoder = device.createCommandEncoder();
 		const currentTexture = context.getCurrentTexture();
 		if (!currentTexture) {
@@ -582,8 +625,8 @@ async function frame() {
 		passEncoder.end();
 
 		device.queue.submit([commandEncoder.finish()]);
-		frameCount++;
 	}
+	frameCount++;
 	// await new Promise((resolve) => setTimeout(resolve, 3000));
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -627,7 +670,8 @@ canvas.addEventListener('click', async (event) => {
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
-	await updateTravBufferCoord(uv);
+	params.updateTravelValues(uv);
+	// await updateTravBufferCoord(uv);
 });
 
 
