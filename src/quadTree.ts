@@ -49,11 +49,10 @@ class QuadTree {
 		for (let i = 0; i < numBuffers; i++) {
 			this.results.push(device.createBuffer({
 				size: Float32Array.BYTES_PER_ELEMENT * mipLevelCount, 
-				// size: 10, 
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			}));
 		}
-		// device.queue.writeBuffer(this.results[0], 0, new Float32Array([0, 1, 2, 3, 4]));
+		device.queue.writeBuffer(this.results[0], 0, new Float32Array([0, 1, 2, 3, 4]));
 
 		this.buffers = {
 			travBuffer,
@@ -164,9 +163,11 @@ class QuadTree {
 		this.mipmapLevel = mipLevelCount;
 	}
 	async pass(mipLevel){
+		
 		// calculate workgroup based on mipmap
 		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
 		const device = this.device;
+		await device.queue.onSubmittedWorkDone();
 
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
@@ -213,12 +214,13 @@ class QuadTree {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroupUniform);
 		computePass.setBindGroup(1, this.bindGroupQuadTree);
-		computePass.dispatchWorkgroups(4)
+		computePass.dispatchWorkgroups(1)
 		computePass.end();
+		device.queue.submit([commandEncoderQuad.finish()]);
 		await device.queue.onSubmittedWorkDone();
 		// update buffers
 		const commandEncoder = device.createCommandEncoder();
-		commandEncoder.copyBufferToBuffer(this.results[mipLevel % 2], 0, this.results[(mipLevel + 1) % 2], 0, this.results[mipLevel % 2].size);
+		commandEncoder.copyBufferToBuffer(this.results[0], 0, this.results[1], 0, this.results[0].size);
 		await device.queue.submit([commandEncoder.finish()]);
 	}
 }

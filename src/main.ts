@@ -4,10 +4,9 @@ import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
 import vertexShaderCode from "./shaders/vertex.wgsl?raw";
 import { Triangle, Hexagon } from "./shape";
 
-import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
-import quadvertexShaderCode from "./shaders/quad.vert.wgsl?raw";
+// import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
+import fixedvertexShaderCode from "./shaders/fixed.vert.wgsl?raw";
 
-import quadTraversalComputeShaderCode from "./shaders/quad.trav.comp.wgsl?raw";
 
 import depthFragmentShaderCode from "./shaders/depth.frag.wgsl?raw";
 
@@ -228,7 +227,7 @@ const bindGroupUniform = device.createBindGroup({
 // 	layout: pipelineLayoutMipmap,
 // 	vertex: {
 // 		module: device.createShaderModule({
-// 			code: quadvertexShaderCode,
+// 			code: fixedvertexShaderCode,
 // 		}),
 // 		buffers: [{
 // 			arrayStride: 4 * 2,
@@ -352,7 +351,7 @@ const pipelineDepth = device.createRenderPipeline({
 	layout: pipelineLayoutDepth,
 	vertex: {
 		module: device.createShaderModule({
-			code: quadvertexShaderCode,
+			code: fixedvertexShaderCode,
 		}),
 		buffers: [{
 			arrayStride: 4 * 2,
@@ -499,14 +498,16 @@ let lastFrameTime = Date.now()
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
 		await quadTree.pass(i);
-		console.log(quadTree.results[0].size);
-		await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, 40);
-		await dbug_mngr.fromBufferToLog(quadTree.results[1], 0, 40)
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
 		await evaluation.pass(i);
 	}
+	await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, mipLevel + mipLevel % 2);
+	await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadTree.results[1], 0, mipLevel + mipLevel % 2);
 }
 await quadTreePass();
 // dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
@@ -679,4 +680,14 @@ canvas.addEventListener('click', async (event) => {
 	// await updateTravBufferCoord(uv);
 });
 
+// On close unbind buffers
+window.addEventListener('beforeunload', async () => {
+	await device.queue.onSubmittedWorkDone();
+	quadTree.buffers.travBuffer.unmap();
+	quadTree.buffers.valuesBuffer.unmap();
+	quadTree.buffers.nodesBuffer.unmap();
+	quadTree.results[0].unmap();
+	quadTree.results[1].unmap();
+	evaluation.texture.unmap();
+});
 

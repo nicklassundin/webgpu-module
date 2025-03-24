@@ -24,7 +24,7 @@ struct Traversal {
 @group(1) @binding(1) var texture: texture_storage_2d<rgba8unorm, write>;
 
 @group(2) @binding(0) var<storage, read_write> traversal: Traversal;
-@group(2) @binding(1) var<storage, read_write> levelValues: array<f32>;
+@group(2) @binding(1) var<storage, read> levelValues: array<f32>;
 
 
 @compute @workgroup_size(1)
@@ -36,7 +36,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let pixelCoord = uv * vec2<f32>(textureSize);
 	
 	var max: f32 = levelValues[0];
-	let value = levelValues[depth];
+	//let value = levelValues[depth];
+	let value = levelValues[3];
 	//textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(value, 0.0, 0.0, 1.0)); 
 	textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(uv, value, 1.0)); 
+	//textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(0.0, 0.0, value, 1.0)); 
 }

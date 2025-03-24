@@ -68,7 +68,8 @@ class Eval {
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
-						type: 'storage',
+						// type: 'storage',
+						type: 'read-only-storage',
 					}, 
 				}
 			],
@@ -88,7 +89,7 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: levelBuffers[0],
+						buffer: levelBuffers[1],
 						offset: 0,
 						size: levelBuffers[0].size,
 					},
@@ -190,7 +191,7 @@ class Eval {
 					resource: {
 						buffer: this.levelWorkBuffers[mipLevel % 2],
 						offset: 0,
-						size: this.levelWorkBuffers[mipLevel % 2].size,
+						size: this.levelWorkBuffers[(mipLevel+1) % 2].size,
 					},
 				},
 			],
