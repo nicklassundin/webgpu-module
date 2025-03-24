@@ -31,14 +31,14 @@ class QuadTree {
 		const values = new Float32Array(quadTreeJson.values);
 		const valuesBuffer = device.createBuffer({
 			size: values.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 		device.queue.writeBuffer(valuesBuffer, 0, values.buffer);
 
 		const nodes = new Float32Array(quadTreeJson.nodes);
 		const nodesBuffer = device.createBuffer({
 			size: nodes.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 		device.queue.writeBuffer(nodesBuffer, 0, nodes.buffer);
 		// Create empty buffer for quadtree
@@ -88,6 +88,10 @@ class QuadTree {
 				}
 			],
 		});
+		console.log(travValues.byteLength)
+		console.log(values.byteLength)
+		console.log(nodes.byteLength)
+		console.log(resultArray.byteLength)
 		// create bindGroup for quadTree
 		const bindGroupQuadTree = device.createBindGroup({
 			layout: bindGroupLayoutQuadTree,
@@ -105,7 +109,7 @@ class QuadTree {
 					resource: {
 						buffer: valuesBuffer,
 						offset: 0,
-						size: values.size,
+						size: values.byteLength,
 					},
 				},
 				{
@@ -113,7 +117,7 @@ class QuadTree {
 					resource: {
 						buffer: nodesBuffer,
 						offset: 0,
-						size: nodes.size,
+						size: nodes.byteLength,
 					},
 				},
 				{
@@ -121,7 +125,7 @@ class QuadTree {
 					resource: {
 						buffer: resultBuffer,
 						offset: 0,
-						size: resultArray.size,
+						size: resultArray.byteLength,
 					},
 				},
 			],

@@ -306,6 +306,7 @@ const quadTree = new QuadTree(device, quadTreeJson, textureSize, bindGroupUnifor
 import Eval from "./eval";
 const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffer, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
 
+await device.queue.onSubmittedWorkDone();
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
 	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform],
@@ -647,6 +648,9 @@ function resizeCanvas() {
 
 }
 
+dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
+dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
+dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas(); // Ensure correct size on startup
