@@ -18,7 +18,7 @@ class Eval {
 	constructor(device: GPUDevice,
 		    textureSize,
 		    travBuffer: GPUBuffer,
-		    levelBuffers: GPUBuffer,
+		    levelBuffer: GPUBuffer,
 		    sampler: GPUTextureSampler,
 		    bindGroupUniform: GPUBindGroup,
 		    bindGroupLayoutUniform: GPUBindGroupLayout,
@@ -89,9 +89,9 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: levelBuffers[1],
+						buffer: levelBuffer,
 						offset: 0,
-						size: levelBuffers[0].size,
+						size: levelBuffer.size,
 					},
 				},
 			],
@@ -143,7 +143,7 @@ class Eval {
 		const levelWorkBuffers: GPUBuffer[] = [];
 		for (let i = 0; i < 2; i++) {
 			levelWorkBuffers.push(device.createBuffer({
-				size: levelBuffers[0].size,
+				size: levelBuffer.size,
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
 			}));
 		}

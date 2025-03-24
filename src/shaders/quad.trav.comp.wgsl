@@ -23,7 +23,7 @@ struct Traversal {
 
 
 // function to get quad index from cordinates and boundbox
-fn getQuadIndex(coord: vec2<f32>, boundBox: vec4<f32>) -> f32 {
+fn getQuadIndex(coord: vec2<f32>, boundBox: vec4<f32>) -> u32 {
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var quad = vec2<f32>(0.0, 0.0);
 	if (coord.x > center.x) {
@@ -32,7 +32,7 @@ fn getQuadIndex(coord: vec2<f32>, boundBox: vec4<f32>) -> f32 {
 	if (coord.y > center.y) {
 		quad.y = 1.0;
 	}
-	return quad.x + quad.y * 2.0;
+	return u32(quad.x + quad.y * 2.0);
 }
 
 @group(1) @binding(0) var<storage, read_write> traversal: Traversal;
@@ -46,39 +46,28 @@ fn getQuadIndex(coord: vec2<f32>, boundBox: vec4<f32>) -> f32 {
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	if traversal.boundBox.z == 0.0  {
-		traversal.boundBox = vec4<f32>(0.0, 0.0, 1.0, 1.0);
+	let i = global_id.x;
+	let address = i32(traversal.address);
+	let node = nodes[address].children[i];
+	if node == 0.0 {
+		return;
 	}
-	let depth = traversal.depth.x;
-	
-	let traversalNode = traversal.address;
-	let node: Node = nodes[u32(traversalNode)];
-	let value = values[u32(node.valueAddress)];
-
-	let id = global_id.x;
-	if (id == 0) {
-		result[0] = result[0]+1;
-	};
-	
-	let coord = traversal.coord.xy;
-	let quad = getQuadIndex(coord, traversal.boundBox);
-	for (var i: u32 = 0; i < 4; i = i + 1) {
-		let child = node.children[i];
-		if (child == 0.0) {
-			continue;
+	var boundBox = traversal.boundBox;
+	if boundBox.x == 0.0 && boundBox.y == 0.0 && boundBox.z == 0.0 && boundBox.w == 0.0 {
+		boundBox = vec4<f32>(0.0, 0.0, 1.0, 1.0);
+	}
+	let quad = getQuadIndex(traversal.coord.xy, boundBox);
+	if quad == i {
+		traversal.address = node;
+		if quad == 0 {
+			traversal.boundBox = vec4<f32>(boundBox.xy, (boundBox.xy + boundBox.zw) * 0.5);
+		} else if quad == 1 {
+			traversal.boundBox = vec4<f32>((boundBox.xy + boundBox.zw) * 0.5, boundBox.zw);
+		} else if quad == 2 {
+			traversal.boundBox = vec4<f32>(vec2<f32>(boundBox.x, (boundBox.y + boundBox.w) * 0.5), vec2<f32>((boundBox.x + boundBox.z) * 0.5, boundBox.w));
+		} else if quad == 3 {
+			traversal.boundBox = vec4<f32>(vec2<f32>((boundBox.x + boundBox.z) * 0.5, (boundBox.y + boundBox.w) * 0.5), boundBox.zw);
 		}
-		let childNode = nodes[u32(child)];
-		if childNode.quad == quad {
-			if quad == 0 {
-				traversal.boundBox = vec4<f32>(traversal.boundBox.xy, (traversal.boundBox.xy + traversal.boundBox.zw) * 0.5);
-			} else if quad == 1 {
-				traversal.boundBox = vec4<f32>((traversal.boundBox.xy + traversal.boundBox.zw) * 0.5, traversal.boundBox.zw);
-			} else if quad == 2 {
-				traversal.boundBox = vec4<f32>(vec2<f32>(traversal.boundBox.x, (traversal.boundBox.y + traversal.boundBox.w) * 0.5), vec2<f32>((traversal.boundBox.x + traversal.boundBox.z) * 0.5, traversal.boundBox.w));
-			} else if quad == 3 {
-				traversal.boundBox = vec4<f32>(vec2<f32>((traversal.boundBox.x + traversal.boundBox.z) * 0.5, (traversal.boundBox.y + traversal.boundBox.w) * 0.5), traversal.boundBox.zw);
-			}
-		}
-		
+		traversal.depth.x = traversal.depth.x + 1.0;
 	}
 }

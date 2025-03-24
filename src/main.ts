@@ -303,7 +303,7 @@ const quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson, textureSize, bindGroupUniform, bindGroupLayoutUniform)
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffer, quadTree.results, sampler, bindGroupUniform, bindGroupLayoutUniform);
+const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffer, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
 
 await device.queue.onSubmittedWorkDone();
 // Create Pipeline Layout
@@ -504,10 +504,10 @@ async function quadTreePass() {
 		await evaluation.pass(i);
 	}
 	await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
-	await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, mipLevel + mipLevel % 2);
-	await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadTree.results[1], 0, mipLevel + mipLevel % 2);
+	// await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadTree.result, 0, mipLevel + mipLevel % 2);
 }
 await quadTreePass();
 // dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
@@ -686,8 +686,7 @@ window.addEventListener('beforeunload', async () => {
 	quadTree.buffers.travBuffer.unmap();
 	quadTree.buffers.valuesBuffer.unmap();
 	quadTree.buffers.nodesBuffer.unmap();
-	quadTree.results[0].unmap();
-	quadTree.results[1].unmap();
+	quadTree.result.unmap();
 	evaluation.texture.unmap();
 });
 

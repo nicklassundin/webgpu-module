@@ -44,15 +44,19 @@ class QuadTree {
 		const mipLevelCount = Math.floor(Math.log2(textureSize));
 		const resultArray = new Float32Array(mipLevelCount);
 	
-		this.results = [];
-		let numBuffers = 2;
-		for (let i = 0; i < numBuffers; i++) {
-			this.results.push(device.createBuffer({
-				size: Float32Array.BYTES_PER_ELEMENT * mipLevelCount, 
-				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-			}));
-		}
-		device.queue.writeBuffer(this.results[0], 0, new Float32Array([0, 1, 2, 3, 4]));
+		this.result = device.createBuffer({
+			size: Float32Array.BYTES_PER_ELEMENT * mipLevelCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		});
+		// this.results = [];
+		// let numBuffers = 2;
+		// for (let i = 0; i < numBuffers; i++) {
+		// 	this.results.push(device.createBuffer({
+		// 		size: Float32Array.BYTES_PER_ELEMENT * mipLevelCount, 
+		// 		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		// 	}));
+		// }
+		// device.queue.writeBuffer(this.results[0], 0, new Float32Array([0, 1, 2, 3, 4]));
 
 		this.buffers = {
 			travBuffer,
@@ -128,7 +132,7 @@ class QuadTree {
 				{
 					binding: 3,
 					resource: {
-						buffer: this.results[0],
+						buffer: this.result,
 						offset: 0,
 						size: Float32Array.BYTES_PER_ELEMENT * mipLevelCount, 
 					},
@@ -202,7 +206,7 @@ class QuadTree {
 				{
 					binding: 3,
 					resource: {
-						buffer: this.results[mipLevel % 2],
+						buffer: this.result,
 						offset: 0,
 						size: this.mipmapLevel * Float32Array.BYTES_PER_ELEMENT,
 					},
@@ -214,14 +218,14 @@ class QuadTree {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroupUniform);
 		computePass.setBindGroup(1, this.bindGroupQuadTree);
-		computePass.dispatchWorkgroups(1)
+		computePass.dispatchWorkgroups(4)
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
-		await device.queue.onSubmittedWorkDone();
+		// device.queue.onSubmittedWorkDone();
 		// update buffers
-		const commandEncoder = device.createCommandEncoder();
-		commandEncoder.copyBufferToBuffer(this.results[0], 0, this.results[1], 0, this.results[0].size);
-		await device.queue.submit([commandEncoder.finish()]);
+		// const commandEncoder = device.createCommandEncoder();
+		// commandEncoder.copyBufferToBuffer(this.results[0], 0, this.results[1], 0, this.results[0].size);
+		// await device.queue.submit([commandEncoder.finish()]);
 	}
 }
 export default QuadTree;
