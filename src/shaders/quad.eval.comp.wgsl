@@ -36,7 +36,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let pixelCoord = uv * vec2<f32>(textureSize);
 	
 	var max: f32 = levelValues[0];
-	let value = levelValues[depth] / max; 
+	let value = levelValues[depth];
 	//textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(value, 0.0, 0.0, 1.0)); 
-	textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(uv, 0.0, 1.0)); 
+	textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(uv, value, 1.0)); 
 }

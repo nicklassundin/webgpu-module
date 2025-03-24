@@ -38,6 +38,7 @@ fn getQuadIndex(coord: vec2<f32>, boundBox: vec4<f32>) -> f32 {
 @group(1) @binding(0) var<storage, read_write> traversal: Traversal;
 @group(1) @binding(1) var<storage, read_write> values: array<f32>;
 @group(1) @binding(2) var<storage, read_write> nodes: array<Node>;
+
 @group(1) @binding(3) var<storage, read_write> result: array<f32>;
 
 @compute @workgroup_size(1)
@@ -50,7 +51,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let traversalNode = traversal.address;
 	let node: Node = nodes[u32(traversalNode)];
 	let value = values[u32(node.valueAddress)];
-	result[u32(depth)] = value;
+
+	let id = global_id.x;
+	//result[id] = f32(id);
+	//result[u32(depth)] = value;
+	//result[id] = f32(id);
+	result[0] = 42.0;
 	
 	let coord = traversal.coord.xy;
 	let quad = getQuadIndex(coord, traversal.boundBox);
@@ -70,8 +76,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 			} else if quad == 3 {
 				traversal.boundBox = vec4<f32>(vec2<f32>((traversal.boundBox.x + traversal.boundBox.z) * 0.5, (traversal.boundBox.y + traversal.boundBox.w) * 0.5), traversal.boundBox.zw);
 			}
-			result[u32(depth)] = value;
-			return;
 		}
 		
 	}

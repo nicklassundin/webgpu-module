@@ -18,7 +18,7 @@ class Eval {
 	constructor(device: GPUDevice,
 		    textureSize,
 		    travBuffer: GPUBuffer,
-		    levelBuffer: GPUBuffer,
+		    levelBuffers: GPUBuffer,
 		    sampler: GPUTextureSampler,
 		    bindGroupUniform: GPUBindGroup,
 		    bindGroupLayoutUniform: GPUBindGroupLayout,
@@ -88,9 +88,9 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: levelBuffer,
+						buffer: levelBuffers[0],
 						offset: 0,
-						size: levelBuffer.size,
+						size: levelBuffers[0].size,
 					},
 				},
 			],
@@ -139,11 +139,19 @@ class Eval {
 		}
 		this.layout = pipelineLayoutQuadTree;
 		this.texture = frameTexture;
-		this.levelBuffer = levelBuffer;
+		const levelWorkBuffers: GPUBuffer[] = [];
+		for (let i = 0; i < 2; i++) {
+			levelWorkBuffers.push(device.createBuffer({
+				size: levelBuffers[0].size,
+				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+			}));
+		}
+		this.levelWorkBuffers = levelWorkBuffers;
 		this.device = device;
 		this.sampler = sampler;
 		this.mipmapLevel = mipLevelCount;
 	}
+
 	async pass(mipLevel){
 		// calculate workgroup based on mipmap
 		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
@@ -180,9 +188,9 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.levelBuffer,
+						buffer: this.levelWorkBuffers[mipLevel % 2],
 						offset: 0,
-						size: this.levelBuffer.size,
+						size: this.levelWorkBuffers[mipLevel % 2].size,
 					},
 				},
 			],

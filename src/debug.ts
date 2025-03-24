@@ -1,12 +1,17 @@
 
-async function fromBufferToLog(device: GPUDevice, storageBuffer: GPUbuffer,  offset: number = 0, size: number = 4) {
+async function fromBufferToLog(device: GPUDevice, storageBuffer: GPUbuffer,  offset: number = 0, size: number = storageBuffer.size) {
 	// Create a readback buffer
 	const readBuffer = device.createBuffer({
 		size: size*Float32Array.BYTES_PER_ELEMENT,
 		usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
 	});
 	const commandEncoder = device.createCommandEncoder();
-	commandEncoder.copyBufferToBuffer(storageBuffer, 0, readBuffer, 0, size*Float32Array.BYTES_PER_ELEMENT);
+	commandEncoder.copyBufferToBuffer(storageBuffer,
+					  offset,
+					  // 0,
+					  readBuffer, 
+					  0, 
+					  size);
 	const commands = commandEncoder.finish();
 	device.queue.submit([commands]);
 	await device.queue.onSubmittedWorkDone();
@@ -24,7 +29,7 @@ class Debugger {
 	constructor(device: GPUDevice) {
 		this.device = device;
 	}
-	async fromBufferToLog(storageBuffer: GPUBuffer, offset: number = 0, size: number = 4) {
+	async fromBufferToLog(storageBuffer: GPUBuffer, offset: number = 0, size: number) {
 		await fromBufferToLog(this.device, storageBuffer, offset, size);
 	}
 }

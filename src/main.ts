@@ -304,7 +304,7 @@ const quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson, textureSize, bindGroupUniform, bindGroupLayoutUniform)
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffer, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
+const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffer, quadTree.results, sampler, bindGroupUniform, bindGroupLayoutUniform);
 
 await device.queue.onSubmittedWorkDone();
 // Create Pipeline Layout
@@ -441,7 +441,6 @@ function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder)
 	let byteOffset = 0;
 	const mipLevel = new Float32Array([0]);
 
-	console.log(uv[0])
 	const allValues = new Float32Array([
 		0, // Mip Level 
 		0, 0, 0, // Padding
@@ -500,7 +499,9 @@ let lastFrameTime = Date.now()
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
 		await quadTree.pass(i);
-		// dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
+		console.log(quadTree.results[0].size);
+		await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, 40);
+		await dbug_mngr.fromBufferToLog(quadTree.results[1], 0, 40)
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
@@ -648,9 +649,9 @@ function resizeCanvas() {
 
 }
 
-dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
-dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
-dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
+// dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
+// dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
+// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas(); // Ensure correct size on startup
