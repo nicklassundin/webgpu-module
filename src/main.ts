@@ -503,10 +503,10 @@ async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
 		await evaluation.pass(i);
 	}
-	await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, mipLevel + mipLevel % 2);
-	// await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.result, 0, mipLevel + mipLevel % 2);
 }
 await quadTreePass();

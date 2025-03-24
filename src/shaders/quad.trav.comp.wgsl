@@ -56,6 +56,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	if boundBox.x == 0.0 && boundBox.y == 0.0 && boundBox.z == 0.0 && boundBox.w == 0.0 {
 		boundBox = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 	}
+	let value = values[address];
+	result[i32(traversal.depth.x)] = value;
 	let quad = getQuadIndex(traversal.coord.xy, boundBox);
 	if quad == i {
 		traversal.address = node;
