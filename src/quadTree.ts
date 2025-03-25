@@ -208,6 +208,8 @@ class QuadTree {
 					resource: {
 						buffer: this.result,
 						offset: 0,
+						// TODO chould only access the current call
+						// offset: mipLevel * Float32Array.BYTES_PER_ELEMENT,
 						size: this.mipmapLevel * Float32Array.BYTES_PER_ELEMENT,
 					},
 				},
@@ -218,7 +220,7 @@ class QuadTree {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroupUniform);
 		computePass.setBindGroup(1, this.bindGroupQuadTree);
-		computePass.dispatchWorkgroups(4)
+		computePass.dispatchWorkgroups(4);
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
 		// device.queue.onSubmittedWorkDone();

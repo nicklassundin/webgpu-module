@@ -15,7 +15,7 @@ struct Node {
 };
 
 struct Traversal {
-	depth: vec4<f32>,
+	depth: f32,
 	boundBox: vec4<f32>,
 	coord: vec4<f32>,
 	address: f32,
@@ -47,6 +47,7 @@ fn getQuadIndex(coord: vec2<f32>, boundBox: vec4<f32>) -> u32 {
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let i = global_id.x;
+	let depth = global_id.y;
 	let address = i32(traversal.address);
 	let node = nodes[address].children[i];
 	if node == 0.0 {
@@ -57,10 +58,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		boundBox = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 	}
 	let value = values[address];
-	result[i32(traversal.depth.x)] = value;
 	let quad = getQuadIndex(traversal.coord.xy, boundBox);
 	if quad == i {
 		traversal.address = node;
+		result[u32(traversal.depth)] = value;
+		traversal.depth = traversal.depth + 1.0;
 		if quad == 0 {
 			traversal.boundBox = vec4<f32>(boundBox.xy, (boundBox.xy + boundBox.zw) * 0.5);
 		} else if quad == 1 {
@@ -70,6 +72,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		} else if quad == 3 {
 			traversal.boundBox = vec4<f32>(vec2<f32>((boundBox.x + boundBox.z) * 0.5, (boundBox.y + boundBox.w) * 0.5), boundBox.zw);
 		}
-		traversal.depth.x = traversal.depth.x + 1.0;
 	}
 }
