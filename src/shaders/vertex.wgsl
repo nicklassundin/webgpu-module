@@ -1,5 +1,7 @@
 
 
+@group(2) @binding(0) var<storage, read> levelValues: array<f32>;
+
 const GRID: u32 = 10; 
 @vertex
 fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
@@ -29,5 +31,5 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
 	let local_pos = pos[vert_index];
 	
 	var test: f32 = 0.0;
-	return vec4f(local_pos, 0.0, 1.0); 
+	return vec4f(local_pos, levelValues[3], 1.0); 
 }

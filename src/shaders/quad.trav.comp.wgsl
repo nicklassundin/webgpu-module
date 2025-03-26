@@ -93,8 +93,26 @@ fn setTraversal(address: u32, trav: Traversal) {
 
 @group(1) @binding(4) var<storage, read_write> result: array<f32>;
 
-
-
+// function that return boundBox for quadrant
+fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
+	let center = (boundBox.xy + boundBox.zw) * 0.5;
+	var newBoundBox = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+	if coord.x < center.x {
+		newBoundBox.x = boundBox.x;
+		newBoundBox.z = center.x;
+	} else {
+		newBoundBox.x = center.x;
+		newBoundBox.z = boundBox.z;
+	}
+	if coord.y < center.y {
+		newBoundBox.y = boundBox.y;
+		newBoundBox.w = center.y;
+	} else {
+		newBoundBox.y = center.y;
+		newBoundBox.w = boundBox.w;
+	}
+	return newBoundBox;
+};
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -114,15 +132,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		return;
 	}
 	let quad = getQuadIndex(trav.coord.xy, boundBox);
+
 	let child = node.children[quad];
 
+	nextTrav.boundBox = getBoundBox(trav.coord.xy, boundBox);
+	nextTrav.address = child;
 	if child == 0.0 {
 		nextTrav.address = 0.0;
 		setTraversal(global_id.x, nextTrav);
 		return;
 	}
-	
-	nextTrav.address = child;
+
 	//result[u32(trav.depth)] = f32(address); 
 	result[u32(trav.depth)] = values[address] / values[0u];
 	//result[u32(trav.depth)] = trav.depth; 

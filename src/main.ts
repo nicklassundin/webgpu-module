@@ -198,10 +198,18 @@ const bindGroupLayout = device.createBindGroupLayout({
 		},
 	],
 });
-// Create pipeline layout for mipmap
-// const pipelineLayoutMipmap = device.createPipelineLayout({
-// 	bindGroupLayouts: [bindGroupLayout],
-// });
+// bindGroup for Navigate
+const bindGroupLayoutNav = device.createBindGroupLayout({
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
+			buffer: {
+				type: 'read-only-storage',
+			},
+		},
+	]
+});
 // Create bind group for uniform buffer
 const bindGroupUniform = device.createBindGroup({
 	layout: bindGroupLayoutUniform,
@@ -232,7 +240,7 @@ const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, q
 await device.queue.onSubmittedWorkDone();
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform, evaluation.bindGroupLayouts.quadTree],
+	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform, bindGroupLayoutNav],
 });
 // Piprline
 const pipeline = device.createRenderPipeline({
@@ -369,9 +377,9 @@ let lastFrameTime = Date.now()
 // QuadTree compute pass
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
-		await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[(i+1) % mipLevel], 0, 64);
+		// await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[(i+1) % mipLevel], 0, 64);
 		// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer , 0, 32);
-		await dbug_mngr.fromBufferToLog(quadTree.result, 0, 40);
+		await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 		// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 		await quadTree.pass(i);
 	}
@@ -430,8 +438,21 @@ async function frame() {
 			},
 		],
 	});
-	// quad Tree travel binding
-	const quadTreeBindGroup = quadTree.bindGroupQuadTree;
+	// Navigate bindGroup
+	const bindGroupNav = device.createBindGroup({
+		layout: bindGroupLayoutNav, 
+		entries: [
+			{
+				binding: 0,
+				resource: {
+					buffer: quadTree.result,
+					offset: 0,
+					size: quadTree.result.size,
+				} 
+			}
+		],
+	});
+
 
 	// Render pass
 	if (lastFrameTime < Date.now() && mipLevel >= current_mipLevel) {
@@ -452,7 +473,7 @@ async function frame() {
 		// passEncoder.setVertexBuffer(0, vertexBuffer);
 		passEncoder.setBindGroup(0, bindGroup);
 		passEncoder.setBindGroup(1, bindGroupUniform);
-		passEncoder.setBindGroup(2, evaluation.bindGroupQuadTree);
+		passEncoder.setBindGroup(2, bindGroupNav);
 		const numVer = Math.pow(2, current_mipLevel) * 3 * 2;
 		console.log(`Number of vertices: ${numVer}`);
 		passEncoder.draw(numVer);
