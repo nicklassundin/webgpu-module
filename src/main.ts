@@ -62,6 +62,17 @@ const texture = device.createTexture({
 	usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
 });
 const textureView = texture.createView();
+// Create depth texture manually
+const frames = 2;
+const depthTextures: GPUTexture[] = [];
+for (let i = 0; i < frames; i++) {
+	const depthTexture = device.createTexture({
+		size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
+		format: 'depth24plus',
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+	});
+	depthTextures.push(depthTexture);
+}
 
 // Vertex Buffer
 const Vertices = new Float32Array([
@@ -145,9 +156,13 @@ const sampler = device.createSampler({
 	minFilter: 'linear',
 	mipmapFilter: 'linear',
 });
+// depth Sampler
+const depthSampler = device.createSampler({
+	compare: undefined,
+});
 // binding group layout for mipmap
 const bindGroupLayoutUniform = device.createBindGroupLayout({
-	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, buffer: {}  }],
+	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: {}  }],
 })
 // Create binding group layout Used for mipmap and normal rendering
 const bindGroupLayout = device.createBindGroupLayout({
@@ -170,35 +185,15 @@ const bindGroupLayout = device.createBindGroupLayout({
 		{
 			binding: 2,
 			visibility: GPUShaderStage.FRAGMENT,
-			texture: {
-				sampleType: 'float',
-			},
-		},
-	],
-});
-// Create binding group depth layout
-const bindGroupLayoutDepth = device.createBindGroupLayout({
-	entries: [
-		{
-			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT,
 			sampler: {
-				type: 'filtering',
+				type: 'non-filtering',
 			},
 		},
 		{
-			binding: 1,
+			binding: 3,
 			visibility: GPUShaderStage.FRAGMENT,
 			texture: {
-				sampleType: 'float',
-			},
-		},
-		// Read 
-		{
-			binding: 2,
-			visibility: GPUShaderStage.FRAGMENT,
-			texture: {
-				sampleType: 'float',
+				sampleType: 'depth',
 			},
 		},
 	],
@@ -221,77 +216,6 @@ const bindGroupUniform = device.createBindGroup({
 		},
 	],
 });
-// Pipeline for mipmap
-// const pipelineMipmap = device.createRenderPipeline({
-// 		// Read 
-// 	layout: pipelineLayoutMipmap,
-// 	vertex: {
-// 		module: device.createShaderModule({
-// 			code: fixedvertexShaderCode,
-// 		}),
-// 		buffers: [{
-// 			arrayStride: 4 * 2,
-// 			attributes: [
-// 				{
-// 					shaderLocation: 0,
-// 					offset: 0,
-// 					format: 'float32x2',
-// 				},
-// 			],
-// 		}]
-// 	},
-// 	fragment: {
-// 		module: device.createShaderModule({
-// 			// TODO replace
-// 			code: quadfragmentShaderCode,
-// 			// code: quadtestfragmentShaderCode,
-// 		}),
-// 		targets: [{ format: 'rgba8unorm', }],
-// 	},
-// 	primitive: {
-// 		topology: 'triangle-list',
-// 	}
-// });
-// // Mipmap render pass
-// const commandEncoder = device.createCommandEncoder();
-// for (let i = 1; i < mipLevel; i++) {
-// 	const prevLevelSize = textureSize.width >> (i - 1);
-// 	const newLevelSize = Math.max(1, prevLevelSize >> 1);
-// 	const view = textureMipmap.createView({ baseMipLevel: i, mipLevel: 1  });
-
-// 	const renderPassDescriptorMipmap: GPURenderPassDescriptor = {
-// 		colorAttachments: [
-// 			{
-// 				view,
-// 				loadOp: 'clear',
-// 				storeOp: 'store',
-// 			},
-// 		],
-// 	};
-// 	const bindGroupMip = device.createBindGroup({
-// 		layout: bindGroupLayout,
-// 		entries: [
-// 			{
-// 				binding: 0,
-// 				resource: sampler,
-// 			},
-// 			{
-// 				binding: 1,
-// 				resource: textureMipmap.createView({ baseMipLevel: i - 1, mipLevel: 1}),
-// 			},
-// 		],
-// 	});
-
-// 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptorMipmap);
-// 	passEncoder.setPipeline(pipelineMipmap);
-// 	passEncoder.setBindGroup(0, bindGroupMip);
-// 	passEncoder.setVertexBuffer(0, vertexBuffer);
-// 		// Read 
-// 	passEncoder.draw(6);
-// 	passEncoder.end();
-
-// }
-// device.queue.submit([commandEncoder.finish()]);
 
 import QuadTree from "./quadTree";
 
@@ -303,12 +227,12 @@ const quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson, textureSize, bindGroupUniform, bindGroupLayoutUniform)
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffer, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
+const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
 
 await device.queue.onSubmittedWorkDone();
 // Create Pipeline Layout
 const pipelineLayout = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform],
+	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform, evaluation.bindGroupLayouts.quadTree],
 });
 // Piprline
 const pipeline = device.createRenderPipeline({
@@ -317,16 +241,16 @@ const pipeline = device.createRenderPipeline({
 		module: device.createShaderModule({
 			code: vertexShaderCode,
 		}),
-		buffers: [{
-			arrayStride: 4 * 2,
-			attributes: [
-				{
-					shaderLocation: 0,
-					offset: 0,
-					format: 'float32x2',
-				},
-			],
-		}]
+		// buffers: [{
+		// 	arrayStride: 4 * 2,
+		// 	attributes: [
+		// 		{
+		// 			shaderLocation: 0,
+		// 			offset: 0,
+		// 			format: 'float32x2',
+		// 		},
+		// 	],
+		// }]
 	},
 	fragment: {
 		module: device.createShaderModule({
@@ -340,45 +264,16 @@ const pipeline = device.createRenderPipeline({
 	},
 	primitive: {
 		topology: 'triangle-list',
-	}
-});
-// Create Depth Pipeline Layout
-const pipelineLayoutDepth = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayoutDepth, bindGroupLayoutUniform],
-});
-// Depth pipeline
-const pipelineDepth = device.createRenderPipeline({
-	layout: pipelineLayoutDepth,
-	vertex: {
-		module: device.createShaderModule({
-			code: fixedvertexShaderCode,
-		}),
-		buffers: [{
-			arrayStride: 4 * 2,
-			attributes: [
-				{
-					shaderLocation: 0,
-					offset: 0,
-					format: 'float32x2',
-				},
-			],
-		}]
+		// topology: 'point-list',
+		// topology: 'line-list',
+		// cullMode: 'none',
 	},
-	fragment: {
-		module: device.createShaderModule({
-			code: depthFragmentShaderCode,
-		}),
-		targets: [
-			{
-				format: presentationFormat,
-			},
-		],
+	depthStencil: {
+		format: 'depth24plus',
+		depthWriteEnabled: true,
+		depthCompare: 'less',
 	},
-	primitive: {
-		topology: 'triangle-list',
-	}
 });
-
 
 // Render Pass Descriptor
 const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -390,36 +285,17 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
 			storeOp: 'store',
 		},
 	],
-};
-// Depth Render Pass Descriptor
-const renderPassDescriptorDepth: GPURenderPassDescriptor = {
-	colorAttachments: [
-		{
-			view: undefined,
-			clearValue: [1, 1, 1, 1], // Clear to transparent
-			loadOp: 'clear',
-			storeOp: 'store',
-		},
-	],
+	depthStencilAttachment: {
+		view: undefined, 
+		depthLoadOp: 'clear',
+		depthStoreOp: 'store',
+		depthClearValue: 1.0,
+		clearDepth: 1.0,
+	},
 };
 
 
 // Create Depth Texture TODO
-const depthTextures: GPUTexture[] = [];
-// const frames = mipLevel;
-const frames = 3;
-for (let i = 0; i < frames; i++) {
-	depthTextures.push(device.createTexture({
-		// size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
-		// format: 'depth24plus-stencil8',
-		// usage: GPUTextureUsage.RENDER_ATTACHMENT,
-		size: [ textureSize, textureSize, 1 ],
-		format: 'bgra8unorm',
-		// format: 'rgba8unorm',
-		usage: 	GPUTextureUsage.TEXTURE_BINDING |
-			GPUTextureUsage.RENDER_ATTACHMENT,
-	}));
-}
 class Params {
 	travelValues: number[];
 	change: boolean = false;
@@ -436,7 +312,7 @@ const params = new Params([0.6, 0.4]);
 
 
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder) {
-	const travBuffer = quadTree.buffers.travBuffer;
+	const travBuffer = quadTree.buffers.travBuffers[0];
 	let byteOffset = 0;
 	const mipLevel = new Float32Array([0]);
 
@@ -480,10 +356,6 @@ const gui = new GUI();
 	const uvFolder = gui.addFolder("UV Coordinates");
 	uvFolder.add({ value: 0.6 }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
 		params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
-		// const commandEncoderArg = device.createCommandEncoder();
-		// updateTravBufferCoord([value, uvFolder.__controllers[1].object.value], commandEncoderArg);
-		// const commandBufferArg = commandEncoderArg.finish();
-		// device.queue.submit([commandBufferArg]);
 		quadTreePass();
 	})
 	uvFolder.add({ value: 0.4 }, 'value', 0, 1, 0.01).name("V");
@@ -497,20 +369,19 @@ let lastFrameTime = Date.now()
 // QuadTree compute pass
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
+		await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[(i+1) % mipLevel], 0, 64);
+		// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer , 0, 32);
+		await dbug_mngr.fromBufferToLog(quadTree.result, 0, 40);
+		// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 		await quadTree.pass(i);
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
-		await evaluation.pass(i);
+		// await evaluation.pass(i);
 	}
-	await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadTree.results[0], 0, mipLevel + mipLevel % 2);
-	await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadTree.result, 0, mipLevel + mipLevel % 2);
 }
 await quadTreePass();
-// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 
 const commandEncoderArg = device.createCommandEncoder();
 updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
@@ -518,52 +389,6 @@ const commandBufferArg = commandEncoderArg.finish();
 device.queue.submit([commandBufferArg]);
 await device.queue.onSubmittedWorkDone();
 
-async function dephtFrame(mipLevel: number = 0, pipe, textures: GPUTextures[]){
-	// dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
-	const bindGroupDepth = device.createBindGroup({
-		layout: bindGroupLayoutDepth,
-		entries: [
-			{
-				binding: 0,
-				resource: sampler,
-			},
-			{
-				binding: 1,
-				resource: evaluation.texture.createView(),
-			},
-			{
-				binding: 2,
-				// TODO need to use the evaluation texture instead and pass it through
-				// resource: depthTextures[frameCount % frames].createView(),
-				resource: textures[(frameCount) % frames].createView(),
-			},
-		],
-	});
-	// Render Depth pass
-	// const mipLevelDepth = frameCount % (mipLevel + 2)
-	const mipLevelDepthArray = [canvas.width, canvas.height, mipLevel];
-	await updateUniformBuffer(mipLevelDepthArray);
-	const commandEncoderDepth = device.createCommandEncoder();
-	// const currentDepthTexture = context.getCurrentTexture();
-	const currentDepthTexture = textures[(frameCount+1) % frames]
-
-	if (!currentDepthTexture) {
-		console.error("Failed to retrieve current texture.");
-		return;
-	}
-	const depthTextureView = currentDepthTexture.createView();
-	renderPassDescriptorDepth.colorAttachments[0].view = depthTextureView;
-	const passEncoderDepth = commandEncoderDepth.beginRenderPass(renderPassDescriptorDepth);
-	passEncoderDepth.setPipeline(pipe);	
-	passEncoderDepth.setVertexBuffer(0, vertexBuffer);
-	passEncoderDepth.setBindGroup(0, bindGroupDepth);
-	passEncoderDepth.setBindGroup(1, bindGroupUniform);
-	passEncoderDepth.draw(6);
-	passEncoderDepth.end();
-	device.queue.submit([commandEncoderDepth.finish()]);
-
-
-}
 
 let renderPass 
 
@@ -572,10 +397,10 @@ updateTravBufferCoord([0.6, 0.4], commandEncoder);
 const commandBuffer = commandEncoder.finish();
 device.queue.submit([commandBuffer]);
 await device.queue.onSubmittedWorkDone();
-let current_mipLevel = mipLevel;
+let current_mipLevel = 0;
 async function frame() {
 	if (params.change) {
-		current_mipLevel = mipLevel;
+		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
 		updateTravBufferCoord(params.travelValues, commandEncoderArg);
 		const commandBufferArg = commandEncoderArg.finish();
@@ -583,12 +408,6 @@ async function frame() {
 		await device.queue.onSubmittedWorkDone();
 		params.change = false;
 	}
-	// const mipLevelDepth = mipLevel - frameCount % (mipLevel + 2);
-	if (current_mipLevel >= 0) {
-		await dephtFrame(current_mipLevel, pipelineDepth, depthTextures);
-		current_mipLevel--;
-	}
-
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,
@@ -599,16 +418,23 @@ async function frame() {
 			},
 			{
 				binding: 1,
-				resource: depthTextures[(frameCount) % frames].createView(), 
+				resource: evaluation.texture.createView(), 
 			},
 			{
 				binding: 2,
-				resource: evaluation.texture.createView(),
+				resource: depthSampler,
+			},
+			{
+				binding: 3,
+				resource: depthTextures[(frameCount + 1) % frames].createView(),
 			},
 		],
 	});
+	// quad Tree travel binding
+	const quadTreeBindGroup = quadTree.bindGroupQuadTree;
+
 	// Render pass
-	if (lastFrameTime < Date.now() && current_mipLevel < mipLevel) {
+	if (lastFrameTime < Date.now() && mipLevel >= current_mipLevel) {
 		const commandEncoder = device.createCommandEncoder();
 		const currentTexture = context.getCurrentTexture();
 		if (!currentTexture) {
@@ -617,18 +443,25 @@ async function frame() {
 		}
 		const textureView = currentTexture.createView();
 		renderPassDescriptor.colorAttachments[0].view = textureView;
+		const depthTextureView = depthTextures[frameCount % frames].createView();
+		renderPassDescriptor.depthStencilAttachment.view = depthTextureView;
 
 
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 		passEncoder.setPipeline(pipeline);
-		passEncoder.setVertexBuffer(0, vertexBuffer);
+		// passEncoder.setVertexBuffer(0, vertexBuffer);
 		passEncoder.setBindGroup(0, bindGroup);
 		passEncoder.setBindGroup(1, bindGroupUniform);
-		passEncoder.draw(6);
+		passEncoder.setBindGroup(2, evaluation.bindGroupQuadTree);
+		const numVer = Math.pow(2, current_mipLevel) * 3 * 2;
+		console.log(`Number of vertices: ${numVer}`);
+		passEncoder.draw(numVer);
 		passEncoder.end();
 
 		device.queue.submit([commandEncoder.finish()]);
+		current_mipLevel++;
 	}
+
 	frameCount++;
 	// await new Promise((resolve) => setTimeout(resolve, 3000));
 	// await new Promise((resolve) => setTimeout(resolve, 300));
@@ -650,10 +483,6 @@ function resizeCanvas() {
 
 }
 
-// dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffer, 0, 32);
-// dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
-// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
-
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas(); // Ensure correct size on startup
 requestAnimationFrame(frame);
@@ -672,7 +501,7 @@ canvas.addEventListener('click', async (event) => {
 	const x = event.clientX - rect.left;
 	const y = event.clientY - rect.top;
 	const uv = [x / canvas.width, y / canvas.height];
-	current_mipLevel = mipLevel;
+	current_mipLevel = 0;
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
@@ -683,7 +512,9 @@ canvas.addEventListener('click', async (event) => {
 // On close unbind buffers
 window.addEventListener('beforeunload', async () => {
 	await device.queue.onSubmittedWorkDone();
-	quadTree.buffers.travBuffer.unmap();
+	for (let i = 0; i < mipLevel; i++) {
+		quadTree.buffers.travBuffers[i].unmap();
+	}
 	quadTree.buffers.valuesBuffer.unmap();
 	quadTree.buffers.nodesBuffer.unmap();
 	quadTree.result.unmap();

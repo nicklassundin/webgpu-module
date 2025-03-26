@@ -17,7 +17,7 @@ class Eval {
 	};
 	constructor(device: GPUDevice,
 		    textureSize,
-		    travBuffer: GPUBuffer,
+		    travBuffers: GPUBuffer[],
 		    levelBuffer: GPUBuffer,
 		    sampler: GPUTextureSampler,
 		    bindGroupUniform: GPUBindGroup,
@@ -33,7 +33,7 @@ class Eval {
 		});
 
 		// Create empty uniform buffer
-		this.travBuffer = travBuffer;
+		this.travBuffers = travBuffers;
 
 		// create bindgrouopLayout for quadtree
 		// Texture Storage Layout
@@ -81,7 +81,7 @@ class Eval {
 				{
 					binding: 0,
 					resource: {
-						buffer: travBuffer,
+						buffer: travBuffers[0],
 						offset: 0,
 						size: travValues.byteLength, 
 					},
@@ -181,7 +181,7 @@ class Eval {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.travBuffer,
+						buffer: this.travBuffers[mipLevel],
 						offset: 0,
 						size: travValues.byteLength,
 					},
