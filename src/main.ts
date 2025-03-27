@@ -281,7 +281,7 @@ const pipeline = device.createRenderPipeline({
 		topology: 'triangle-list',
 		// topology: 'point-list',
 		// topology: 'line-list',
-		cullMode: 'none',
+		// cullMode: 'none',
 	},
 	depthStencil: {
 		format: 'depth24plus',

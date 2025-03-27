@@ -24,34 +24,35 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
 	let trav = getTraversal(0);
 	let boundBox = trav.boundBox;
 	let depth: u32 = u32(f32(VertexIndex) / f32(VERTICE));
-	let coord: vec2<f32> = 2*trav.coord.xy;
+	//let depth: u32 = 0;
+	let coord: vec2<f32> = trav.coord.xy * vec2<f32>(-1.0, 1.0);
 	
-	let grid: u32 = u32(pow(2.0, f32(depth)));
+	let grid: u32 = u32(pow(2.0, f32(depth+1)));
 	let res: vec2<u32> = vec2(grid,grid);
-	let pixCoord = vec2<u32>(coord.xy * vec2<f32>(res.xy));
-	var quadCoord = vec2<f32>(f32(pixCoord.x) / f32(grid), f32(pixCoord.y) / f32(grid));
+	let pixCoord = vec2<u32>(coord.xy * vec2f(res.xy));
+	var quadCoord = (vec2f(pixCoord) + vec2f(0.5)) / vec2f(res.xy); 
 		
 	let quad_index = VertexIndex / VERTICE;
 	let vert_index = VertexIndex % VERTICE;
-
+	
 	let q_x = quad_index % grid;
 	let q_y = quad_index / grid;
 
-	let cell_w = 1.0 / f32(grid);
-	let cell_h = 1.0 / f32(grid);
+	let cell_w = 2.0 / f32(grid);
+	let cell_h = 2.0 / f32(grid);
+	let half_cell_w = cell_w / 2.0;
+	let half_cell_h = cell_h / 2.0;
 
-	//let x = f32(quadCoord.x) - cell_w;
-	//let y = f32(quadCoord.y) - cell_h;
-	let x = 0.2;
-	let y = 0.5;
+	let x = f32(quadCoord.x);
+	let y = f32(quadCoord.y);
 
 	let pos = array<vec2<f32>, 6>(
-			vec2f(x, y),
-			vec2f(x + cell_w, y),
-			vec2f(x + cell_w, y + cell_h),
-			vec2f(x, y + cell_h),
-			vec2f(x, y),
-			vec2f(x + cell_w, y + cell_h)
+		vec2<f32>(x - half_cell_w, y - half_cell_h),
+		vec2<f32>(x + half_cell_w, y - half_cell_h),
+		vec2<f32>(x + half_cell_w, y + half_cell_h),
+		vec2<f32>(x - half_cell_w, y - half_cell_h),
+		vec2<f32>(x + half_cell_w, y + half_cell_h),
+		vec2<f32>(x - half_cell_w, y + half_cell_h)
 			);
 
 	let local_pos = pos[vert_index];
@@ -59,5 +60,5 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
 	//return vec4f(local_pos, f32(depth)/12.0, 1.0); 
 	
 	let normDepth: f32 = f32(depth) / 12.0;
-	return vec4f(local_pos, normDepth, 1.0);
+	return vec4f(local_pos, 1.0 - normDepth, 1.0);
 }
