@@ -39,10 +39,9 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let textureSize: vec2<u32> = textureDimensions(depthTexture, 0);
 	let pixCoord = vec2<u32>(uv * vec2<f32>(textureSize));
 	let depth = textureSample(depthTexture, depthSampler, uv);
+	let nextDepth = fragCoord.z;
 
 	
-	let color = vec4<f32>(depth, depth, depth, 1.0);
-	//let color = textureLoad(valueTexture, pixCoord, u32(depth));
 	// chess board pattern
 	let x = i32(floor(uv.x * 10));
 	let y = i32(floor(uv.y * 10));
@@ -51,9 +50,13 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let checker_color = vec4<f32>(uv.x, uv.y - f32(c), f32(c), 0.0);
 	
 
-	if (color.g > 0.0) {
-	 	return vec4<f32>(1.0, depth, 0.0, 1.0);
+	if (nextDepth >= 0.0) {
+		if(depth < nextDepth){
+			return vec4<f32>(depth, 0, 0, 1.0);
+		}
+		return vec4<f32>(nextDepth, 0, 0, 1.0);
 	}else{
+		
 		return checker_color;
 	}
 }

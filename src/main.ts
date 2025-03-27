@@ -63,7 +63,7 @@ const texture = device.createTexture({
 });
 const textureView = texture.createView();
 // Create depth texture manually
-const frames = 2;
+const frames = 3;
 const depthTextures: GPUTexture[] = [];
 for (let i = 0; i < frames; i++) {
 	const depthTexture = device.createTexture({
@@ -414,6 +414,7 @@ const commandBuffer = commandEncoder.finish();
 device.queue.submit([commandBuffer]);
 await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
+let calls = 0;
 async function frame() {
 	if (params.change) {
 		console.log("Change")
@@ -424,6 +425,7 @@ async function frame() {
 		device.queue.submit([commandBufferArg]);
 		await device.queue.onSubmittedWorkDone();
 		params.change = false;
+		calls++;
 	}
 	// Render pass bindGroup
 	const bindGroup = device.createBindGroup({
@@ -443,7 +445,7 @@ async function frame() {
 			},
 			{
 				binding: 3,
-				resource: depthTextures[(frameCount + 1) % frames].createView(),
+				resource: depthTextures[(calls) % frames].createView(),
 			},
 		],
 	});
@@ -487,7 +489,7 @@ async function frame() {
 		}
 		const textureView = currentTexture.createView();
 		renderPassDescriptor.colorAttachments[0].view = textureView;
-		const depthTextureView = depthTextures[frameCount % frames].createView();
+		const depthTextureView = depthTextures[(calls + 1) % frames].createView();
 		renderPassDescriptor.depthStencilAttachment.view = depthTextureView;
 
 
