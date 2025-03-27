@@ -1,0 +1,55 @@
+struct Traversal {
+	depth: f32,
+	boundBox: vec4<f32>,
+	coord: vec4<f32>,
+	address: f32,
+};
+
+fn getTraversal(address: u32) -> Traversal {
+	var trav: Traversal;
+	let index = address*10;
+	trav.depth = traversal[index]; 
+	trav.boundBox = vec4<f32>(traversal[index + 1], traversal[index + 2], traversal[index + 3], traversal[index + 4]);
+	trav.coord = vec4<f32>(traversal[index + 5], traversal[index + 6], traversal[index + 7], traversal[index + 8]);
+	trav.address = traversal[index + 9];
+	return trav;
+};
+
+@group(2) @binding(0) var<storage, read> levelValues: array<f32>;
+@group(2) @binding(1) var<storage, read> traversal: array<f32>;
+
+const GRID: u32 = 10; 
+@vertex
+fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
+	let trav = getTraversal(0);
+	let boundBox = trav.boundBox;
+	let depth: u32 = u32(trav.depth);
+	
+	//let grid: u32 = GRID;
+	let vertice: u32 = 6;
+	let grid: u32 = u32(pow(2.0, trav.depth+1)*f32(vertice));
+	let quad_index = VertexIndex / vertice;
+	let vert_index = VertexIndex % vertice;
+
+	let q_x = quad_index % grid;
+	let q_y = quad_index / grid;
+
+	let cell_w = 2.0 / f32(grid);
+	let cell_h = 2.0 / f32(grid);
+
+	let x = f32(q_x) * cell_w - 1.0;
+	let y = f32(q_y) * cell_h - 1.0;
+
+	let pos = array<vec2<f32>, 6>(
+			vec2f(x, y),
+			vec2f(x + cell_w, y),
+			vec2f(x + cell_w, y + cell_h),
+			vec2f(x, y + cell_h),
+			vec2f(x, y),
+			vec2f(x + cell_w, y + cell_h)
+			);
+
+	let local_pos = pos[vert_index];
+	// if local_pos.xy is inside the boundBox, return the levelValues[depth]
+	return vec4f(local_pos, f32(depth)/12.0, 1.0); 
+}
