@@ -501,7 +501,8 @@ async function frame() {
 		passEncoder.setBindGroup(2, bindGroupNav);
 		// const numVer = Math.pow(2, current_mipLevel) * 3 * 2;
 		// console.log(`Number of vertices: ${numVer}, Mip Level: ${current_mipLevel}`);
-		passEncoder.draw(mipLevel*6);
+		// passEncoder.draw(6, mipLevel);
+		passEncoder.draw(6*mipLevel);
 		// passEncoder.draw(5*6);
 		// passEncoder.draw(12288);
 		passEncoder.end();
@@ -511,6 +512,9 @@ async function frame() {
 	}
 
 	frameCount++;
+	if ( frameCount < frames) {
+		calls++;
+	}
 	// await new Promise((resolve) => setTimeout(resolve, 3000));
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 

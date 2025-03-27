@@ -20,12 +20,13 @@ fn getTraversal(address: u32) -> Traversal {
 
 const VERTICE: u32 = 6;
 @vertex
-fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
+fn main(@builtin(vertex_index) VertexIndex : u32
+) -> @builtin(position) vec4f {
 	let trav = getTraversal(0);
 	let boundBox = trav.boundBox;
 	let depth: u32 = u32(f32(VertexIndex) / f32(VERTICE));
 	//let depth: u32 = 0;
-	let coord: vec2<f32> = trav.coord.xy * vec2<f32>(-1.0, 1.0);
+	let coord: vec2<f32> = trav.coord.xy;
 	
 	let grid: u32 = u32(pow(2.0, f32(depth+1)));
 	let res: vec2<u32> = vec2(grid,grid);
