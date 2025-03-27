@@ -12,12 +12,10 @@ class QuadTree {
 	bindGroupLayouts: {};
 	buffers: {};
 	results: GPUBuffer[];
-	constructor(device: GPUDevice, quadTreeJson: Array, textureSize, bindGroupUniform: GPUBindGroup, bindGroupLayoutUniform: GPUBindGroupLayout) {
-		const mipLevelCount = Math.floor(Math.log2(textureSize));
-
+	constructor(device: GPUDevice, quadTreeJson: Array, mipLevel, bindGroupUniform: GPUBindGroup, bindGroupLayoutUniform: GPUBindGroupLayout) {
 		let travBuffers: GPUBuffer[] = [];
-		for (let i = 0; i <= mipLevelCount; i++) {
-			const travVal = new Float32Array([i, 0, 0, 1, 1, 0.6, 0.4, -i+1]);
+		for (let i = 0; i <= mipLevel; i++) {
+			const travVal = new Float32Array([i, 0, 0, 1, 1, 0.6, 0.4, 0]);
 			const buffer = device.createBuffer({
 				size: Float32Array.BYTES_PER_ELEMENT * 64, 
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
@@ -44,10 +42,10 @@ class QuadTree {
 		// Create empty buffer for quadtree
 		// Create array length of depth
 		// create mipLevelCount from textureSize as int
-		const resultArray = new Float32Array(mipLevelCount);
+		const resultArray = new Float32Array(mipLevel);
 	
 		this.result = device.createBuffer({
-			size: Float32Array.BYTES_PER_ELEMENT * mipLevelCount,
+			size: Float32Array.BYTES_PER_ELEMENT * mipLevel,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 
@@ -141,7 +139,7 @@ class QuadTree {
 					resource: {
 						buffer: this.result,
 						offset: 0,
-						size: Float32Array.BYTES_PER_ELEMENT * mipLevelCount, 
+						size: Float32Array.BYTES_PER_ELEMENT * mipLevel, 
 					},
 				},
 			],
@@ -171,7 +169,7 @@ class QuadTree {
 		};
 		// this.texture = frameTexture;
 		this.device = device;
-		this.mipmapLevel = mipLevelCount;
+		this.mipmapLevel = mipLevel;
 	}
 	async pass(mipLevel){
 		// calculate workgroup based on mipmap

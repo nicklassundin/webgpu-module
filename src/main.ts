@@ -208,6 +208,13 @@ const bindGroupLayoutNav = device.createBindGroupLayout({
 				type: 'read-only-storage',
 			},
 		},
+		{
+			binding: 1,
+			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
+			buffer: {
+				type: 'read-only-storage',
+			},
+		},
 	]
 });
 // Create bind group for uniform buffer
@@ -232,7 +239,7 @@ const quadTreeData = await fetch(quadTreeList[0]);
 const quadTreeJsonString = await quadTreeData.json();
 const quadTreeJson = JSON.parse(quadTreeJsonString);
 
-const quadTree = new QuadTree(device, quadTreeJson, textureSize, bindGroupUniform, bindGroupLayoutUniform)
+const quadTree = new QuadTree(device, quadTreeJson, mipLevel, bindGroupUniform, bindGroupLayoutUniform)
 
 import Eval from "./eval";
 const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
@@ -274,7 +281,7 @@ const pipeline = device.createRenderPipeline({
 		topology: 'triangle-list',
 		// topology: 'point-list',
 		// topology: 'line-list',
-		// cullMode: 'none',
+		cullMode: 'none',
 	},
 	depthStencil: {
 		format: 'depth24plus',
@@ -320,26 +327,27 @@ const params = new Params([0.6, 0.4]);
 
 
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder) {
-	const travBuffer = quadTree.buffers.travBuffers[0];
-	let byteOffset = 0;
-	const mipLevel = new Float32Array([0]);
+	const travBuffers = quadTree.buffers.travBuffers;
+	const mipLevel = travBuffers.length; 
 
 	const allValues = new Float32Array([
 		0, // Mip Level 
-		0, 0, 0, // Padding
 		0, 0, 1, 1, // bound box 
-		uv[0], uv[1], 0, 0, // target coordinates
+		uv[0], uv[1], // target coordinates
 		0]); // addressArrayBuffer
 
-	const stagingBuffer = device.createBuffer({
-		size: allValues.byteLength,
-		usage: GPUBufferUsage.COPY_SRC,
-		mappedAtCreation: true
-	});
-	const arrayBuffer = stagingBuffer.getMappedRange();
-	new Float32Array(arrayBuffer).set(allValues);
-	stagingBuffer.unmap();
-	commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffer, byteOffset, allValues.byteLength);
+	for (let i = 0; i < mipLevel; i++) {
+		const values = new Float32Array([i, 0, 0, 1, 1, uv[0], uv[1], 0]);
+		const stagingBuffer = device.createBuffer({
+			size: values.byteLength,
+			usage: GPUBufferUsage.COPY_SRC,
+			mappedAtCreation: true
+		});
+		const arrayBuffer = stagingBuffer.getMappedRange();
+		(new Float32Array(arrayBuffer)).set(values);
+		commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffers[i], 0, values.byteLength);
+		stagingBuffer.unmap();
+	}
 }
 
 
@@ -377,9 +385,9 @@ let lastFrameTime = Date.now()
 // QuadTree compute pass
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
-		// await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[(i+1) % mipLevel], 0, 64);
+		await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[i], 0, 64);
 		// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer , 0, 32);
-		await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
+		// await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 		// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
 		await quadTree.pass(i);
 	}
@@ -408,6 +416,7 @@ await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 async function frame() {
 	if (params.change) {
+		console.log("Change")
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
 		updateTravBufferCoord(params.travelValues, commandEncoderArg);
@@ -439,6 +448,11 @@ async function frame() {
 		],
 	});
 	// Navigate bindGroup
+
+
+	// Render pass
+	// if (lastFrameTime < Date.now()){
+	if (lastFrameTime < Date.now() && mipLevel >= current_mipLevel) {
 	const bindGroupNav = device.createBindGroup({
 		layout: bindGroupLayoutNav, 
 		entries: [
@@ -449,13 +463,22 @@ async function frame() {
 					offset: 0,
 					size: quadTree.result.size,
 				} 
+			},
+			{
+				binding: 1,
+				resource: {
+					buffer: quadTree.buffers.travBuffers[current_mipLevel],
+					// buffer: quadTree.buffers.travBuffers[frameCount % mipLevel],
+					offset: 0,
+					size: quadTree.buffers.travBuffers[current_mipLevel].size,
+				}
 			}
 		],
 	});
+		// if (mipLevel >= current_mipLevel) {
+		// 	current_mipLevel = 0;	
+		// }
 
-
-	// Render pass
-	if (lastFrameTime < Date.now() && mipLevel >= current_mipLevel) {
 		const commandEncoder = device.createCommandEncoder();
 		const currentTexture = context.getCurrentTexture();
 		if (!currentTexture) {
@@ -474,9 +497,11 @@ async function frame() {
 		passEncoder.setBindGroup(0, bindGroup);
 		passEncoder.setBindGroup(1, bindGroupUniform);
 		passEncoder.setBindGroup(2, bindGroupNav);
-		const numVer = Math.pow(2, current_mipLevel) * 3 * 2;
-		console.log(`Number of vertices: ${numVer}`);
-		passEncoder.draw(numVer);
+		// const numVer = Math.pow(2, current_mipLevel) * 3 * 2;
+		// console.log(`Number of vertices: ${numVer}, Mip Level: ${current_mipLevel}`);
+		passEncoder.draw(mipLevel*6);
+		// passEncoder.draw(5*6);
+		// passEncoder.draw(12288);
 		passEncoder.end();
 
 		device.queue.submit([commandEncoder.finish()]);
