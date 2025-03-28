@@ -296,16 +296,16 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
 		{
 			view: undefined,
 			clearValue: [0, 0, 0, 0], // Clear to transparent
-			loadOp: 'clear',
+			loadOp: 'load',
 			storeOp: 'store',
 		},
 	],
 	depthStencilAttachment: {
 		view: undefined, 
+		// depthLoadOp: 'load',
 		depthLoadOp: 'clear',
 		depthStoreOp: 'store',
 		depthClearValue: 1.0,
-		clearDepth: 1.0,
 	},
 };
 
@@ -503,6 +503,7 @@ async function frame() {
 		// console.log(`Number of vertices: ${numVer}, Mip Level: ${current_mipLevel}`);
 		// passEncoder.draw(6, mipLevel);
 		passEncoder.draw(6*mipLevel);
+		// passEncoder.draw(6);
 		// passEncoder.draw(5*6);
 		// passEncoder.draw(12288);
 		passEncoder.end();

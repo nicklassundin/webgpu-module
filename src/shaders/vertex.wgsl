@@ -1,3 +1,11 @@
+
+struct Uniforms {
+resolution: vec2<f32>,
+mipLevel: f32,
+};
+@group(1) @binding(0) var<uniform> uniforms: Uniforms; 
+
+
 struct Traversal {
 	depth: f32,
 	boundBox: vec4<f32>,
@@ -15,6 +23,7 @@ fn getTraversal(address: u32) -> Traversal {
 	return trav;
 };
 
+
 @group(2) @binding(0) var<storage, read> levelValues: array<f32>;
 @group(2) @binding(1) var<storage, read> traversal: array<f32>;
 
@@ -28,10 +37,11 @@ fn main(@builtin(vertex_index) VertexIndex : u32
 	//let depth: u32 = 0;
 	let coord: vec2<f32> = trav.coord.xy;
 	
-	let grid: u32 = u32(pow(2.0, f32(depth+1)));
+	let grid: u32 = u32(pow(2.0, f32(depth)));
 	let res: vec2<u32> = vec2(grid,grid);
 	let pixCoord = vec2<u32>(coord.xy * vec2f(res.xy));
 	var quadCoord = (vec2f(pixCoord) + vec2f(0.5)) / vec2f(res.xy); 
+	quadCoord.y = 1.0 - quadCoord.y;
 		
 	let quad_index = VertexIndex / VERTICE;
 	let vert_index = VertexIndex % VERTICE;
@@ -43,9 +53,10 @@ fn main(@builtin(vertex_index) VertexIndex : u32
 	let cell_h = 2.0 / f32(grid);
 	let half_cell_w = cell_w / 2.0;
 	let half_cell_h = cell_h / 2.0;
-
-	let x = f32(quadCoord.x);
-	let y = f32(quadCoord.y);
+	
+	// Clip space
+	let x = quadCoord.x * 2.0 - 1.0;
+	let y = quadCoord.y * 2.0 - 1.0;
 
 	let pos = array<vec2<f32>, 6>(
 		vec2<f32>(x - half_cell_w, y - half_cell_h),
@@ -60,6 +71,6 @@ fn main(@builtin(vertex_index) VertexIndex : u32
 	// if local_pos.xy is inside the boundBox, return the levelValues[depth]
 	//return vec4f(local_pos, f32(depth)/12.0, 1.0); 
 	
-	let normDepth: f32 = f32(depth) / 12.0;
+	let normDepth: f32 = f32(depth+1) / (uniforms.mipLevel);
 	return vec4f(local_pos, 1.0 - normDepth, 1.0);
 }

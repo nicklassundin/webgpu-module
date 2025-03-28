@@ -1,13 +1,13 @@
 
-struct Uniforms {
-resolution: vec2<f32>,
-mipLevel: f32,
-};
 
 @group(0) @binding(0) var heatSampler: sampler;
 @group(0) @binding(1) var valueTexture: texture_2d<f32>;
 @group(0) @binding(2) var depthSampler: sampler;
 @group(0) @binding(3) var depthTexture: texture_depth_2d;
+struct Uniforms {
+resolution: vec2<f32>,
+mipLevel: f32,
+};
 @group(1) @binding(0) var<uniform> uniforms: Uniforms; 
 
 struct Traversal {
@@ -49,7 +49,6 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 
 	let checker_color = vec4<f32>(uv.x, uv.y - f32(c), f32(c), 0.0);
 	
-
 	if (nextDepth >= 0.0) {
 		if(depth < nextDepth){
 			return vec4<f32>(depth, 0, 0, 1.0);
