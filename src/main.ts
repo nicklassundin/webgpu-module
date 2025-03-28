@@ -286,7 +286,8 @@ const pipeline = device.createRenderPipeline({
 	depthStencil: {
 		format: 'depth24plus',
 		depthWriteEnabled: true,
-		depthCompare: 'less',
+		// depthCompare: 'less',
+		depthCompare: 'less-equal',
 	},
 });
 

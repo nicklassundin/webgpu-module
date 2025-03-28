@@ -49,7 +49,11 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 
 	let checker_color = vec4<f32>(uv.x, uv.y - f32(c), f32(c), 0.0);
 	
-	if (nextDepth >= 0.0) {
+	var smallestDepth = 1.0;
+	if (depth < nextDepth) {
+		smallestDepth = depth;
+	}
+	if (smallestDepth >= 0.0) {
 		if(depth < nextDepth){
 			return vec4<f32>(depth, 0, 0, 1.0);
 		}
