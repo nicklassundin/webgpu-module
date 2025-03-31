@@ -4,7 +4,6 @@ import quadTraversalComputeShaderCode from './shaders/quad.trav.comp.wgsl?raw';
 class QuadTree {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
-	bindGroupUniform: GPUBindGroup;
 	bindGroupTexture: GPUBindGroup;
 	layout: GPUPipelineLayout;
 	texture: GPUTexture;
@@ -12,7 +11,7 @@ class QuadTree {
 	bindGroupLayouts: {};
 	buffers: {};
 	results: GPUBuffer[];
-	constructor(device: GPUDevice, quadTreeJson: Array, mipLevel, bindGroupUniform: GPUBindGroup, bindGroupLayoutUniform: GPUBindGroupLayout) {
+	constructor(device: GPUDevice, quadTreeJson: Array, mipLevel) {
 		let travBuffers: GPUBuffer[] = [];
 		for (let i = 0; i <= mipLevel; i++) {
 			const travVal = new Float32Array([i, 0, 0, 1, 1, 0.6, 0.4, 0]);
@@ -146,8 +145,7 @@ class QuadTree {
 		});
 		// Create pipeline layout for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
-			// bindGroupLayouts: [bindGroupLayoutUniform],
-			bindGroupLayouts: [bindGroupLayoutUniform, bindGroupLayoutQuadTree],
+			bindGroupLayouts: [bindGroupLayoutQuadTree],
 		});
 		// create compute pipeline for quad traversal
 		const pipeline = device.createComputePipeline({
@@ -161,7 +159,6 @@ class QuadTree {
 		});
 
 		this.pipeline = pipeline;
-		this.bindGroupUniform = bindGroupUniform;
 		this.bindGroupQuadTree = bindGroupQuadTree;
 		this.layout = pipelineLayoutQuadTree;
 		this.bindGroupLayouts = {
@@ -231,8 +228,7 @@ class QuadTree {
 
 
 		computePass.setPipeline(this.pipeline);
-		computePass.setBindGroup(0, this.bindGroupUniform);
-		computePass.setBindGroup(1, this.bindGroupQuadTree);
+		computePass.setBindGroup(0, this.bindGroupQuadTree);
 		computePass.dispatchWorkgroups(1);
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);

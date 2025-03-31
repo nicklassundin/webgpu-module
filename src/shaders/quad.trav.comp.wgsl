@@ -1,11 +1,4 @@
 
-struct Uniforms {
-	resolution: vec2<f32>,
-	mipLevel: f32,
-};
-@group(0) @binding(0) var<uniform> uniforms: Uniforms; 
-
-
 struct Node {
 	valueAddress: f32, 
 	offset: f32,
@@ -86,12 +79,12 @@ fn setTraversal(address: u32, trav: Traversal) {
 };
 
 
-@group(1) @binding(0) var<storage, read> traversal: array<f32>;
-@group(1) @binding(1) var<storage, read_write> nextTraversal: array<f32>;
-@group(1) @binding(2) var<storage, read_write> values: array<f32>;
-@group(1) @binding(3) var<storage, read_write> nodes: array<f32>;
+@group(0) @binding(0) var<storage, read> traversal: array<f32>;
+@group(0) @binding(1) var<storage, read_write> nextTraversal: array<f32>;
+@group(0) @binding(2) var<storage, read_write> values: array<f32>;
+@group(0) @binding(3) var<storage, read_write> nodes: array<f32>;
 
-@group(1) @binding(4) var<storage, read_write> result: array<f32>;
+@group(0) @binding(4) var<storage, read_write> result: array<f32>;
 
 // function that return boundBox for quadrant
 fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {

@@ -239,7 +239,7 @@ const quadTreeData = await fetch(quadTreeList[0]);
 const quadTreeJsonString = await quadTreeData.json();
 const quadTreeJson = JSON.parse(quadTreeJsonString);
 
-const quadTree = new QuadTree(device, quadTreeJson, mipLevel, bindGroupUniform, bindGroupLayoutUniform)
+const quadTree = new QuadTree(device, quadTreeJson, mipLevel)
 
 import Eval from "./eval";
 const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result);
