@@ -201,6 +201,8 @@ class Render {
 		this.device.queue.submit([commandEncoder.finish()]);
 	}
 	createBindGroups(calls = 0, mipLevel = 0) {
+		// console.log('mipLevel', mipLevel)
+		// console.log('travBuffer size', this.quadTree.buffers.travBuffers.length)
 		this.bindGroups = {
 			traversal: this.device.createBindGroup({
 				layout: this.bindGroupLayouts.traversal,

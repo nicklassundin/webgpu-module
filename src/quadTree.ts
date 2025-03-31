@@ -54,7 +54,7 @@ class QuadTree {
 		this.device = device;
 		this.mipmapLevel = mipLevel;
 		let travBuffers: GPUBuffer[] = [];
-		for (let i = 0; i <= mipLevel; i++) {
+		for (let i = 0; i < mipLevel; i++) {
 			const travVal = new Float32Array([i, 0, 0, 1, 1, 0.6, 0.4, 0]);
 			const buffer = device.createBuffer({
 				size: Float32Array.BYTES_PER_ELEMENT * 64, 
@@ -127,7 +127,6 @@ class QuadTree {
 	}
 	async pass(mipLevel){
 		// calculate workgroup based on mipmap
-		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
 		const device = this.device;
 		await device.queue.onSubmittedWorkDone();
 
@@ -156,17 +155,17 @@ class QuadTree {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.travBuffers[level % this.buffers.travBuffers.length],
+						buffer: this.buffers.travBuffers[level % this.mipmapLevel],
 						offset: 0,
-						size: this.buffers.travBuffers[level % this.buffers.travBuffers.length].size, 
+						size: this.buffers.travBuffers[level % this.mipmapLevel].size, 
 					},
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[(level + 1) % this.buffers.travBuffers.length],
+						buffer: this.buffers.travBuffers[(level + 1) % this.mipmapLevel],
 						offset: 0,
-						size: this.buffers.travBuffers[(level + 1) % this.buffers.travBuffers.length].size,
+						size: this.buffers.travBuffers[(level + 1) % this.mipmapLevel].size,
 					},
 				},
 				{

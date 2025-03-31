@@ -41,6 +41,9 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let depth = textureSample(depthTexture, depthSampler, uv);
 	let nextDepth = fragCoord.z;
 
+	let value_color = textureSample(valueTexture, heatSampler, uv);
+	//return value_color;
+
 	
 	// chess board pattern
 	let x = i32(floor(uv.x * 10));

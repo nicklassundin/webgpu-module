@@ -112,10 +112,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	var trav = getTraversal(0);
 	var nextTrav = getNextTraversal(0);
 	
-	if(trav.address < 0.0) {
+	let address = u32(trav.address);
+	
+	if(address == 0u && trav.depth != 0.0){
 		return;
 	}
-	let address = u32(trav.address);
+
 	let node = getNode(address);
 	var boundBox = trav.boundBox;
 	if (values[address] == 0.0) {
@@ -136,14 +138,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		return;
 	}
 
-	//result[u32(trav.depth)] = f32(address); 
 	result[u32(trav.depth)] = values[address] / values[0u];
-	//result[u32(trav.depth)] = trav.depth; 
-	//result[u32(trav.depth)] = values[u32(node.children[0])];
-	//result[u32(trav.depth)] = values[u32(node.children[1])];
-	//result[u32(trav.depth)] = values[u32(node.children[2])];
-	//result[u32(trav.depth)] = values[u32(node.children[3])];
-
-
+	//result[u32(trav.depth)] = trav.depth;
+	//result[u32(trav.depth)] = f32(address);
 	setTraversal(global_id.x, nextTrav);
 }

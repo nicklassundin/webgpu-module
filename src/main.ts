@@ -126,6 +126,7 @@ const depthSampler = device.createSampler({
 	compare: undefined,
 });
 
+import QuadManager from "./quadManager";
 
 import QuadTree from "./quadTree";
 
@@ -134,7 +135,9 @@ const quadTreeData = await fetch(quadTreeList[0]);
 const quadTreeJsonString = await quadTreeData.json();
 const quadTreeJson = JSON.parse(quadTreeJsonString);
 
-const quadTree = new QuadTree(device, quadTreeJson, mipLevel)
+const quadManager = new QuadManager(device, mipLevel, textureSize);
+quadManager.initQuadTree(quadTreeJson, mipLevel);
+const quadTree = quadManager.quadTree;
 
 import Eval from "./eval";
 const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result);
@@ -155,7 +158,6 @@ class Params {
 		this.change = true;
 		this.travelValues = travelValues;
 	}
-
 }
 const params = new Params([0.6, 0.4]);
 
@@ -206,7 +208,6 @@ const gui = new GUI();
 	const uvFolder = gui.addFolder("UV Coordinates");
 	uvFolder.add({ value: 0.6 }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
 		params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
-		quadTreePass();
 	})
 	uvFolder.add({ value: 0.4 }, 'value', 0, 1, 0.01).name("V");
 	folder.open();
@@ -220,18 +221,18 @@ let lastFrameTime = Date.now()
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
 		// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer , 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 		// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
-		quadTree.pass(i);
+		await quadTree.pass(i);
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
-		evaluation.pass(i);
+		// evaluation.pass(i);
 	}
-	await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 }
-await quadTreePass();
+// await quadTreePass();
 
 const commandEncoderArg = device.createCommandEncoder();
 updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
@@ -260,11 +261,12 @@ async function frame() {
 		await device.queue.onSubmittedWorkDone();
 		params.change = false;
 		calls++;
+		quadTreePass();
 	}
 
 	// Render pass
 	// if (lastFrameTime < Date.now()){
-	if (lastFrameTime < Date.now() && mipLevel >= current_mipLevel) {
+	if (lastFrameTime < Date.now() && mipLevel > current_mipLevel) {
 		render.pass(calls, current_mipLevel);
 		current_mipLevel++;
 	}
