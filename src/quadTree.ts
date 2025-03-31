@@ -51,6 +51,8 @@ class QuadTree {
 	buffers: {};
 	results: GPUBuffer[];
 	constructor(device: GPUDevice, quadTreeJson: Array, mipLevel) {
+		this.device = device;
+		this.mipmapLevel = mipLevel;
 		let travBuffers: GPUBuffer[] = [];
 		for (let i = 0; i <= mipLevel; i++) {
 			const travVal = new Float32Array([i, 0, 0, 1, 1, 0.6, 0.4, 0]);
@@ -81,20 +83,20 @@ class QuadTree {
 		// Create array length of depth
 		// create mipLevelCount from textureSize as int
 		const resultArray = new Float32Array(mipLevel);
-
 		this.result = device.createBuffer({
 			size: Float32Array.BYTES_PER_ELEMENT * mipLevel,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 		
-		this.bindGroupLayouts = {
-			quadTree: device.createBindGroupLayout(QUADTREE_BGL_CONFIG), 
-		};
 
 		this.buffers = {
 			travBuffers,
 			valuesBuffer,
 			nodesBuffer,
+		};
+		
+		this.bindGroupLayouts = {
+			quadTree: device.createBindGroupLayout(QUADTREE_BGL_CONFIG), 
 		};
 		// Quad Tree bindGroupLayout
 		// console.log(travValues.byteLength)
@@ -102,51 +104,7 @@ class QuadTree {
 		// console.log(nodes.byteLength)
 		console.log(resultArray.byteLength)
 		// create bindGroup for quadTree
-		const bindGroupQuadTree = device.createBindGroup({
-			layout: this.bindGroupLayouts.quadTree,
-			entries: [
-				{
-					binding: 0,
-					resource: {
-						buffer: travBuffers[0],
-						offset: 0,
-						size: travBuffers[0].size,
-					},
-				},
-				{
-					binding: 1,
-					resource: {
-						buffer: travBuffers[1],
-						offset: 0,
-						size: travBuffers[1].size, 
-					},
-				},
-				{
-					binding: 2,
-					resource: {
-						buffer: valuesBuffer,
-						offset: 0,
-						size: values.byteLength,
-					},
-				},
-				{
-					binding: 3,
-					resource: {
-						buffer: nodesBuffer,
-						offset: 0,
-						size: nodes.byteLength,
-					},
-				},
-				{
-					binding: 4,
-					resource: {
-						buffer: this.result,
-						offset: 0,
-						size: Float32Array.BYTES_PER_ELEMENT * mipLevel, 
-					},
-				},
-			],
-		});
+		const bindGroupQuadTree = this.createBindGroup();
 		// Create pipeline layout for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
 			bindGroupLayouts: [this.bindGroupLayouts.quadTree],
@@ -166,8 +124,6 @@ class QuadTree {
 		this.bindGroupQuadTree = bindGroupQuadTree;
 		this.layout = pipelineLayoutQuadTree;
 		// this.texture = frameTexture;
-		this.device = device;
-		this.mipmapLevel = mipLevel;
 	}
 	async pass(mipLevel){
 		// calculate workgroup based on mipmap
@@ -178,25 +134,40 @@ class QuadTree {
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
 
-		this.bindGroupQuadTree = device.createBindGroup({
+		const bindGroupQuadTree = this.createBindGroup(mipLevel);
+
+
+		computePass.setPipeline(this.pipeline);
+		computePass.setBindGroup(0, bindGroupQuadTree);
+		computePass.dispatchWorkgroups(1);
+		computePass.end();
+		device.queue.submit([commandEncoderQuad.finish()]);
+		// stop wait for input
+		// device.queue.onSubmittedWorkDone();
+		// update buffers
+		// const commandEncoder = device.createCommandEncoder();
+		// commandEncoder.copyBufferToBuffer(this.results[0], 0, this.results[1], 0, this.results[0].size);
+		// await device.queue.submit([commandEncoder.finish()]);
+	}
+	createBindGroup(level = 0){
+		return this.device.createBindGroup({
 			layout: this.bindGroupLayouts.quadTree,
 			entries: [
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.travBuffers[mipLevel % this.buffers.travBuffers.length],
+						buffer: this.buffers.travBuffers[level % this.buffers.travBuffers.length],
 						offset: 0,
-						size: this.buffers.travBuffers[mipLevel % this.buffers.travBuffers.length].size, 
+						size: this.buffers.travBuffers[level % this.buffers.travBuffers.length].size, 
 					},
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[(mipLevel + 1) % this.buffers.travBuffers.length],
+						buffer: this.buffers.travBuffers[(level + 1) % this.buffers.travBuffers.length],
 						offset: 0,
-						size: this.buffers.travBuffers[(mipLevel + 1) % this.buffers.travBuffers.length].size,
-
-					}
+						size: this.buffers.travBuffers[(level + 1) % this.buffers.travBuffers.length].size,
+					},
 				},
 				{
 					binding: 2,
@@ -220,25 +191,12 @@ class QuadTree {
 						buffer: this.result,
 						offset: 0,
 						// TODO chould only access the current call
-						// offset: mipLevel * Float32Array.BYTES_PER_ELEMENT,
+						// offset: level * Float32Array.BYTES_PER_ELEMENT,
 						size: this.mipmapLevel * Float32Array.BYTES_PER_ELEMENT,
 					},
 				},
 			],
 		});
-
-
-		computePass.setPipeline(this.pipeline);
-		computePass.setBindGroup(0, this.bindGroupQuadTree);
-		computePass.dispatchWorkgroups(1);
-		computePass.end();
-		device.queue.submit([commandEncoderQuad.finish()]);
-		// stop wait for input
-		// device.queue.onSubmittedWorkDone();
-		// update buffers
-		// const commandEncoder = device.createCommandEncoder();
-		// commandEncoder.copyBufferToBuffer(this.results[0], 0, this.results[1], 0, this.results[0].size);
-		// await device.queue.submit([commandEncoder.finish()]);
 	}
 }
 export default QuadTree;
