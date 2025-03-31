@@ -56,6 +56,7 @@ class Eval {
 			mipLevelCount: mipLevelCount,
 		});
 		this.texture = frameTexture;
+		
 		const levelWorkBuffers: GPUBuffer[] = [];
 		for (let i = 0; i < 2; i++) {
 			levelWorkBuffers.push(device.createBuffer({

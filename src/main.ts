@@ -219,16 +219,16 @@ let lastFrameTime = Date.now()
 // QuadTree compute pass
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
-		await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[i], 0, 64);
 		// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer , 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
 		// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
-		await quadTree.pass(i);
+		quadTree.pass(i);
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
-		await evaluation.pass(i);
+		evaluation.pass(i);
 	}
+	await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
 }
 await quadTreePass();
