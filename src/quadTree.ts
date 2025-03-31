@@ -1,5 +1,44 @@
 import quadTraversalComputeShaderCode from './shaders/quad.trav.comp.wgsl?raw';
 
+const QUADTREE_BGL_CONFIG = {
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'read-only-storage' 
+			}
+		},
+		{
+			binding: 1,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			},
+		},
+		{
+			binding: 2,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			},
+		},
+		{
+			binding: 3,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			},
+		},
+		{
+			binding: 4,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			},
+		}
+	],
+}
 
 class QuadTree {
 	pipeline: GPUComputePipeline;
@@ -42,11 +81,15 @@ class QuadTree {
 		// Create array length of depth
 		// create mipLevelCount from textureSize as int
 		const resultArray = new Float32Array(mipLevel);
-	
+
 		this.result = device.createBuffer({
 			size: Float32Array.BYTES_PER_ELEMENT * mipLevel,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
+		
+		this.bindGroupLayouts = {
+			quadTree: device.createBindGroupLayout(QUADTREE_BGL_CONFIG), 
+		};
 
 		this.buffers = {
 			travBuffers,
@@ -54,52 +97,13 @@ class QuadTree {
 			nodesBuffer,
 		};
 		// Quad Tree bindGroupLayout
-		const bindGroupLayoutQuadTree = device.createBindGroupLayout({
-			entries: [
-				{
-					binding: 0,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'read-only-storage' 
-					}
-				},
-				{
-					binding: 1,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'storage'
-					},
-				},
-				{
-					binding: 2,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'storage'
-					},
-				},
-				{
-					binding: 3,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'storage'
-					},
-				},
-				{
-					binding: 4,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'storage'
-					},
-				}
-			],
-		});
 		// console.log(travValues.byteLength)
 		// console.log(values.byteLength)
 		// console.log(nodes.byteLength)
 		console.log(resultArray.byteLength)
 		// create bindGroup for quadTree
 		const bindGroupQuadTree = device.createBindGroup({
-			layout: bindGroupLayoutQuadTree,
+			layout: this.bindGroupLayouts.quadTree,
 			entries: [
 				{
 					binding: 0,
@@ -145,7 +149,7 @@ class QuadTree {
 		});
 		// Create pipeline layout for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
-			bindGroupLayouts: [bindGroupLayoutQuadTree],
+			bindGroupLayouts: [this.bindGroupLayouts.quadTree],
 		});
 		// create compute pipeline for quad traversal
 		const pipeline = device.createComputePipeline({
@@ -161,9 +165,6 @@ class QuadTree {
 		this.pipeline = pipeline;
 		this.bindGroupQuadTree = bindGroupQuadTree;
 		this.layout = pipelineLayoutQuadTree;
-		this.bindGroupLayouts = {
-			quadTree: bindGroupLayoutQuadTree,
-		};
 		// this.texture = frameTexture;
 		this.device = device;
 		this.mipmapLevel = mipLevel;
@@ -194,7 +195,7 @@ class QuadTree {
 						buffer: this.buffers.travBuffers[(mipLevel + 1) % this.buffers.travBuffers.length],
 						offset: 0,
 						size: this.buffers.travBuffers[(mipLevel + 1) % this.buffers.travBuffers.length].size,
-						
+
 					}
 				},
 				{

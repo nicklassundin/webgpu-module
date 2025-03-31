@@ -19,8 +19,6 @@ class Eval {
 		    travBuffers: GPUBuffer[],
 		    levelBuffer: GPUBuffer,
 		    mipLevelCount: number = 11) {
-		// create textureSize from mipLevel
-		// const textureSize = Math.pow(2, mipLevelCount);
 		const frameTexture = device.createTexture({
 			size: [textureSize, textureSize, 1],
 			format: 'rgba8unorm',
