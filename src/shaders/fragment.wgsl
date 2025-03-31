@@ -32,7 +32,7 @@ fn getTraversal(address: u32) -> Traversal {
 
 @fragment
 fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
-	
+	let mipLevel = uniforms.mipLevel;
 
 	let uv = (fragCoord.xy / uniforms.resolution);
 
@@ -43,7 +43,6 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 
 	let value_color = textureSample(valueTexture, heatSampler, uv);
 	//return value_color;
-
 	
 	// chess board pattern
 	let x = i32(floor(uv.x * 10));
@@ -57,11 +56,23 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	if (depth < nextDepth) {
 		smallestDepth = depth;
 	}
+	let value = levelValues[u32(mipLevel*(1.0 - depth))];
+	let index = mipLevel * (1.0 - depth)/mipLevel;
+	let nextValue = levelValues[u32(mipLevel*(1.0 - nextDepth))];
+	let nIndex = mipLevel * (1.0 - nextDepth)/mipLevel; 
+	
 	if (smallestDepth >= 0.0) {
 		if(depth < nextDepth){
-			return vec4<f32>(depth, 0, 0, 1.0);
+			//return vec4<f32>(depth, value, 0, 1.0);
+			//return vec4<f32>(depth, value, index, 1.0);
+			//return vec4<f32>(0.0, value, 0, 1.0);
+			return vec4<f32>(0.0, value, index, 1.0);
 		}
-		return vec4<f32>(nextDepth, 0, 0, 1.0);
+		//return vec4<f32>(nextDepth, nextValue, 0, 1.0);
+		//return vec4<f32>(0.0, nextValue, 0, 1.0);
+		//return vec4<f32>(nextDepth, nextValue, nIndex, 1.0);
+		return vec4<f32>(0.0, nextValue, nIndex, 1.0);
+		//return vec4<f32>(0.0, nextValue, 0, 1.0);
 	}else{
 		
 		return checker_color;

@@ -68,9 +68,8 @@ fn main(@builtin(vertex_index) VertexIndex : u32
 			);
 
 	let local_pos = pos[vert_index];
-	// if local_pos.xy is inside the boundBox, return the levelValues[depth]
-	//return vec4f(local_pos, f32(depth)/12.0, 1.0); 
-	
+
+	//let value = levelValues[depth];	
 	let normDepth: f32 = f32(depth+1) / (uniforms.mipLevel);
 	return vec4f(local_pos, 1.0 - normDepth, 1.0);
 }

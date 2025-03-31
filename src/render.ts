@@ -60,15 +60,15 @@ const BGL_UNIFORM = {
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
 // Create bind group for uniform buffer
 class Render {
-	constructor(device: GPUDevice, context: GPUCanvasContext, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat, sampler, depthSampler, quadTree, evaluation, mipLevel: number) { 
+	constructor(device: GPUDevice, context: GPUCanvasContext, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat, sampler, depthSampler, manager, mipLevel: number) { 
 		// Create binding group layout Used for mipmap and normal rendering
 		this.device = device;
 		this.context = context
 		this.canvas = canvas;
 		this.sampler = sampler;
 		this.depthSampler = depthSampler;
-		this.quadTree = quadTree;
-		this.evaluation = evaluation;
+		this.quadTree = manager.quadTree; 
+		this.evaluation = manager.eval; 
 		this.mipLevel = mipLevel;
 		// Uniform Buffer
 		// containing the resolution of the canvas

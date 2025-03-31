@@ -138,13 +138,9 @@ const quadManager = new QuadManager(device, textureSize);
 quadManager.init(quadTree, mipLevel);
 
 import Eval from "./eval";
-// const evaluation = quadManager.eval;
-console.log(textureSize)
-const evaluation = new Eval(device, textureSize, quadManager.quadTree)
-// const evaluation = new Eval(device, textureSize, quadManager.quadTree.buffers.travBuffers, quadManager.quadTree.result);
 
 import Render from "./render";
-const render = new Render(device, context, canvas, presentationFormat, sampler, depthSampler, quadManager.quadTree, evaluation, mipLevel);
+const render = new Render(device, context, canvas, presentationFormat, sampler, depthSampler, quadManager, mipLevel);
 
 await device.queue.onSubmittedWorkDone();
 
@@ -328,6 +324,6 @@ window.addEventListener('beforeunload', async () => {
 	quadManager.quadTree.buffers.valuesBuffer.unmap();
 	quadManager.quadTree.buffers.nodesBuffer.unmap();
 	quadManager.quadTree.result.unmap();
-	evaluation.texture.unmap();
+	quadManger.eval.texture.unmap();
 });
 
