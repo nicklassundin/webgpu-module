@@ -1,4 +1,5 @@
 import quadTraversalComputeShaderCode from './shaders/quad.trav.comp.wgsl?raw';
+import QuadTree from './data';
 
 const QUADTREE_BGL_CONFIG = {
 	entries: [
@@ -40,7 +41,7 @@ const QUADTREE_BGL_CONFIG = {
 	],
 }
 
-class QuadTree {
+class QuadTreeTraversal {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
 	bindGroupTexture: GPUBindGroup;
@@ -50,9 +51,10 @@ class QuadTree {
 	bindGroupLayouts: {};
 	buffers: {};
 	results: GPUBuffer[];
-	constructor(device: GPUDevice, quadTreeJson: Array, mipLevel) {
+	constructor(device: GPUDevice, quadTree: QuadTree, mipLevel) {
 		this.device = device;
 		this.mipmapLevel = mipLevel;
+		this.quadTree = quadTree;
 		let travBuffers: GPUBuffer[] = [];
 		for (let i = 0; i < mipLevel; i++) {
 			const travVal = new Float32Array([i, 0, 0, 1, 1, 0.6, 0.4, 0]);
@@ -65,20 +67,6 @@ class QuadTree {
 		}
 		device.queue.onSubmittedWorkDone();
 
-
-		const values = new Float32Array(quadTreeJson.values);
-		const valuesBuffer = device.createBuffer({
-			size: values.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		});
-		device.queue.writeBuffer(valuesBuffer, 0, values.buffer);
-
-		const nodes = new Float32Array(quadTreeJson.nodes);
-		const nodesBuffer = device.createBuffer({
-			size: nodes.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		});
-		device.queue.writeBuffer(nodesBuffer, 0, nodes.buffer);
 		// Create empty buffer for quadtree
 		// Create array length of depth
 		// create mipLevelCount from textureSize as int
@@ -91,8 +79,8 @@ class QuadTree {
 
 		this.buffers = {
 			travBuffers,
-			valuesBuffer,
-			nodesBuffer,
+			valuesBuffer: quadTree.buffers.values,
+			nodesBuffer: quadTree.buffers.nodes,
 		};
 		
 		this.bindGroupLayouts = {
@@ -198,4 +186,4 @@ class QuadTree {
 		});
 	}
 }
-export default QuadTree;
+export default QuadTreeTraversal;

@@ -126,24 +126,22 @@ const depthSampler = device.createSampler({
 	compare: undefined,
 });
 
-import QuadManager from "./quadManager";
-
-import QuadTree from "./quadTree";
-
-// TODO: QuadTree buffers
+import QuadTree from './data'
 const quadTreeData = await fetch(quadTreeList[0]);
 const quadTreeJsonString = await quadTreeData.json();
 const quadTreeJson = JSON.parse(quadTreeJsonString);
+const quadTree = new QuadTree(device, quadTreeJson)
 
+
+import QuadManager from "./quadManager";
 const quadManager = new QuadManager(device, mipLevel, textureSize);
-quadManager.initQuadTree(quadTreeJson, mipLevel);
-const quadTree = quadManager.quadTree;
+quadManager.init(quadTree, mipLevel);
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result);
+const evaluation = new Eval(device, textureSize, quadManager.quadTree.buffers.travBuffers, quadManager.quadTree.result);
 
 import Render from "./render";
-const render = new Render(device, context, canvas, presentationFormat, sampler, depthSampler, quadTree, evaluation, mipLevel);
+const render = new Render(device, context, canvas, presentationFormat, sampler, depthSampler, quadManager.quadTree, evaluation, mipLevel);
 
 await device.queue.onSubmittedWorkDone();
 
@@ -163,7 +161,7 @@ const params = new Params([0.6, 0.4]);
 
 
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder) {
-	const travBuffers = quadTree.buffers.travBuffers;
+	const travBuffers = quadManager.quadTree.buffers.travBuffers;
 	const mipLevel = travBuffers.length; 
 
 	const allValues = new Float32Array([
@@ -222,15 +220,12 @@ async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
 		// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer , 0, 32);
 		// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
-		await quadTree.pass(i);
-	}
-	// Evaluation compute pass
-	for (let i = 0; i < mipLevel; i++) {
+		quadManager.pass(i);
 		// evaluation.pass(i);
 	}
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
-	await dbug_mngr.fromBufferToLog(quadTree.result, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 }
 // await quadTreePass();
 
@@ -325,11 +320,11 @@ canvas.addEventListener('click', async (event) => {
 window.addEventListener('beforeunload', async () => {
 	await device.queue.onSubmittedWorkDone();
 	for (let i = 0; i < mipLevel; i++) {
-		quadTree.buffers.travBuffers[i].unmap();
+		quadManager.quadTree.buffers.travBuffers[i].unmap();
 	}
-	quadTree.buffers.valuesBuffer.unmap();
-	quadTree.buffers.nodesBuffer.unmap();
-	quadTree.result.unmap();
+	quadManager.quadTree.buffers.valuesBuffer.unmap();
+	quadManager.quadTree.buffers.nodesBuffer.unmap();
+	quadManager.quadTree.result.unmap();
 	evaluation.texture.unmap();
 });
 
