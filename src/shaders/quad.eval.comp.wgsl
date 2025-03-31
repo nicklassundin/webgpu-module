@@ -1,11 +1,4 @@
 
-struct Uniforms {
-	resolution: vec2<f32>,
-	mipLevel: f32,
-};
-@group(0) @binding(0) var<uniform> uniforms: Uniforms; 
-
-
 struct Node {
 	valueAddress: f32,
 	offset: f32,
@@ -20,11 +13,11 @@ struct Traversal {
 	coord: vec4<f32>,
 	address: f32,
 };
-@group(1) @binding(0) var texSampler: sampler;
-@group(1) @binding(1) var texture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(0) var texSampler: sampler;
+@group(0) @binding(1) var texture: texture_storage_2d<rgba8unorm, write>;
 
-@group(2) @binding(0) var<storage, read_write> traversal: Traversal;
-@group(2) @binding(1) var<storage, read> levelValues: array<f32>;
+@group(1) @binding(0) var<storage, read_write> traversal: Traversal;
+@group(1) @binding(1) var<storage, read> levelValues: array<f32>;
 
 
 @compute @workgroup_size(1)

@@ -5,7 +5,6 @@ const travValues = new Float32Array(64);
 class Eval {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
-	bindGroupUniform: GPUBindGroup;
 	bindGroupTexture: GPUBindGroup;
 	layout: GPUPipelineLayout;
 	texture: GPUTexture;
@@ -20,8 +19,6 @@ class Eval {
 		    travBuffers: GPUBuffer[],
 		    levelBuffer: GPUBuffer,
 		    sampler: GPUTextureSampler,
-		    bindGroupUniform: GPUBindGroup,
-		    bindGroupLayoutUniform: GPUBindGroupLayout,
 		    mipLevelCount: number = 11) {
 		// create textureSize from mipLevel
 		// const textureSize = Math.pow(2, mipLevelCount);
@@ -115,7 +112,7 @@ class Eval {
 		});
 		// Create pipeline layout for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
-			bindGroupLayouts: [bindGroupLayoutUniform, bindGroupLayoutTextureStorage, bindGroupLayoutQuadTree],
+			bindGroupLayouts: [bindGroupLayoutTextureStorage, bindGroupLayoutQuadTree],
 		});
 		// create compute pipeline for quad traversal
 		const pipeline = device.createComputePipeline({
@@ -130,7 +127,6 @@ class Eval {
 
 		this.pipeline = pipeline;
 		this.bindGroup = bindGroupQuadTree;
-		this.bindGroupUniform = bindGroupUniform;
 		this.bindGroupQuadTree = bindGroupQuadTree;
 		this.bindGroupTexture = bindGroupQuadTreeTexture;
 		this.bindGroupLayoutTextureStorage = bindGroupLayoutTextureStorage;
@@ -200,9 +196,8 @@ class Eval {
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
 		computePass.setPipeline(this.pipeline);
-		computePass.setBindGroup(0, this.bindGroupUniform);
-		computePass.setBindGroup(1, this.bindGroupTexture);
-		computePass.setBindGroup(2, this.bindGroupQuadTree);
+		computePass.setBindGroup(0, this.bindGroupTexture);
+		computePass.setBindGroup(1, this.bindGroupQuadTree);
 		computePass.dispatchWorkgroups(1)
 		computePass.end();
 		await device.queue.submit([commandEncoderQuad.finish()]);

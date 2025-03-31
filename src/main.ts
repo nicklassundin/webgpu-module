@@ -242,7 +242,7 @@ const quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson, mipLevel, bindGroupUniform, bindGroupLayoutUniform)
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result, sampler, bindGroupUniform, bindGroupLayoutUniform);
+const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result, sampler);
 
 await device.queue.onSubmittedWorkDone();
 // Create Pipeline Layout
@@ -256,16 +256,6 @@ const pipeline = device.createRenderPipeline({
 		module: device.createShaderModule({
 			code: vertexShaderCode,
 		}),
-		// buffers: [{
-		// 	arrayStride: 4 * 2,
-		// 	attributes: [
-		// 		{
-		// 			shaderLocation: 0,
-		// 			offset: 0,
-		// 			format: 'float32x2',
-		// 		},
-		// 	],
-		// }]
 	},
 	fragment: {
 		module: device.createShaderModule({
