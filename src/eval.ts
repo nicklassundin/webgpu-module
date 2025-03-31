@@ -1,5 +1,7 @@
 import quadEvaluationComputeShaderCode from './shaders/quad.eval.comp.wgsl?raw';
 
+import QuadTreeTraversal from './traversal';
+
 const TEXT_STRG_BGL = {
 			entries: [
 				{
@@ -44,11 +46,11 @@ class Eval {
 	};
 	constructor(device: GPUDevice,
 		    textureSize,
-		    travBuffers: GPUBuffer[],
-		    levelBuffer: GPUBuffer,
+		    quadTreeTrav: QuadTreeTraversal, 
 		    mipLevelCount: number = 11) {
 		this.device = device;
 		this.mipmapLevel = mipLevelCount;
+		const travBuffers = quadTreeTrav.buffers.travBuffers;
 		const frameTexture = device.createTexture({
 			size: [textureSize, textureSize, 1],
 			format: 'rgba8unorm',
@@ -56,7 +58,8 @@ class Eval {
 			mipLevelCount: mipLevelCount,
 		});
 		this.texture = frameTexture;
-		
+	
+		const levelBuffer = quadTreeTrav.result;	
 		const levelWorkBuffers: GPUBuffer[] = [];
 		for (let i = 0; i < 2; i++) {
 			levelWorkBuffers.push(device.createBuffer({

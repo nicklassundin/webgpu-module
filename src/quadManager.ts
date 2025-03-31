@@ -13,6 +13,7 @@ class QuadManager {
 	init(quadTree: QuadTree, mipLevel: number) {
 		this.target = new QuadTreeTraversal(this.device, quadTree, mipLevel);
 		this.quadTree = new QuadTreeTraversal(this.device, quadTree, mipLevel);
+		this.eval = new Eval(this.device, this.textureSize, this.quadTree);
 	}
 	pass(level){
 		this.quadTree.pass(level)

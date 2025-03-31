@@ -134,11 +134,14 @@ const quadTree = new QuadTree(device, quadTreeJson)
 
 
 import QuadManager from "./quadManager";
-const quadManager = new QuadManager(device, mipLevel, textureSize);
+const quadManager = new QuadManager(device, textureSize);
 quadManager.init(quadTree, mipLevel);
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadManager.quadTree.buffers.travBuffers, quadManager.quadTree.result);
+// const evaluation = quadManager.eval;
+console.log(textureSize)
+const evaluation = new Eval(device, textureSize, quadManager.quadTree)
+// const evaluation = new Eval(device, textureSize, quadManager.quadTree.buffers.travBuffers, quadManager.quadTree.result);
 
 import Render from "./render";
 const render = new Render(device, context, canvas, presentationFormat, sampler, depthSampler, quadManager.quadTree, evaluation, mipLevel);
