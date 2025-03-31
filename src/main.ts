@@ -159,8 +159,7 @@ class Params {
 const params = new Params([0.6, 0.4]);
 
 
-function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder) {
-	const travBuffers = quadManager.quadTree.buffers.travBuffers;
+function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffers) {
 	const mipLevel = travBuffers.length; 
 
 	const allValues = new Float32Array([
@@ -169,18 +168,18 @@ function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder)
 		uv[0], uv[1], // target coordinates
 		0]); // addressArrayBuffer
 
-	for (let i = 0; i < mipLevel; i++) {
-		const values = new Float32Array([i, 0, 0, 1, 1, uv[0], uv[1], 0]);
-		const stagingBuffer = device.createBuffer({
-			size: values.byteLength,
-			usage: GPUBufferUsage.COPY_SRC,
-			mappedAtCreation: true
-		});
-		const arrayBuffer = stagingBuffer.getMappedRange();
-		(new Float32Array(arrayBuffer)).set(values);
-		commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffers[i], 0, values.byteLength);
-		stagingBuffer.unmap();
-	}
+		for (let i = 0; i < mipLevel; i++) {
+			const values = new Float32Array([i, 0, 0, 1, 1, uv[0], uv[1], 0]);
+			const stagingBuffer = device.createBuffer({
+				size: values.byteLength,
+				usage: GPUBufferUsage.COPY_SRC,
+				mappedAtCreation: true
+			});
+			const arrayBuffer = stagingBuffer.getMappedRange();
+			(new Float32Array(arrayBuffer)).set(values);
+			commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffers[i], 0, values.byteLength);
+			stagingBuffer.unmap();
+		}
 }
 
 
@@ -217,28 +216,27 @@ let lastFrameTime = Date.now()
 // QuadTree compute pass
 async function quadTreePass() {
 	for (let i = 0; i < mipLevel; i++) {
-		// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer , 0, 32);
-		// dbug_mngr.fromBufferToLog(quadTree.buffers.nodesBuffer, 0, 32);
-		quadManager.pass(i);
-		// evaluation.pass(i);
+		quadManager.iterate(i);
 	}
-	// await dbug_mngr.fromBufferToLog(quadTree.buffers.travBuffers[0], 0, 64);
-	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.eval.result[1], 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 }
-// await quadTreePass();
+await quadTreePass();
 
 const commandEncoderArg = device.createCommandEncoder();
-updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
+// updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
 const commandBufferArg = commandEncoderArg.finish();
-device.queue.submit([commandBufferArg]);
+await device.queue.submit([commandBufferArg]);
 await device.queue.onSubmittedWorkDone();
 
 
-let renderPass 
-
 const commandEncoder = device.createCommandEncoder();
-updateTravBufferCoord([0.6, 0.4], commandEncoder);
+// updateTravBufferCoord([0.6, 0.4], commandEncoder);
 const commandBuffer = commandEncoder.finish();
 device.queue.submit([commandBuffer]);
 await device.queue.onSubmittedWorkDone();
@@ -249,13 +247,18 @@ async function frame() {
 		console.log("Change")
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
-		updateTravBufferCoord(params.travelValues, commandEncoderArg);
+		if(firstClick) {
+			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+			firstClick = false;
+		}else{
+			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
+		}
 		const commandBufferArg = commandEncoderArg.finish();
 		device.queue.submit([commandBufferArg]);
 		await device.queue.onSubmittedWorkDone();
 		params.change = false;
 		calls++;
-		quadTreePass();
+		quadTreePass()
 	}
 
 	// Render pass
@@ -301,6 +304,7 @@ async function loadImageBitmap(url: string) {
 
 }
 // listen and find uv coordinates of mouse on click
+var firstClick = true;
 canvas.addEventListener('click', async (event) => {
 
 	const rect = canvas.getBoundingClientRect();

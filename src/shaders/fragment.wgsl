@@ -63,15 +63,15 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	
 	if (smallestDepth >= 0.0) {
 		if(depth < nextDepth){
-			//return vec4<f32>(depth, value, 0, 1.0);
+			return vec4<f32>(depth, value, 0, 1.0);
 			//return vec4<f32>(depth, value, index, 1.0);
 			//return vec4<f32>(0.0, value, 0, 1.0);
-			return vec4<f32>(0.0, value, index, 1.0);
+			//return vec4<f32>(0.0, value, index, 1.0);
 		}
-		//return vec4<f32>(nextDepth, nextValue, 0, 1.0);
+		return vec4<f32>(nextDepth, nextValue, 0, 1.0);
 		//return vec4<f32>(0.0, nextValue, 0, 1.0);
 		//return vec4<f32>(nextDepth, nextValue, nIndex, 1.0);
-		return vec4<f32>(0.0, nextValue, nIndex, 1.0);
+		//return vec4<f32>(0.0, nextValue, nIndex, 1.0);
 		//return vec4<f32>(0.0, nextValue, 0, 1.0);
 	}else{
 		

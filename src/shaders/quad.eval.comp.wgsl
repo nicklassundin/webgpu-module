@@ -13,22 +13,24 @@ struct Traversal {
 	coord: vec4<f32>,
 	address: f32,
 };
-@group(0) @binding(0) var texture: texture_storage_2d<rgba8unorm, write>;
 
-@group(1) @binding(0) var<storage, read_write> traversal: Traversal;
+@group(0) @binding(0) var texture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(1) var<storage, read_write> result: array<f32>;
+@group(0) @binding(2) var<storage, read_write> traversal: array<f32>;
+
+
+
+@group(1) @binding(0) var<storage, read> selected: array<f32>;
 @group(1) @binding(1) var<storage, read> levelValues: array<f32>;
 
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	let depth = u32(traversal.depth.x);
-	let id = global_id.x % depth;
-	let uv = traversal.coord.xy;
-	let textureSize: vec2<u32> = textureDimensions(texture);
-	let pixelCoord = uv * vec2<f32>(textureSize);
-	
-	var max: f32 = levelValues[0];
-	let value = levelValues[depth];
-	traversal.coord.x = 0.0;
-	textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(1.0, 1.0, 0.0, 1.0)); 
+	let index = global_id.x;
+
+	result[index] = abs(selected[index] - levelValues[index]) ;
+	//var max: f32 = levelValues[0];
+	//let value = levelValues[depth];
+	//traversal.coord.x = 0.0;
+	//textureStore(texture, vec2<i32>(i32(pixelCoord.x), i32(pixelCoord.y)), vec4<f32>(1.0, 1.0, 0.0, 1.0)); 
 }

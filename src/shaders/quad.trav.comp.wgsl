@@ -109,8 +109,9 @@ fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	var trav = getTraversal(0);
-	var nextTrav = getNextTraversal(0);
+	let id = global_id.x;
+	var trav = getTraversal(id);
+	var nextTrav = getNextTraversal(id);
 	
 	let address = u32(trav.address);
 	
@@ -122,7 +123,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	var boundBox = trav.boundBox;
 	if (values[address] == 0.0) {
 		nextTrav.address = f32(address);
-		
 		nextTrav.boundBox = boundBox; 
 		return;
 	}
@@ -134,11 +134,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	nextTrav.address = child;
 	if child == 0.0 {
 		nextTrav.address = 0.0;
-		setTraversal(global_id.x, nextTrav);
+		setTraversal(id, nextTrav);
 		return;
 	}
-
-	result[u32(trav.depth)] = values[address] / values[0u];
+	result[u32(trav.depth)] = values[address] / values[0];
 	//result[u32(trav.depth)] = trav.depth;
 	//result[u32(trav.depth)] = f32(address);
 	setTraversal(global_id.x, nextTrav);

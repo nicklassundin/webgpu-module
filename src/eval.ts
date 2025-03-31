@@ -9,6 +9,20 @@ const TEXT_STRG_BGL = {
 					visibility: GPUShaderStage.COMPUTE,
 					storageTexture: { access: "write-only", format: "rgba8unorm"  }
 				},
+				{
+					binding: 1,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'storage'
+					}
+				},
+				{ 
+					binding: 2,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'storage'
+					}
+				}
 			],
 }
 const QUADTREE_BGL = {
@@ -17,7 +31,7 @@ const QUADTREE_BGL = {
 					binding: 0,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
-						type: 'storage'
+						type: 'read-only-storage'
 					}
 				},
 				{
@@ -39,18 +53,18 @@ class Eval {
 	layout: GPUPipelineLayout;
 	texture: GPUTexture;
 	device: GPUDevice;
-	levelBuffer: GPUBuffer;
 	bindGroupLayouts: {
 		quadTree: GPUBindGroupLayout,
 		texture: GPUBindGroupLayout,
 	};
 	constructor(device: GPUDevice,
 		    textureSize,
+		    quadTreeTravRef: QuadTreeTraversal,
 		    quadTreeTrav: QuadTreeTraversal, 
 		    mipLevelCount: number = 11) {
 		this.device = device;
 		this.mipmapLevel = mipLevelCount;
-		const travBuffers = quadTreeTrav.buffers.travBuffers;
+		this.target = quadTreeTravRef;
 		const frameTexture = device.createTexture({
 			size: [textureSize, textureSize, 1],
 			format: 'rgba8unorm',
@@ -58,21 +72,21 @@ class Eval {
 			mipLevelCount: mipLevelCount,
 		});
 		this.texture = frameTexture;
-	
-		const levelBuffer = quadTreeTrav.result;	
-		const levelWorkBuffers: GPUBuffer[] = [];
-		for (let i = 0; i < 2; i++) {
-			levelWorkBuffers.push(device.createBuffer({
-				size: levelBuffer.size,
-				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+		this.result = [];
+		let frames = 2;
+		for (let i = 0; i < frames; i++) {
+			this.result.push(device.createBuffer({
+				size: quadTreeTrav.result.size,
+				offset: 0,
+				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			}));
 		}
 		this.buffers = {
-			levelWorkBuffers: levelWorkBuffers,
-			travBuffers: travBuffers,
+			level: quadTreeTrav.result,
+			travBuffers: quadTreeTrav.buffers.travBuffers,
 			travValues: travValues,
 		}
-
+		
 		// create bindgrouopLayout for quadtree
 		// Texture Storage Layout
 
@@ -81,7 +95,7 @@ class Eval {
 			texture: device.createBindGroupLayout(TEXT_STRG_BGL),
 		}
 		// Initialize bindGroups 
-		this.createBindGroups();
+		// this.createBindGroups();
 		// create bindGroup for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
 			bindGroupLayouts: [this.bindGroupLayouts.texture, this.bindGroupLayouts.quadTree],
@@ -111,7 +125,8 @@ class Eval {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroups.texture);
 		computePass.setBindGroup(1, this.bindGroups.quadTree);
-		computePass.dispatchWorkgroups(1)
+		// computePass.dispatchWorkgroups(1)
+		computePass.dispatchWorkgroups(this.mipmapLevel)
 		computePass.end();
 		await device.queue.submit([commandEncoderQuad.finish()]);
 	}
@@ -120,24 +135,26 @@ class Eval {
 			layout: this.bindGroupLayouts.quadTree, 
 			entries: [
 				{
-					binding: 0,
+					binding: 0,	
 					resource: {
-						buffer: this.buffers.travBuffers[level],
+						buffer: this.buffers.level,
 						offset: 0,
-						size: this.buffers.travValues.byteLength, 
+						size: this.buffers.level.size
 					},
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.levelWorkBuffers[level % 2],
+						buffer: this.target.result,
 						offset: 0,
-						size: this.buffers.levelWorkBuffers[level % 2].size,
+						size: this.target.result.size
 					},
 				},
 			],
 		});
 		// Create texture for quadtree bindGroupQuad
+		// console.log('level', level)
+		// console.log('length', this.buffers.travBuffers.length)
 		const bindGroupQuadTreeTexture = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.texture,
 			entries: [
@@ -148,6 +165,22 @@ class Eval {
 						mipLevelCount: 1,
 					}),
 				},
+				{
+					binding: 1,
+					resource: {
+						buffer: this.result[level % 2],
+						offset: 0,
+						size: this.result[level % 2].size,
+					}
+				},
+				{
+					binding: 2,
+					resource: {
+						buffer: this.buffers.travBuffers[level],
+						offset: 0,
+						size: this.buffers.travBuffers[level].size,
+					}
+				}
 			],
 		});
 		this.bindGroups = {

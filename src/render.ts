@@ -67,8 +67,9 @@ class Render {
 		this.canvas = canvas;
 		this.sampler = sampler;
 		this.depthSampler = depthSampler;
+		this.manager = manager;
 		this.quadTree = manager.quadTree; 
-		this.evaluation = manager.eval; 
+		this.eval = manager.eval; 
 		this.mipLevel = mipLevel;
 		// Uniform Buffer
 		// containing the resolution of the canvas
@@ -164,8 +165,6 @@ class Render {
 				depthClearValue: 1.0,
 			},
 		};
-
-
 	}
 	pass(calls, mipLevel) {
 
@@ -213,7 +212,7 @@ class Render {
 					},
 					{
 						binding: 1,
-						resource: this.evaluation.texture.createView(),
+						resource: this.eval.texture.createView(),
 					},
 					{
 						binding: 2,
@@ -244,17 +243,21 @@ class Render {
 					{
 						binding: 0,
 						resource: {
-							buffer: this.quadTree.result,
+							// buffer: this.quadTree.result,
+							buffer: this.eval.result[(mipLevel+1) % 2],
 							offset: 0,
-							size: this.quadTree.result.size,
+							// size: this.quadTree.result.size,
+							size: this.eval.result[(mipLevel+1) % 2].size,
 						} 
 					},
 					{
 						binding: 1,
 						resource: {
-							buffer: this.quadTree.buffers.travBuffers[mipLevel],
+							buffer: this.manager.target.buffers.travBuffers[mipLevel],
+							// buffer: this.quadTree.buffers.travBuffers[mipLevel],
 							offset: 0,
-							size: this.quadTree.buffers.travBuffers[mipLevel].size,
+							size: this.manager.target.buffers.travBuffers[mipLevel].size,
+							// size: this.quadTree.buffers.travBuffers[mipLevel].size,
 						}
 					}
 				],
