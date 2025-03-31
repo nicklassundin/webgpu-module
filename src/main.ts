@@ -227,7 +227,7 @@ async function quadTreePass() {
 	}
 	// Evaluation compute pass
 	for (let i = 0; i < mipLevel; i++) {
-		// await evaluation.pass(i);
+		await evaluation.pass(i);
 	}
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.valuesBuffer, 0, 32);
 }

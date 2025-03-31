@@ -3,7 +3,7 @@ import quadEvaluationComputeShaderCode from './shaders/quad.eval.comp.wgsl?raw';
 const TEXT_STRG_BGL = {
 			entries: [
 				{
-					binding: 1,
+					binding: 0,
 					visibility: GPUShaderStage.COMPUTE,
 					storageTexture: { access: "write-only", format: "rgba8unorm"  }
 				},
@@ -104,7 +104,7 @@ class Eval {
 		this.createBindGroups(mipLevel);
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
-		computePass.setPipeline(this.pieline);
+		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroups.texture);
 		computePass.setBindGroup(1, this.bindGroups.quadTree);
 		computePass.dispatchWorkgroups(1)
@@ -138,7 +138,7 @@ class Eval {
 			layout: this.bindGroupLayouts.texture,
 			entries: [
 				{
-					binding: 1,
+					binding: 0,
 					resource: this.texture.createView({
 						baseMipLevel: level,
 						mipLevelCount: 1,
