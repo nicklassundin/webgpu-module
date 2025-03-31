@@ -18,7 +18,6 @@ class Eval {
 		    textureSize,
 		    travBuffers: GPUBuffer[],
 		    levelBuffer: GPUBuffer,
-		    sampler: GPUTextureSampler,
 		    mipLevelCount: number = 11) {
 		// create textureSize from mipLevel
 		// const textureSize = Math.pow(2, mipLevelCount);
@@ -36,13 +35,6 @@ class Eval {
 		// Texture Storage Layout
 		const bindGroupLayoutTextureStorage = device.createBindGroupLayout({
 			entries: [
-				{
-					binding: 0,
-					visibility: GPUShaderStage.COMPUTE,
-					sampler: {
-						type: 'filtering',
-					},
-				},
 				{
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
@@ -98,10 +90,6 @@ class Eval {
 			layout: bindGroupLayoutTextureStorage,
 			entries: [
 				{
-					binding: 0,
-					resource: sampler,
-				},
-				{
 					binding: 1,
 					resource: frameTexture.createView({
 						baseMipLevel: 3,
@@ -145,7 +133,6 @@ class Eval {
 		}
 		this.levelWorkBuffers = levelWorkBuffers;
 		this.device = device;
-		this.sampler = sampler;
 		this.mipmapLevel = mipLevelCount;
 	}
 
@@ -153,15 +140,10 @@ class Eval {
 		// calculate workgroup based on mipmap
 		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
 		const device = this.device;
-		const sampler = this.sampler;
 
 		this.bindGroupTexture = device.createBindGroup({
 			layout: this.bindGroupLayouts.textureStorage,
 			entries: [
-				{
-					binding: 0,
-					resource: sampler,
-				},
 				{
 					binding: 1,
 					resource: this.texture.createView({

@@ -242,7 +242,7 @@ const quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson, mipLevel, bindGroupUniform, bindGroupLayoutUniform)
 
 import Eval from "./eval";
-const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result, sampler);
+const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result);
 
 await device.queue.onSubmittedWorkDone();
 // Create Pipeline Layout
