@@ -40,7 +40,7 @@ class Eval {
 	levelBuffer: GPUBuffer;
 	bindGroupLayouts: {
 		quadTree: GPUBindGroupLayout,
-		textureStorage: GPUBindGroupLayout,
+		texture: GPUBindGroupLayout,
 	};
 	constructor(device: GPUDevice,
 		    textureSize,
@@ -74,13 +74,13 @@ class Eval {
 
 		this.bindGroupLayouts = {
 			quadTree: device.createBindGroupLayout(QUADTREE_BGL),
-			textureStorage: device.createBindGroupLayout(TEXT_STRG_BGL),
+			texture: device.createBindGroupLayout(TEXT_STRG_BGL),
 		}
 		// Initialize bindGroups 
 		this.createBindGroups();
 		// create bindGroup for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
-			bindGroupLayouts: [this.bindGroupLayouts.textureStorage, this.bindGroupLayouts.quadTree],
+			bindGroupLayouts: [this.bindGroupLayouts.texture, this.bindGroupLayouts.quadTree],
 		});
 		// create compute pipeline for quad traversal
 		const pipeline = device.createComputePipeline({
@@ -100,19 +100,18 @@ class Eval {
 		// calculate workgroup based on mipmap
 		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
 		const device = this.device;
-
+		// update bindGroup
+		this.createBindGroups(mipLevel);
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
-		computePass.setPipeline(this.pipeline);
-		computePass.setBindGroup(0, this.bindGroups.textureStorage);
+		computePass.setPipeline(this.pieline);
+		computePass.setBindGroup(0, this.bindGroups.texture);
 		computePass.setBindGroup(1, this.bindGroups.quadTree);
 		computePass.dispatchWorkgroups(1)
 		computePass.end();
 		await device.queue.submit([commandEncoderQuad.finish()]);
 	}
 	createBindGroups(level = 0){
-		console.log('level', level)
-		console.log('length', this.buffers.travBuffers.length)
 		const bindGroupQuadTree = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.quadTree, 
 			entries: [
@@ -136,7 +135,7 @@ class Eval {
 		});
 		// Create texture for quadtree bindGroupQuad
 		const bindGroupQuadTreeTexture = this.device.createBindGroup({
-			layout: this.bindGroupLayouts.textureStorage,
+			layout: this.bindGroupLayouts.texture,
 			entries: [
 				{
 					binding: 1,

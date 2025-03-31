@@ -1,7 +1,5 @@
 /// <reference types="@webgpu/types" />
 
-import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
-import vertexShaderCode from "./shaders/vertex.wgsl?raw";
 import { Triangle, Hexagon } from "./shape";
 
 // import quadfragmentShaderCode from "./shaders/quad.frag.wgsl?raw";
@@ -55,25 +53,6 @@ context.configure({
 	device,
 	format: presentationFormat,
 });
-// Create view texture manually
-const texture = device.createTexture({
-	size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1  },
-	format: presentationFormat,
-	usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-});
-const textureView = texture.createView();
-// Create depth texture manually
-const frames = 3;
-const depthTextures: GPUTexture[] = [];
-for (let i = 0; i < frames; i++) {
-	const depthTexture = device.createTexture({
-		size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
-		format: 'depth24plus',
-		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-	});
-	depthTextures.push(depthTexture);
-}
-
 // Vertex Buffer
 const Vertices = new Float32Array([
 	-1.0, 1.0,   // Vertex 1 (x, y)
@@ -92,20 +71,6 @@ const vertexBuffer = device.createBuffer({
 const mapping = new Float32Array(vertexBuffer.getMappedRange());
 mapping.set(Vertices);
 vertexBuffer.unmap();
-
-// Uniform Buffer
-// containing the resolution of the canvas
-// Resolution 4 * 2; Mipmap level 4 * 1
-const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
-const uniformBuffer = device.createBuffer({
-	size: uniformBufferSize,
-	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-});
-const resolution = new Float32Array([canvas.width,
-				    canvas.height,
-3.0]);
-device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
-
 
 // Mipmap pipeline
 // load image
@@ -160,77 +125,7 @@ const sampler = device.createSampler({
 const depthSampler = device.createSampler({
 	compare: undefined,
 });
-// binding group layout for mipmap
-const bindGroupLayoutUniform = device.createBindGroupLayout({
-	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: {}  }],
-})
-// Create binding group layout Used for mipmap and normal rendering
-const bindGroupLayout = device.createBindGroupLayout({
-	entries: [
-		{
-			// Read 
-			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT,
-			sampler: {
-				type: 'filtering',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.FRAGMENT,
-			texture: {
-				sampleType: 'float',
-			},
-		},
-		{
-			binding: 2,
-			visibility: GPUShaderStage.FRAGMENT,
-			sampler: {
-				type: 'non-filtering',
-			},
-		},
-		{
-			binding: 3,
-			visibility: GPUShaderStage.FRAGMENT,
-			texture: {
-				sampleType: 'depth',
-			},
-		},
-	],
-});
-// bindGroup for Navigate
-const bindGroupLayoutNav = device.createBindGroupLayout({
-	entries: [
-		{
-			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-			buffer: {
-				type: 'read-only-storage',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-			buffer: {
-				type: 'read-only-storage',
-			},
-		},
-	]
-});
-// Create bind group for uniform buffer
-const bindGroupUniform = device.createBindGroup({
-	layout: bindGroupLayoutUniform,
-	entries: [
-		{
-			binding: 0,
-			resource: {
-				buffer: uniformBuffer,
-				offset: 0,
-				size: uniformBufferSize,
-			},
-		},
-	],
-});
+
 
 import QuadTree from "./quadTree";
 
@@ -244,62 +139,10 @@ const quadTree = new QuadTree(device, quadTreeJson, mipLevel)
 import Eval from "./eval";
 const evaluation = new Eval(device, textureSize, quadTree.buffers.travBuffers, quadTree.result);
 
+import Render from "./render";
+const render = new Render(device, context, canvas, presentationFormat, sampler, depthSampler, quadTree, evaluation, mipLevel);
+
 await device.queue.onSubmittedWorkDone();
-// Create Pipeline Layout
-const pipelineLayout = device.createPipelineLayout({
-	bindGroupLayouts: [bindGroupLayout, bindGroupLayoutUniform, bindGroupLayoutNav],
-});
-// Piprline
-const pipeline = device.createRenderPipeline({
-	layout: pipelineLayout, 
-	vertex: {
-		module: device.createShaderModule({
-			code: vertexShaderCode,
-		}),
-	},
-	fragment: {
-		module: device.createShaderModule({
-			code: fragmentShaderCode,
-		}),
-		targets: [
-			{
-				format: presentationFormat,
-			},
-		],
-	},
-	primitive: {
-		topology: 'triangle-list',
-		// topology: 'point-list',
-		// topology: 'line-list',
-		// cullMode: 'none',
-	},
-	depthStencil: {
-		format: 'depth24plus',
-		depthWriteEnabled: true,
-		// depthCompare: 'less',
-		depthCompare: 'less-equal',
-	},
-});
-
-// Render Pass Descriptor
-const renderPassDescriptor: GPURenderPassDescriptor = {
-	colorAttachments: [
-		{
-			view: undefined,
-			clearValue: [0, 0, 0, 0], // Clear to transparent
-			loadOp: 'load',
-			storeOp: 'store',
-		},
-	],
-	depthStencilAttachment: {
-		view: undefined, 
-		// depthLoadOp: 'load',
-		depthLoadOp: 'clear',
-		depthStoreOp: 'store',
-		depthClearValue: 1.0,
-	},
-};
-
 
 // Create Depth Texture TODO
 class Params {
@@ -344,7 +187,7 @@ function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder)
 
 async function updateUniformBuffer(values: number[]) {
 	const floatArray = new Float32Array(values);
-	device.queue.writeBuffer(uniformBuffer, 0, floatArray);
+	device.queue.writeBuffer(render.buffers.uniform, 0, floatArray);
 	await device.queue.onSubmittedWorkDone();
 }
 // TODO GUI
@@ -418,88 +261,11 @@ async function frame() {
 		params.change = false;
 		calls++;
 	}
-	// Render pass bindGroup
-	const bindGroup = device.createBindGroup({
-		layout: bindGroupLayout,
-		entries: [
-			{
-				binding: 0,
-				resource: sampler,
-			},
-			{
-				binding: 1,
-				resource: evaluation.texture.createView(), 
-			},
-			{
-				binding: 2,
-				resource: depthSampler,
-			},
-			{
-				binding: 3,
-				resource: depthTextures[(calls) % frames].createView(),
-			},
-		],
-	});
-	// Navigate bindGroup
-
 
 	// Render pass
 	// if (lastFrameTime < Date.now()){
 	if (lastFrameTime < Date.now() && mipLevel >= current_mipLevel) {
-	const bindGroupNav = device.createBindGroup({
-		layout: bindGroupLayoutNav, 
-		entries: [
-			{
-				binding: 0,
-				resource: {
-					buffer: quadTree.result,
-					offset: 0,
-					size: quadTree.result.size,
-				} 
-			},
-			{
-				binding: 1,
-				resource: {
-					buffer: quadTree.buffers.travBuffers[current_mipLevel],
-					// buffer: quadTree.buffers.travBuffers[frameCount % mipLevel],
-					offset: 0,
-					size: quadTree.buffers.travBuffers[current_mipLevel].size,
-				}
-			}
-		],
-	});
-		// if (mipLevel >= current_mipLevel) {
-		// 	current_mipLevel = 0;	
-		// }
-
-		const commandEncoder = device.createCommandEncoder();
-		const currentTexture = context.getCurrentTexture();
-		if (!currentTexture) {
-			console.error("Failed to retrieve current texture.");
-			return;
-		}
-		const textureView = currentTexture.createView();
-		renderPassDescriptor.colorAttachments[0].view = textureView;
-		const depthTextureView = depthTextures[(calls + 1) % frames].createView();
-		renderPassDescriptor.depthStencilAttachment.view = depthTextureView;
-
-
-		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-		passEncoder.setPipeline(pipeline);
-		// passEncoder.setVertexBuffer(0, vertexBuffer);
-		passEncoder.setBindGroup(0, bindGroup);
-		passEncoder.setBindGroup(1, bindGroupUniform);
-		passEncoder.setBindGroup(2, bindGroupNav);
-		// const numVer = Math.pow(2, current_mipLevel) * 3 * 2;
-		// console.log(`Number of vertices: ${numVer}, Mip Level: ${current_mipLevel}`);
-		// passEncoder.draw(6, mipLevel);
-		passEncoder.draw(6*mipLevel);
-		// passEncoder.draw(6);
-		// passEncoder.draw(5*6);
-		// passEncoder.draw(12288);
-		passEncoder.end();
-
-		device.queue.submit([commandEncoder.finish()]);
+		render.pass(calls, current_mipLevel);
 		current_mipLevel++;
 	}
 
