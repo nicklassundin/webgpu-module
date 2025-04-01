@@ -222,7 +222,8 @@ async function quadTreePass() {
 	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 32, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[1], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
