@@ -107,6 +107,18 @@ fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
 	return newBoundBox;
 };
 
+fn verticesFromBoundBox(boundBox: vec4<f32>, index: u32) {
+	vertex[index].position = vec4<f32>(boundBox.x, boundBox.y, 0.0, 1.0);
+	vertex[index + 1].position = vec4<f32>(boundBox.z, boundBox.y, 0.0, 1.0);
+	vertex[index + 2].position = vec4<f32>(boundBox.z, boundBox.w, 0.0, 1.0);
+	vertex[index + 3].position = vec4<f32>(boundBox.x, boundBox.w, 0.0, 1.0);
+};
+
+struct Vertex {
+	position: vec4<f32>,
+};
+@group(1) @binding(0) var<storage, read_write> vertex: array<Vertex>; 
+
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let id = global_id.x;
@@ -141,4 +153,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	//result[u32(trav.depth)] = trav.depth;
 	//result[u32(trav.depth)] = f32(address);
 	setTraversal(global_id.x, nextTrav);
+
+	verticesFromBoundBox(boundBox, id*4);
+
 }

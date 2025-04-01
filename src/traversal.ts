@@ -40,6 +40,17 @@ const QUADTREE_BGL_CONFIG = {
 		}
 	],
 }
+const VERTEX_BGL = {
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			}
+		},
+	],
+}
 
 class QuadTreeTraversal {
 	pipeline: GPUComputePipeline;
@@ -75,16 +86,22 @@ class QuadTreeTraversal {
 			size: Float32Array.BYTES_PER_ELEMENT * mipLevel,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
+		const vertexBuffer = device.createBuffer({
+			size: mipLevel * 4 * 4, 
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		});
 		
 
 		this.buffers = {
 			travBuffers,
 			valuesBuffer: quadTree.buffers.values,
 			nodesBuffer: quadTree.buffers.nodes,
+			vertexBuffer,
 		};
 		
 		this.bindGroupLayouts = {
 			quadTree: device.createBindGroupLayout(QUADTREE_BGL_CONFIG), 
+			vertex: device.createBindGroupLayout(VERTEX_BGL),
 		};
 		// Quad Tree bindGroupLayout
 		// console.log(travValues.byteLength)
@@ -95,7 +112,7 @@ class QuadTreeTraversal {
 		const bindGroupQuadTree = this.createBindGroup();
 		// Create pipeline layout for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
-			bindGroupLayouts: [this.bindGroupLayouts.quadTree],
+			bindGroupLayouts: [this.bindGroupLayouts.quadTree, this.bindGroupLayouts.vertex],
 		});
 		// create compute pipeline for quad traversal
 		const pipeline = device.createComputePipeline({
@@ -121,11 +138,12 @@ class QuadTreeTraversal {
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
 
-		const bindGroupQuadTree = this.createBindGroup(mipLevel);
+		this.createBindGroup(mipLevel);
 
 
 		computePass.setPipeline(this.pipeline);
-		computePass.setBindGroup(0, bindGroupQuadTree);
+		computePass.setBindGroup(0, this.bindGroup.quadTree);
+		computePass.setBindGroup(1, this.bindGroup.vertex);
 		computePass.dispatchWorkgroups(1);
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
@@ -137,7 +155,8 @@ class QuadTreeTraversal {
 		// await device.queue.submit([commandEncoder.finish()]);
 	}
 	createBindGroup(level = 0){
-		return this.device.createBindGroup({
+		this.bindGroup = {
+			quadTree: this.device.createBindGroup({
 			layout: this.bindGroupLayouts.quadTree,
 			entries: [
 				{
@@ -183,7 +202,21 @@ class QuadTreeTraversal {
 					},
 				},
 			],
-		});
+			}),
+			vertex: this.device.createBindGroup({
+				layout: this.bindGroupLayouts.vertex,
+				entries: [
+					{
+						binding: 0,
+						resource: {
+							buffer: this.buffers.vertexBuffer,
+							offset: 0,
+							size: this.buffers.vertexBuffer.size,
+						},
+					},
+				],
+			}),
+		}
 	}
 }
 export default QuadTreeTraversal;
