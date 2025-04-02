@@ -209,7 +209,7 @@ class Render {
 		passEncoder.setBindGroup(2, this.bindGroups.nav);
 		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertices[mipLevel % 2]);
 		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices[mipLevel % 2], 'uint32');
-		passEncoder.drawIndexed(6, 1, 6*9);
+		passEncoder.drawIndexed(6, 1, 6*1);
 		// passEncoder.draw(6*this.mipLevel);
 		passEncoder.end();
 
