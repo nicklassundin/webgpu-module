@@ -81,13 +81,8 @@ class Render {
 		const resolution = new Float32Array([canvas.width,
 						    canvas.height,
 		3.0]);
-		// Create view texture manually
-		this.texture = device.createTexture({
-			size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1  },
-			format: presentationFormat,
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-		});
-		this.textureView = this.texture.createView();
+
+
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 		this.buffers = {
 			uniform: uniformBuffer,
@@ -104,6 +99,15 @@ class Render {
 			depthTextures.push(depthTexture);
 		}
 		this.depthTextures = depthTextures;
+		
+		this.frameBuffer = []
+		for (let i = 0; i < this.frames; i++) {
+			this.frameBuffer.push(device.createTexture({
+				size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
+				format: presentationFormat,
+				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+			}));
+		}
 
 
 		this.bindGroupLayouts = {
@@ -152,7 +156,7 @@ class Render {
 			colorAttachments: [
 				{
 					view: undefined,
-					clearValue: [0, 0, 0, 0], // Clear to transparent
+					clearValue: [1, 0, 0, 1], // Clear to transparent
 					loadOp: 'load',
 					storeOp: 'store',
 				},
@@ -175,6 +179,7 @@ class Render {
 			console.error("Failed to retrieve current texture.");
 			return;
 		}
+		// TODO render to framebuffer and create second pipeline for canvas
 		const textureView = currentTexture.createView();
 		this.renderPassDescriptor.colorAttachments[0].view = textureView;
 		const depthTextureView = this.depthTextures[(calls + 1) % this.frames].createView();

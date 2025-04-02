@@ -61,14 +61,16 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let nextValue = levelValues[u32(mipLevel*(1.0 - nextDepth))];
 	let nIndex = mipLevel * (1.0 - nextDepth)/mipLevel; 
 	
+	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 	if (smallestDepth >= 0.0) {
 		if(depth < nextDepth){
-			return vec4<f32>(depth, value, 0, 1.0);
+			color = vec4<f32>(depth, value, 0, 1.0);
 			//return vec4<f32>(depth, value, index, 1.0);
 			//return vec4<f32>(0.0, value, 0, 1.0);
 			//return vec4<f32>(0.0, value, index, 1.0);
+		}else{
+			color = vec4<f32>(nextDepth, nextValue, 0, 1.0);
 		}
-		return vec4<f32>(nextDepth, nextValue, 0, 1.0);
 		//return vec4<f32>(0.0, nextValue, 0, 1.0);
 		//return vec4<f32>(nextDepth, nextValue, nIndex, 1.0);
 		//return vec4<f32>(0.0, nextValue, nIndex, 1.0);
@@ -77,4 +79,9 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 		
 		return checker_color;
 	}
+
+	if (value_color.r > 0.5) {
+		return checker_color;
+	}
+	return color;
 }

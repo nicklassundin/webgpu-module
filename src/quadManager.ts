@@ -17,10 +17,12 @@ class QuadManager {
 	}
 	pass(level){
 		this.target.pass(level)
+		this.eval.pass(level);
 	}
 	iterate(level){
 		this.target.pass(level);
 		this.quadTree.pass(level);
+		this.eval.pass(level);
 	}
 }
 export default QuadManager;

@@ -252,7 +252,7 @@ await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 let calls = 0;
 async function frame() {
-	if (current_mipLevel == mipLevel) {
+	if (current_mipLevel == mipLevel && frameCount < 60*11) {
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
 		if (params.change && firstClick) {
@@ -275,7 +275,7 @@ async function frame() {
 
 	// Render pass
 	// if (lastFrameTime < Date.now()){
-	if (current_mipLevel < mipLevel){ 
+	if (current_mipLevel < mipLevel && frameCount % 5 == 0){ 
 		// console.log(frameCount, current_mipLevel)
 		render.pass(frameCount, current_mipLevel);
 		current_mipLevel++;
