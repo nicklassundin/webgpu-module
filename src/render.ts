@@ -1,5 +1,6 @@
 
-import vertexShaderCode from "./shaders/vertex.wgsl?raw";
+// import vertexShaderCode from "./shaders/vertex.wgsl?raw";
+import baseVertexShaderCode from "./shaders/base.vertex.wgsl?raw";
 import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
 
 const BGL = {
@@ -80,9 +81,7 @@ class Render {
 		});
 		const resolution = new Float32Array([canvas.width,
 						    canvas.height,
-		3.0]);
-
-
+		mipLevel]);
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 		this.buffers = {
 			uniform: uniformBuffer,
@@ -99,7 +98,7 @@ class Render {
 			depthTextures.push(depthTexture);
 		}
 		this.depthTextures = depthTextures;
-		
+
 		this.frameBuffer = []
 		for (let i = 0; i < this.frames; i++) {
 			this.frameBuffer.push(device.createTexture({
@@ -120,13 +119,27 @@ class Render {
 		this.pipelineLayout = device.createPipelineLayout({
 			bindGroupLayouts: [this.bindGroupLayouts.traversal, this.bindGroupLayouts.uniform, this.bindGroupLayouts.nav],
 		});
+		const vertexBufferLayout: GPUVertexBufferLayout = {
+			arrayStride: 16, // number of bytes per vertex
+			attributes: [
+				{
+					shaderLocation: 0,
+					offset: 0,
+					format: 'float32x4', // for a vec2<f32>
+				},
+
+			],
+		};
+
 		// Pipeline
 		this.pipeline = device.createRenderPipeline({
 			layout: this.pipelineLayout, 
 			vertex: {
 				module: device.createShaderModule({
-					code: vertexShaderCode,
+					// code: vertexShaderCode,
+					code: baseVertexShaderCode,
 				}),
+				buffers: [vertexBufferLayout],
 			},
 			fragment: {
 				module: device.createShaderModule({
@@ -142,7 +155,7 @@ class Render {
 				topology: 'triangle-list',
 				// topology: 'point-list',
 				// topology: 'line-list',
-				// cullMode: 'none',
+				cullMode: 'none',
 			},
 			depthStencil: {
 				format: 'depth24plus',
@@ -194,10 +207,10 @@ class Render {
 		passEncoder.setBindGroup(0, this.bindGroups.traversal); 
 		passEncoder.setBindGroup(1, this.bindGroups.uniform);
 		passEncoder.setBindGroup(2, this.bindGroups.nav);
-		// passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertices[mipLevel % 2]);
-		// passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices[mipLevel % 2], 'uint32');
-		// passEncoder.drawIndexed(6);
-		passEncoder.draw(6*this.mipLevel);
+		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertices[mipLevel % 2]);
+		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices[mipLevel % 2], 'uint32');
+		passEncoder.drawIndexed(6, 1, 6*9);
+		// passEncoder.draw(6*this.mipLevel);
 		passEncoder.end();
 
 		this.device.queue.submit([commandEncoder.finish()]);

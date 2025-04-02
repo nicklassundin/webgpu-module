@@ -37,10 +37,23 @@ const READ_BGL = {
 						type: 'read-only-storage',
 					}, 
 				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'read-only-storage',
+					}
+				},
+				{
+					binding: 3,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {}
+				}
 			],
 }
 
 const travValues = new Float32Array(64);
+const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
 class VertexGen {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
@@ -66,7 +79,7 @@ class VertexGen {
 		const indices = [];
 		for (let i = 0; i < frames; i++) {
 			vertices.push(device.createBuffer({
-				size: textureSize * textureSize * 4 * 4,
+				size: 6*Math.pow((mipLevelCount + 2), 2)*4,
 				usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
 			}));
 			indices.push(device.createBuffer({
@@ -75,10 +88,18 @@ class VertexGen {
 			}));
 
 		}
+		const uniformBuffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+		const resolution = new Float32Array([canvas.width,
+						    canvas.height,3.0]);
+		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 
 		this.buffers = {
 			vertices,
 			indices,
+			uniform: uniformBuffer,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -119,7 +140,9 @@ class VertexGen {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		computePass.dispatchWorkgroups(1);
+		// computePass.dispatchWorkgroups(1);
+		computePass.dispatchWorkgroups(6, this.mipmapLevel);
+		// computePass.dispatchWorkgroups(6, 2);
 		computePass.end();
 		await device.queue.submit([commandEncoderQuad.finish()]);
 	}
@@ -152,9 +175,9 @@ class VertexGen {
 				{
 					binding: 0,	
 					resource: {
-						buffer: this.target.buffers.result[level % 2],
+						buffer: this.target.buffers.result[(level+1) % 2],
 						offset: 0,
-						size: this.target.buffers.result[level % 2].size,
+						size: this.target.buffers.result[(level+1) % 2].size,
 					},
 				},
 				{
@@ -164,7 +187,23 @@ class VertexGen {
 						offset: 0,
 						size: this.target.buffers.level.size,
 					},
-				}
+				},
+				{
+					binding: 2,
+					resource: {
+						buffer: this.target.buffers.travBuffers[level],
+						offset: 0,
+						size: this.target.buffers.travBuffers[level].size,
+					},
+				},
+				{
+					binding: 3,
+					resource: {
+						buffer: this.buffers.uniform,
+						offset: 0,
+						size: this.buffers.uniform.size,
+					},
+				},
 			],
 		});
 		this.bindGroups = {

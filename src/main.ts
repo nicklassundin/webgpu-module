@@ -189,7 +189,7 @@ async function updateUniformBuffer(values: number[]) {
 	device.queue.writeBuffer(render.buffers.uniform, 0, floatArray);
 	await device.queue.onSubmittedWorkDone();
 }
-// TODO GUI
+// TODO GUe
 
 const params = new Params(DEFAULT_COORD);
 const gui = new GUI();
@@ -235,8 +235,8 @@ async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[1], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	//
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertices[0], 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.indices[0], 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertices[0], (5*4*4*4+2*4)*0, 64);
+	await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices[0], 3*6*4*0, 64);
 }
 await quadTreePass((x) => {quadManager.pass(x)});
 

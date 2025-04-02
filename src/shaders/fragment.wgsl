@@ -32,6 +32,11 @@ fn getTraversal(address: u32) -> Traversal {
 
 @fragment
 fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
+	let pos = (fragCoord+1.0)/2.0;
+	return fragCoord;
+	// TODO temporary	
+
+
 	let mipLevel = uniforms.mipLevel;
 
 	let uv = (fragCoord.xy / uniforms.resolution);

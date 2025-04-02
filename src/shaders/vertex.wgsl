@@ -31,6 +31,7 @@ const VERTICE: u32 = 6;
 @vertex
 fn main(@builtin(vertex_index) VertexIndex : u32
 ) -> @builtin(position) vec4f {
+
 	let trav = getTraversal(0);
 	let boundBox = trav.boundBox;
 	let depth: u32 = u32(f32(VertexIndex) / f32(VERTICE));
