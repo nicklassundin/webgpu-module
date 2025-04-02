@@ -10,9 +10,9 @@ class QuadManager {
 		this.device = device;
 		this.textureSize = textureSize;
 	}
-	init(quadTree: QuadTree, mipLevel: number) {
-		this.target = new QuadTreeTraversal(this.device, quadTree, mipLevel);
-		this.quadTree = new QuadTreeTraversal(this.device, quadTree, mipLevel);
+	init(quadTree: QuadTree, mipLevel: number, uv: number[]) {
+		this.target = new QuadTreeTraversal(this.device, quadTree, mipLevel, uv);
+		this.quadTree = new QuadTreeTraversal(this.device, quadTree, mipLevel, uv);
 		this.eval = new Eval(this.device, this.textureSize, this.target, this.quadTree);
 	}
 	pass(level){
@@ -21,7 +21,6 @@ class QuadManager {
 	iterate(level){
 		this.target.pass(level);
 		this.quadTree.pass(level);
-		this.eval.pass(level);
 	}
 }
 export default QuadManager;

@@ -11,6 +11,8 @@ import depthFragmentShaderCode from "./shaders/depth.frag.wgsl?raw";
 import { GUI } from 'dat.gui';
 import Debugger from "./debug";
 
+const DEFAULT_COORD = [0.5, 0.6];
+
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
 // Make list of all .png files in public/data/obs
@@ -135,7 +137,7 @@ const quadTree = new QuadTree(device, quadTreeJson)
 
 import QuadManager from "./quadManager";
 const quadManager = new QuadManager(device, textureSize);
-quadManager.init(quadTree, mipLevel);
+quadManager.init(quadTree, mipLevel, DEFAULT_COORD);
 
 import Eval from "./eval";
 
@@ -156,7 +158,6 @@ class Params {
 		this.travelValues = travelValues;
 	}
 }
-const params = new Params([0.6, 0.4]);
 
 
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffers) {
@@ -190,7 +191,7 @@ async function updateUniformBuffer(values: number[]) {
 }
 // TODO GUI
 
-
+const params = new Params(DEFAULT_COORD);
 const gui = new GUI();
 {
 	const folder = gui.addFolder("Mipmap");
@@ -202,10 +203,10 @@ const gui = new GUI();
 	});
 	// Add folder for uv coordinates
 	const uvFolder = gui.addFolder("UV Coordinates");
-	uvFolder.add({ value: 0.6 }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
+	uvFolder.add({ value: DEFAULT_COORD[0] }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
 		params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
 	})
-	uvFolder.add({ value: 0.4 }, 'value', 0, 1, 0.01).name("V");
+	uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
 	folder.open();
 }
 
@@ -214,21 +215,27 @@ const gui = new GUI();
 let frameCount = 0;
 let lastFrameTime = Date.now()
 // QuadTree compute pass
-async function quadTreePass() {
+async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
 	for (let i = 0; i < mipLevel; i++) {
-		quadManager.iterate(i);
+		f(i);
 	}
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
-	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 32, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
+	// console.log("Level 1")
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
+	// console.log("Level 2")
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[1], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[1], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[1], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 }
-await quadTreePass();
+await quadTreePass((x) => {quadManager.pass(x)});
 
 const commandEncoderArg = device.createCommandEncoder();
 // updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
@@ -237,43 +244,44 @@ await device.queue.submit([commandBufferArg]);
 await device.queue.onSubmittedWorkDone();
 
 
-const commandEncoder = device.createCommandEncoder();
+// const commandEncoder = device.createCommandEncoder();
 // updateTravBufferCoord([0.6, 0.4], commandEncoder);
-const commandBuffer = commandEncoder.finish();
-device.queue.submit([commandBuffer]);
-await device.queue.onSubmittedWorkDone();
+// const commandBuffer = commandEncoder.finish();
+// device.queue.submit([commandBuffer]);
+// await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 let calls = 0;
 async function frame() {
-	if (params.change) {
-		console.log("Change")
+	if (current_mipLevel == mipLevel) {
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
-		if(firstClick) {
-			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+		if (params.change && firstClick) {
+			console.log("Click", frameCount)
+			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
 			firstClick = false;
 		}else{
-			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
+			let randCoord = [Math.random(), Math.random()];
+			params.updateTravelValues(randCoord);
+			console.log("Random", frameCount)
+			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
 		}
 		const commandBufferArg = commandEncoderArg.finish();
 		device.queue.submit([commandBufferArg]);
-		await device.queue.onSubmittedWorkDone();
 		params.change = false;
 		calls++;
+		await device.queue.onSubmittedWorkDone();
 		quadTreePass()
 	}
 
 	// Render pass
 	// if (lastFrameTime < Date.now()){
-	if (lastFrameTime < Date.now() && mipLevel > current_mipLevel) {
-		render.pass(calls, current_mipLevel);
+	if (current_mipLevel < mipLevel){ 
+		// console.log(frameCount, current_mipLevel)
+		render.pass(frameCount, current_mipLevel);
 		current_mipLevel++;
 	}
-
 	frameCount++;
-	if ( frameCount < frames) {
-		calls++;
-	}
+
 	// await new Promise((resolve) => setTimeout(resolve, 3000));
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -308,12 +316,11 @@ async function loadImageBitmap(url: string) {
 // listen and find uv coordinates of mouse on click
 var firstClick = true;
 canvas.addEventListener('click', async (event) => {
-
+	firstClick = true;
 	const rect = canvas.getBoundingClientRect();
 	const x = event.clientX - rect.left;
 	const y = event.clientY - rect.top;
 	const uv = [x / canvas.width, y / canvas.height];
-	current_mipLevel = 0;
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);

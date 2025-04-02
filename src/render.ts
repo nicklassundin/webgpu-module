@@ -167,6 +167,7 @@ class Render {
 		};
 	}
 	pass(calls, mipLevel) {
+		mipLevel = mipLevel % this.mipLevel;
 
 		const commandEncoder = this.device.createCommandEncoder();
 		const currentTexture = this.context.getCurrentTexture();
@@ -188,13 +189,7 @@ class Render {
 		passEncoder.setBindGroup(0, this.bindGroups.traversal); 
 		passEncoder.setBindGroup(1, this.bindGroups.uniform);
 		passEncoder.setBindGroup(2, this.bindGroups.nav);
-		// const numVer = Math.pow(2, current_mipLevel) * 3 * 2;
-		// console.log(`Number of vertices: ${numVer}, Mip Level: ${current_mipLevel}`);
-		// passEncoder.draw(6, mipLevel);
 		passEncoder.draw(6*this.mipLevel);
-		// passEncoder.draw(6);
-		// passEncoder.draw(5*6);
-		// passEncoder.draw(12288);
 		passEncoder.end();
 
 		this.device.queue.submit([commandEncoder.finish()]);
@@ -253,11 +248,11 @@ class Render {
 					{
 						binding: 1,
 						resource: {
-							buffer: this.manager.target.buffers.travBuffers[mipLevel],
-							// buffer: this.quadTree.buffers.travBuffers[mipLevel],
+							// buffer: this.manager.target.buffers.travBuffers[mipLevel],
+							buffer: this.quadTree.buffers.travBuffers[mipLevel],
 							offset: 0,
-							size: this.manager.target.buffers.travBuffers[mipLevel].size,
-							// size: this.quadTree.buffers.travBuffers[mipLevel].size,
+							// size: this.manager.target.buffers.travBuffers[mipLevel].size,
+							size: this.quadTree.buffers.travBuffers[mipLevel].size,
 						}
 					}
 				],

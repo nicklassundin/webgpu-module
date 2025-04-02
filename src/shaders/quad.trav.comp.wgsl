@@ -77,15 +77,6 @@ fn setTraversal(address: u32, trav: Traversal) {
 	nextTraversal[index + 9] = trav.address;
 
 };
-
-
-@group(0) @binding(0) var<storage, read> traversal: array<f32>;
-@group(0) @binding(1) var<storage, read_write> nextTraversal: array<f32>;
-@group(0) @binding(2) var<storage, read_write> values: array<f32>;
-@group(0) @binding(3) var<storage, read_write> nodes: array<f32>;
-
-@group(0) @binding(4) var<storage, read_write> result: array<f32>;
-
 // function that return boundBox for quadrant
 fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
@@ -107,19 +98,14 @@ fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
 	return newBoundBox;
 };
 
-fn verticesFromBoundBox(boundBox: vec4<f32>, index: u32) {
-	let trav = getTraversal(index);
-	let z = trav.depth / 12;
-	vertex[index*4].position = vec4<f32>(boundBox.x, boundBox.y, 0.0, 1.0);
-	vertex[index*4 + 1].position = vec4<f32>(boundBox.z, boundBox.y, 0.0, 1.0);
-	vertex[index*4 + 2].position = vec4<f32>(boundBox.z, boundBox.w, 0.0, 1.0);
-	vertex[index*4 + 3].position = vec4<f32>(boundBox.x, boundBox.w, 0.0, 1.0);
-};
 
-struct Vertex {
-	position: vec4<f32>,
-};
-@group(1) @binding(0) var<storage, read_write> vertex: array<Vertex>; 
+@group(0) @binding(0) var<storage, read> traversal: array<f32>;
+@group(0) @binding(1) var<storage, read_write> nextTraversal: array<f32>;
+@group(0) @binding(2) var<storage, read_write> values: array<f32>;
+@group(0) @binding(3) var<storage, read_write> nodes: array<f32>;
+
+@group(0) @binding(4) var<storage, read_write> result: array<f32>;
+
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -156,6 +142,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	//result[u32(trav.depth)] = f32(address);
 	setTraversal(global_id.x, nextTrav);
 
-	verticesFromBoundBox(boundBox, u32(trav.depth));
+	//verticesFromBoundBox(boundBox, u32(trav.depth));
 
 }

@@ -41,6 +41,13 @@ const QUADTREE_BGL = {
 						// type: 'storage',
 						type: 'read-only-storage',
 					}, 
+				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'read-only-storage',
+					}
 				}
 			],
 }
@@ -57,6 +64,9 @@ class Eval {
 		quadTree: GPUBindGroupLayout,
 		texture: GPUBindGroupLayout,
 	};
+	get result() {
+		return this.buffers.result;
+	}
 	constructor(device: GPUDevice,
 		    textureSize,
 		    quadTreeTravRef: QuadTreeTraversal,
@@ -72,19 +82,23 @@ class Eval {
 			mipLevelCount: mipLevelCount,
 		});
 		this.texture = frameTexture;
-		this.result = [];
 		let frames = 2;
+		
+		// 
+		const result = [];
 		for (let i = 0; i < frames; i++) {
-			this.result.push(device.createBuffer({
+			result.push(device.createBuffer({
 				size: quadTreeTrav.result.size,
 				offset: 0,
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			}));
 		}
+
 		this.buffers = {
 			level: quadTreeTrav.result,
 			travBuffers: quadTreeTrav.buffers.travBuffers,
 			travValues: travValues,
+			result,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -125,12 +139,41 @@ class Eval {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroups.texture);
 		computePass.setBindGroup(1, this.bindGroups.quadTree);
-		// computePass.dispatchWorkgroups(1)
 		computePass.dispatchWorkgroups(this.mipmapLevel)
+		// computePass.dispatchWorkgroups(1)
 		computePass.end();
 		await device.queue.submit([commandEncoderQuad.finish()]);
 	}
 	createBindGroups(level = 0){
+		// Create texture for quadtree bindGroupQuad
+		const bindGroupQuadTreeTexture = this.device.createBindGroup({
+			layout: this.bindGroupLayouts.texture,
+			entries: [
+				{
+					binding: 0,
+					resource: this.texture.createView({
+						baseMipLevel: level,
+						mipLevelCount: 1,
+					}),
+				},
+				{
+					binding: 1,
+					resource: {
+						buffer: this.result[(level + 1)% 2],
+						offset: 0,
+						size: this.result[(level + 1) % 2].size,
+					}
+				},
+				{
+					binding: 2,
+					resource: {
+						buffer: this.buffers.travBuffers[(level) % this.mipmapLevel],
+						offset: 0,
+						size: this.buffers.travBuffers[(level) % this.mipmapLevel].size,
+					}
+				}
+			],
+		});
 		const bindGroupQuadTree = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.quadTree, 
 			entries: [
@@ -150,42 +193,17 @@ class Eval {
 						size: this.target.result.size
 					},
 				},
-			],
-		});
-		// Create texture for quadtree bindGroupQuad
-		// console.log('level', level)
-		// console.log('length', this.buffers.travBuffers.length)
-		const bindGroupQuadTreeTexture = this.device.createBindGroup({
-			layout: this.bindGroupLayouts.texture,
-			entries: [
-				{
-					binding: 0,
-					resource: this.texture.createView({
-						baseMipLevel: level,
-						mipLevelCount: 1,
-					}),
-				},
-				{
-					binding: 1,
-					resource: {
-						buffer: this.result[level % 2],
-						offset: 0,
-						size: this.result[level % 2].size,
-					}
-				},
 				{
 					binding: 2,
 					resource: {
-						buffer: this.buffers.travBuffers[level],
-						offset: 0,
-						size: this.buffers.travBuffers[level].size,
+						buffer: this.result[level % 2],
 					}
 				}
 			],
 		});
 		this.bindGroups = {
-			quadTree: bindGroupQuadTree,
 			texture: bindGroupQuadTreeTexture,
+			quadTree: bindGroupQuadTree,
 		}
 	}
 }
