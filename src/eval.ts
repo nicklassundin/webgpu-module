@@ -97,7 +97,6 @@ class Eval {
 		this.buffers = {
 			level: quadTreeTrav.result,
 			travBuffers: quadTreeTrav.buffers.travBuffers,
-			travValues: travValues,
 			result,
 		}
 		
