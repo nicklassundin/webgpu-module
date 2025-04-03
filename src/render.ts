@@ -119,30 +119,48 @@ class Render {
 		this.pipelineLayout = device.createPipelineLayout({
 			bindGroupLayouts: [this.bindGroupLayouts.traversal, this.bindGroupLayouts.uniform, this.bindGroupLayouts.nav],
 		});
-		const vertexBufferLayout: GPUVertexBufferLayout = {
-			arrayStride: 16, // number of bytes per vertex
-			attributes: [
-				{
-					shaderLocation: 0,
-					offset: 0,
-					format: 'float32x4', // for a vec2<f32>
-				},
-
-			],
-		};
-
 		// Pipeline
-		this.pipeline = device.createRenderPipeline({
+		this.createPipeline(mipLevel);
+		// Render Pass Descriptor
+		this.renderPassDescriptor = {
+			colorAttachments: [
+				{
+					view: undefined,
+					clearValue: [1, 0, 0, 1], // Clear to transparent
+					loadOp: 'load',
+					storeOp: 'store',
+				},
+			],
+			depthStencilAttachment: {
+				view: undefined, 
+				// depthLoadOp: 'load',
+				depthLoadOp: 'clear',
+				depthStoreOp: 'store',
+				depthClearValue: 1.0,
+			},
+		};
+	}
+	createPipeline(level, presentationFormat = 'bgra8unorm'){
+		this.pipeline = this.device.createRenderPipeline({
 			layout: this.pipelineLayout, 
 			vertex: {
-				module: device.createShaderModule({
+				module: this.device.createShaderModule({
 					// code: vertexShaderCode,
 					code: baseVertexShaderCode,
 				}),
-				buffers: [vertexBufferLayout],
+				buffers: [{
+				arrayStride: 16*Math.pow(2, 0),
+				attributes: [
+					{
+						shaderLocation: 0,
+						offset: 0,
+						format: 'float32x4',
+					},
+				],
+				}]
 			},
 			fragment: {
-				module: device.createShaderModule({
+				module: this.device.createShaderModule({
 					code: fragmentShaderCode,
 				}),
 				targets: [
@@ -164,24 +182,7 @@ class Render {
 				depthCompare: 'less-equal',
 			},
 		});
-		// Render Pass Descriptor
-		this.renderPassDescriptor = {
-			colorAttachments: [
-				{
-					view: undefined,
-					clearValue: [1, 0, 0, 1], // Clear to transparent
-					loadOp: 'load',
-					storeOp: 'store',
-				},
-			],
-			depthStencilAttachment: {
-				view: undefined, 
-				// depthLoadOp: 'load',
-				depthLoadOp: 'clear',
-				depthStoreOp: 'store',
-				depthClearValue: 1.0,
-			},
-		};
+
 	}
 	pass(calls, mipLevel) {
 		mipLevel = mipLevel % this.mipLevel;
@@ -207,9 +208,10 @@ class Render {
 		passEncoder.setBindGroup(0, this.bindGroups.traversal); 
 		passEncoder.setBindGroup(1, this.bindGroups.uniform);
 		passEncoder.setBindGroup(2, this.bindGroups.nav);
-		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertices[mipLevel % 2]);
-		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices[mipLevel % 2], 'uint32');
-		passEncoder.drawIndexed(6, 1, 6*1);
+		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertice);
+		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
+		// passEncoder.drawIndexed(6, 1, 6*1);
+		passEncoder.drawIndexed(6, 1, 0);
 		// passEncoder.draw(6*this.mipLevel);
 		passEncoder.end();
 

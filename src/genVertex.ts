@@ -1,4 +1,5 @@
 import vertGenerateComputeShaderCode from './shaders/vert.comp.wgsl?raw';
+import indexGenerateComputeShaderCode from './shaders/ind.comp.wgsl?raw';
 
 import QuadTreeTraversal from './traversal';
 import Eval from './eval';
@@ -72,32 +73,37 @@ class VertexGen {
 		    mipLevelCount: number = 11) {
 		this.device = device;
 		this.mipmapLevel = mipLevelCount;
+		this.mipmapLevel = 5
+		const grid = Math.pow(2, this.mipmapLevel);
 		this.target = targetEval;
 		// 
 		const frames = 2;
-		const vertices = [];
-		const indices = [];
-		for (let i = 0; i < frames; i++) {
-			vertices.push(device.createBuffer({
-				size: 6*Math.pow((mipLevelCount + 2), 2)*4,
-				usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
-			}));
-			indices.push(device.createBuffer({
-				size: textureSize * textureSize * 4 * 4,
-				usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
-			}));
-
-		}
+		const vertice = device.createBuffer({
+			size: 4*4*Math.pow(grid, 2),
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
+		});
+		const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
+		// const indicesValues = new Uint32Array([0, 1, 8, 1, 9, 8]);
+		// const indicesValues = new Uint32Array([0, 1, 10, 1, 9, 10]);
+		// const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
+		const indices = device.createBuffer({
+			size: 6*Math.pow((mipLevelCount + 2), 2)*4,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
+		});
+		device.queue.writeBuffer(indices, 0, indicesValues.buffer);
+		// create index buffer
 		const uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 		const resolution = new Float32Array([canvas.width,
-						    canvas.height,3.0]);
+						    	canvas.height,
+							this.mipmapLevel
+		]);
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 
 		this.buffers = {
-			vertices,
+			vertice,
 			indices,
 			uniform: uniformBuffer,
 		}
@@ -115,8 +121,7 @@ class VertexGen {
 		const pipelineLayout = device.createPipelineLayout({
 			bindGroupLayouts: [this.bindGroupLayouts.write, this.bindGroupLayouts.read],
 		});
-		// create compute pipeline for quad traversal
-		const pipeline = device.createComputePipeline({
+		this.vertexPipeline = device.createComputePipeline({
 			layout: pipelineLayout,
 			compute: {
 				module: device.createShaderModule({
@@ -125,26 +130,22 @@ class VertexGen {
 				entryPoint: 'main',
 			},
 		});
-		this.pipeline = pipeline;
 		this.layout = pipelineLayout;
-	}
 
+	}
 	async pass(mipLevel){
-		// calculate workgroup based on mipmap
-		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
 		const device = this.device;
-		// update bindGroup
 		this.createBindGroups(mipLevel);
-		const commandEncoderQuad = device.createCommandEncoder();
-		const computePass = commandEncoderQuad.beginComputePass();
-		computePass.setPipeline(this.pipeline);
+		// generate vertex buffer
+		const commandEncoder = device.createCommandEncoder();
+		const computePass = commandEncoder.beginComputePass();
+		this.createBindGroups();
+		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		// computePass.dispatchWorkgroups(1);
-		computePass.dispatchWorkgroups(6, this.mipmapLevel);
-		// computePass.dispatchWorkgroups(6, 2);
+		computePass.dispatchWorkgroups(this.mipmapLevel, this.mipmapLevel);
 		computePass.end();
-		await device.queue.submit([commandEncoderQuad.finish()]);
+		await device.queue.submit([commandEncoder.finish()]);
 	}
 	createBindGroups(level = 0){
 		// Create texture for quadtree bindGroupQuad
@@ -154,17 +155,17 @@ class VertexGen {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.vertices[(level + 1)% 2],
+						buffer: this.buffers.vertice,
 						offset: 0,
-						size: this.buffers.vertices[(level + 1) % 2].size,
+						size: this.buffers.vertice.size,
 					}
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.indices[(level + 1) % 2],
+						buffer: this.buffers.indices,
 						offset: 0,
-						size: this.buffers.indices[(level + 1) % 2].size,
+						size: this.buffers.indices.size,
 					}
 				}
 			],
