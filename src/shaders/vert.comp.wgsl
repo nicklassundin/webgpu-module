@@ -16,16 +16,14 @@ struct Vertex {
 	values: vec4<f32>,
 };
 @group(0) @binding(0) var<storage, read_write> vertices: array<Vertex>;
-@group(0) @binding(1) var<storage, read_write> indices: array<u32>;
 
-@group(1) @binding(0) var<storage, read> selected: array<f32>;
-@group(1) @binding(1) var<storage, read> levelValues: array<f32>;
-@group(1) @binding(2) var<storage, read> traversal: array<f32>; 
+@group(1) @binding(0) var<storage, read> levelValues: array<f32>;
+@group(1) @binding(1) var<storage, read> traversal: array<f32>; 
 struct Uniforms {
 resolution: vec2<f32>,
 mipLevel: f32,
 };
-@group(1) @binding(3) var<uniform> uniforms: Uniforms; 
+@group(1) @binding(2) var<uniform> uniforms: Uniforms; 
 
 
 

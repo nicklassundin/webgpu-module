@@ -13,13 +13,6 @@ const WRITE_BGL = {
 						type: 'storage'
 					}
 				},
-				{ 
-					binding: 1,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'storage'
-					}
-				}
 			],
 }
 const READ_BGL = {
@@ -28,25 +21,18 @@ const READ_BGL = {
 					binding: 0,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
-						type: 'read-only-storage'
-					}
+						type: 'read-only-storage',
+					}, 
 				},
 				{
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
 						type: 'read-only-storage',
-					}, 
-				},
-				{
-					binding: 2,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'read-only-storage',
 					}
 				},
 				{
-					binding: 3,
+					binding: 2,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {}
 				}
@@ -128,20 +114,10 @@ class VertexGen {
 			},
 		});
 
-		// this.indexPipeline = device.createComputePipeline({
-		// 	layout: pipelineLayout,
-		// 	compute: {
-		// 		module: device.createShaderModule({
-		// 			code: indexGenerateComputeShaderCode,
-		// 		}),
-		// 		entryPoint: 'main',
-		// 	},
-		// });
 		this.layout = pipelineLayout;
 
 	}
 	async pass(mipLevel){
-		await this.passIndex(mipLevel);
 		const device = this.device;
 		this.createBindGroups(mipLevel);
 		// generate vertex buffer
@@ -153,18 +129,6 @@ class VertexGen {
 		computePass.dispatchWorkgroups(2, 2, this.mipmapLevel+1);
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
-	}
-	async passIndex(mipLevel){
-		// const device = this.device;
-		// this.createBindGroups(mipLevel);
-		// const commandEncoder = device.createCommandEncoder();
-		// const computePass = commandEncoder.beginComputePass();
-		// computePass.setPipeline(this.indexPipeline);
-		// computePass.setBindGroup(0, this.bindGroups.write);
-		// computePass.setBindGroup(1, this.bindGroups.read);
-		// computePass.dispatchWorkgroups(this.mipmapLevel);
-		// computePass.end();
-		// await device.queue.submit([commandEncoder.finish()]);
 	}
 	createBindGroups(level = 0){
 		// Create texture for quadtree bindGroupQuad
@@ -179,29 +143,13 @@ class VertexGen {
 						size: this.buffers.vertice.size,
 					}
 				},
-				{
-					binding: 1,
-					resource: {
-						buffer: this.buffers.indices,
-						offset: 0,
-						size: this.buffers.indices.size,
-					}
-				}
 			],
 		});
 		const bindGroudRead = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.read, 
 			entries: [
 				{
-					binding: 0,	
-					resource: {
-						buffer: this.target.buffers.result[(level+1) % 2],
-						offset: 0,
-						size: this.target.buffers.result[(level+1) % 2].size,
-					},
-				},
-				{
-					binding: 1,
+					binding: 0,
 					resource: {
 						buffer: this.target.buffers.level,
 						offset: 0,
@@ -209,7 +157,7 @@ class VertexGen {
 					},
 				},
 				{
-					binding: 2,
+					binding: 1,
 					resource: {
 						buffer: this.target.buffers.travBuffers[1],
 						offset: 0,
@@ -217,7 +165,7 @@ class VertexGen {
 					},
 				},
 				{
-					binding: 3,
+					binding: 2,
 					resource: {
 						buffer: this.buffers.uniform,
 						offset: 0,

@@ -8,13 +8,6 @@ mipLevel: f32,
 };
 @group(1) @binding(0) var<uniform> uniforms: Uniforms; 
 
-struct Traversal {
-	depth: f32,
-	boundBox: vec4<f32>,
-	coord: vec4<f32>,
-	address: f32,
-};
-
 struct FragInput {
 	@location(0) position: vec4<f32>,
 	@location(1) values: vec4<f32>

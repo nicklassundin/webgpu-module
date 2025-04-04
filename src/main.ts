@@ -258,13 +258,11 @@ async function frame() {
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
 		if (params.change && firstClick) {
-			console.log("Click", frameCount)
 			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
 			firstClick = false;
 		}else{
 			let randCoord = [2*Math.random()-1, 2*Math.random()-1];
 			params.updateTravelValues(randCoord);
-			console.log("Random", frameCount)
 			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
 		}
 		const commandBufferArg = commandEncoderArg.finish();
@@ -288,7 +286,7 @@ async function frame() {
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 
 	// wait for 0.5 second
-	await new Promise((resolve) => setTimeout(resolve, 250));
+	// await new Promise((resolve) => setTimeout(resolve, 250));
 	requestAnimationFrame(frame);
 
 }

@@ -19,7 +19,6 @@ class QuadManager {
 		// this.genVertex.pass(mipLevel);
 	}
 	pass(level){
-		console.log("pass level", level);
 		this.target.pass(level)
 		this.genVertex.pass(level);
 		this.eval.pass(level);

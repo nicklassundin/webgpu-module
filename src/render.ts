@@ -91,7 +91,7 @@ class Render {
 			colorAttachments: [
 				{
 					view: undefined,
-					clearValue: [1, 0, 0, 1], // Clear to transparent
+					clearValue: [0, 0, 1, 1], // Clear to transparent
 					// loadOp: 'clear',
 					loadOp: 'load',
 					storeOp: 'store',
@@ -186,7 +186,7 @@ class Render {
 		// const maxLevel = 3;
 
 		// passEncoder.drawIndexed(6, 1, 0, 4*(this.mipLevel- mipLevel));
-		for (let i = 0; i <= this.mipLevel; i++) {
+		for (let i = 0; i <= this.mipLevel+calls; i++) {
 			passEncoder.drawIndexed(6, 1, 0, 4*i);
 		}
 

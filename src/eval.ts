@@ -7,17 +7,12 @@ const TEXT_STRG_BGL = {
 				{
 					binding: 0,
 					visibility: GPUShaderStage.COMPUTE,
-					storageTexture: { access: "write-only", format: "rgba8unorm"  }
-				},
-				{
-					binding: 1,
-					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
 						type: 'storage'
 					}
 				},
 				{ 
-					binding: 2,
+					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
 						type: 'storage'
@@ -150,13 +145,6 @@ class Eval {
 			entries: [
 				{
 					binding: 0,
-					resource: this.texture.createView({
-						baseMipLevel: level,
-						mipLevelCount: 1,
-					}),
-				},
-				{
-					binding: 1,
 					resource: {
 						buffer: this.result[(level + 1)% 2],
 						offset: 0,
@@ -164,7 +152,7 @@ class Eval {
 					}
 				},
 				{
-					binding: 2,
+					binding: 1,
 					resource: {
 						buffer: this.buffers.travBuffers[(level) % this.mipmapLevel],
 						offset: 0,
