@@ -15,21 +15,13 @@ struct Traversal {
 	address: f32,
 };
 
-fn getTraversal(address: u32) -> Traversal {
-	var trav: Traversal;
-	let index = address*10;
-	trav.depth = traversal[index]; 
-	trav.boundBox = vec4<f32>(traversal[index + 1], traversal[index + 2], traversal[index + 3], traversal[index + 4]);
-	trav.coord = vec4<f32>(traversal[index + 5], traversal[index + 6], traversal[index + 7], traversal[index + 8]);
-	trav.address = traversal[index + 9];
-	return trav;
+struct FragInput {
+	@location(0) position: vec4<f32>,
+	@location(1) values: vec4<f32>
 };
-
-@group(2) @binding(0) var<storage, read> levelValues: array<f32>;
-@group(2) @binding(1) var<storage, read> traversal: array<f32>;
-
 @fragment
-fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
+fn main(input: FragInput) -> @location(0) vec4f {
+	let fragCoord = input.position;
 	let pos = (fragCoord+1.0)/2.0;
 
 	//return fragCoord;
@@ -60,9 +52,9 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	
 	
 
-	let value = levelValues[u32(mipLevel*(1.0 - depth))];
+	//let value = levelValues[u32(mipLevel*(1.0 - depth))];
+	let value = input.values.x;
 	let index = mipLevel * (1.0 - depth)/mipLevel;
-	let nextValue = levelValues[u32(mipLevel*(1.0 - nextDepth))];
 	let nIndex = mipLevel * (1.0 - nextDepth)/mipLevel; 
 
 		
@@ -71,7 +63,7 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 		if(depth < nextDepth){
 			color = vec4<f32>(depth, value, 0.0, 1.0);
 		}else{
-			color = vec4<f32>(nextDepth, nextValue, 0.0, 1.0);
+			color = vec4<f32>(nextDepth, value, 0.0, 1.0);
 		}
 	}else{
 		return checker_color;

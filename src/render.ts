@@ -21,24 +21,6 @@ const BGL = {
 		},
 	],
 }
-const BGL_NAV = {
-	entries: [
-		{
-			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-			buffer: {
-				type: 'read-only-storage',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-			buffer: {
-				type: 'read-only-storage',
-			},
-		},
-	]
-}
 // binding group layout for mipmap
 const BGL_UNIFORM = {
 	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: {}  }],
@@ -96,7 +78,6 @@ class Render {
 		this.bindGroupLayouts = {
 			traversal: device.createBindGroupLayout(BGL),
 			uniform: device.createBindGroupLayout(BGL_UNIFORM),
-			nav: device.createBindGroupLayout(BGL_NAV),
 		}
 		this.createBindGroups();
 		// Create Pipeline Layout
@@ -243,31 +224,6 @@ class Render {
 					},
 				],
 			}),
-			nav: this.device.createBindGroup({
-				layout: this.bindGroupLayouts.nav,
-				entries: [
-					{
-						binding: 0,
-						resource: {
-							// buffer: this.quadTree.result,
-							buffer: this.eval.result[(mipLevel+1) % 2],
-							offset: 0,
-							// size: this.quadTree.result.size,
-							size: this.eval.result[(mipLevel+1) % 2].size,
-						} 
-					},
-					{
-						binding: 1,
-						resource: {
-							// buffer: this.manager.target.buffers.travBuffers[mipLevel],
-							buffer: this.quadTree.buffers.travBuffers[mipLevel],
-							offset: 0,
-							// size: this.manager.target.buffers.travBuffers[mipLevel].size,
-							size: this.quadTree.buffers.travBuffers[mipLevel].size,
-						}
-					}
-				],
-			})
 		}
 	}
 }
