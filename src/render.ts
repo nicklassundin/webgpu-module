@@ -87,7 +87,7 @@ class Render {
 			uniform: uniformBuffer,
 		}
 		// Create depth texture manually
-		this.frames = 3;
+		this.frames = 2;
 		let depthTextures: GPUTexture[] = [];
 		for (let i = 0; i < this.frames; i++) {
 			const depthTexture = device.createTexture({
@@ -127,6 +127,7 @@ class Render {
 				{
 					view: undefined,
 					clearValue: [1, 0, 0, 1], // Clear to transparent
+					// loadOp: 'clear',
 					loadOp: 'load',
 					storeOp: 'store',
 				},
@@ -149,13 +150,18 @@ class Render {
 					code: baseVertexShaderCode,
 				}),
 				buffers: [{
-				arrayStride: 16*Math.pow(2, 0),
+				arrayStride: 16*Math.pow(2, 1),
 				attributes: [
 					{
 						shaderLocation: 0,
 						offset: 0,
 						format: 'float32x4',
 					},
+					{
+						shaderLocation: 1,
+						offset: 4 * 4,
+						format: 'float32x4',
+					}
 				],
 				}]
 			},
@@ -214,12 +220,10 @@ class Render {
 		const maxLevel = this.mipLevel;
 		// const maxLevel = 3;
 
-		const grid = Math.pow(2, this.mipLevel);
 		// passEncoder.drawIndexed(6, 1, 0, 4*(this.mipLevel- mipLevel));
 		for (let i = 0; i <= this.mipLevel; i++) {
 			passEncoder.drawIndexed(6, 1, 0, 4*i);
 		}
-
 
 		passEncoder.end();
 

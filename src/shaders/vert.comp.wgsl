@@ -23,6 +23,8 @@ mipLevel: f32,
 @group(1) @binding(3) var<uniform> uniforms: Uniforms; 
 
 
+
+const SIZE = 4*2;
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let mipLevel = uniforms.mipLevel - f32(global_id.z);
@@ -42,11 +44,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	var y = f32(p_y+global_id.y) / grid;
 	y = y * 2.0 - 1.0;
 
-	let index = (global_id.x + global_id.y * 2)*4 + global_id.z*4*4;
+	let index = (global_id.x + global_id.y * 2)*SIZE + global_id.z*4*SIZE;
 	
 	vertices[index + 0] = x;
 	vertices[index + 1] = y;
 	vertices[index + 2] = f32(global_id.z) / uniforms.mipLevel;
-	//vertices[index + 2] = pixCoord.x;
 	vertices[index + 3] = 1.0;
+
+	vertices[index + 4] = levelValues[global_id.z];
 }

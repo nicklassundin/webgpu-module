@@ -283,7 +283,7 @@ async function frame() {
 
 	// Render pass
 	// if (lastFrameTime < Date.now()){
-	if (current_mipLevel < mipLevel && frameCount % 5 == 0){ 
+	if (current_mipLevel < mipLevel){ 
 		// console.log(frameCount, current_mipLevel)
 		render.pass(frameCount, current_mipLevel);
 		current_mipLevel++;
