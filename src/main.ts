@@ -241,7 +241,7 @@ async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
 	//
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
 	// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
-	await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 4*4*0, 64*4*4*4);
+	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 4*4*0, 64*4*4*4);
 }
 await quadTreePass((x) => {quadManager.pass(x)});
 
@@ -260,7 +260,7 @@ await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 let calls = 0;
 async function frame() {
-	if (current_mipLevel == mipLevel && frameCount < 60*mipLevel) {
+	if (current_mipLevel == mipLevel) {
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
 		if (params.change && firstClick) {

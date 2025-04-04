@@ -215,17 +215,8 @@ class Render {
 		// const maxLevel = 3;
 
 		const grid = Math.pow(2, this.mipLevel);
-		// for (let i = 0; i < grid; i++) {
-		// 	for (let j = 0; j <= grid; j++) {
-		// 		if(((i)+8*(j+1)-j+1) % grid == 0 && (j) != 0){
-		// 			console.log((i+8*j) % grid + j)
-		// 		}else{
-		// 			passEncoder.drawIndexed(6, 1, 0, i + grid * j)
-		// 		}
-		// 	}
-		// }
 		// passEncoder.drawIndexed(6, 1, 0, 4*(this.mipLevel- mipLevel));
-		for (let i = 0; i < this.mipLevel; i++) {
+		for (let i = 0; i <= this.mipLevel; i++) {
 			passEncoder.drawIndexed(6, 1, 0, 4*i);
 		}
 
