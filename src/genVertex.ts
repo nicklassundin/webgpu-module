@@ -70,10 +70,9 @@ class VertexGen {
 		    textureSize,
 		    targetEval: Eval,
 		    quadTreeTrav: QuadTreeTraversal, 
-		    mipLevelCount: number = 11) {
+		    mipLevelCount: number) {
 		this.device = device;
 		this.mipmapLevel = mipLevelCount;
-		this.mipmapLevel = 3
 		const grid = Math.pow(2, this.mipmapLevel) +1 ;
 		this.grid = grid;
 		this.target = targetEval;
@@ -82,10 +81,8 @@ class VertexGen {
 			size: Math.pow(4, 8),
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
 		});
-		const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
-		// const indicesValues = new Uint32Array([0, 1, 8, 1, 9, 8]);
-		// const indicesValues = new Uint32Array([0, 1, 10, 1, 9, 10]);
-		// const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
+		// const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
+		const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
 		const indices = device.createBuffer({
 			size: 6*Math.pow(mipLevelCount, 2)*4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
@@ -153,7 +150,9 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		computePass.dispatchWorkgroups(this.grid, this.grid, 1);
+		// computePass.dispatchWorkgroups(4, 4);
+		computePass.dispatchWorkgroups(2, 2, this.mipmapLevel+1);
+		// computePass.dispatchWorkgroups(4, 4, this.mipmapLevel);
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
 	}

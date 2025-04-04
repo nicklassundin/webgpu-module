@@ -28,11 +28,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	var y = f32(global_id.y) / grid;
 	y = y * 2.0 - 1.0;
 
-
-	let index = (global_id.x + global_id.y * u32(grid+1))*4;
+	let index = (global_id.x + global_id.y * 2)*4 + global_id.z*4*4;
 	
 	vertices[index + 0] = x;
 	vertices[index + 1] = y;
-	vertices[index + 2] = 0.0;
+	//vertices[index + 2] = 0.0;
+	//vertices[index + 2] = mipLevel;
+	//vertices[index + 2] = f32(index);
 	vertices[index + 3] = 1.0;
 }

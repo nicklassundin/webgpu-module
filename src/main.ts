@@ -81,8 +81,8 @@ const image = await loadImageBitmap(textureList[0]);
 
 
 // TODO fix so mipLevel trasfers into structure
-// const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
-const mipLevel = 3;
+const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
+// const mipLevel = 3;
 const textureSize = image.width; // Assume square texture 
 // Create texture with mipmap levels
 const textureMipmap = device.createTexture({
@@ -240,7 +240,7 @@ async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	//
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
-	// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
+	await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
 	await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 4*4*0, 64*4*4*4);
 }
 await quadTreePass((x) => {quadManager.pass(x)});
