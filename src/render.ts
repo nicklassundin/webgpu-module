@@ -224,14 +224,12 @@ class Render {
 		// 		}
 		// 	}
 		// }
-		// passEncoder.drawIndexed(6, 1, 0, 0);
-		// passEncoder.drawIndexed(6, 1, 0, 4);
-		// passEncoder.drawIndexed(6, 1, 0, 8);
-		// passEncoder.drawIndexed(6, 1, 0, 8);
-		passEncoder.drawIndexed(6, 1, 0, 4*(this.mipLevel- mipLevel));
-		// passEncoder.drawIndexed(6, 1, 0, 4*10);
-		// passEncoder.drawIndexed(6, 1, 0, 4);
-		// passEncoder.drawIndexed(6, 1, 0, 4);
+		// passEncoder.drawIndexed(6, 1, 0, 4*(this.mipLevel- mipLevel));
+		for (let i = 0; i < this.mipLevel; i++) {
+			passEncoder.drawIndexed(6, 1, 0, 4*i);
+		}
+
+
 		passEncoder.end();
 
 		this.device.queue.submit([commandEncoder.finish()]);

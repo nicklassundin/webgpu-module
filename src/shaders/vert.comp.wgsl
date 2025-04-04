@@ -32,10 +32,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	// Normalize
 	coord = (coord + 1) * 0.5;
 
+	let pixCoord = coord*grid;
+	
+	let p_x = u32(pixCoord.x);
+	let p_y = u32(pixCoord.y);
 
-	var x = f32(global_id.x) / grid;
+	var x = f32(p_x+global_id.x) / grid;
 	x = x * 2.0 - 1.0;
-	var y = f32(global_id.y) / grid;
+	var y = f32(p_y+global_id.y) / grid;
 	y = y * 2.0 - 1.0;
 
 	let index = (global_id.x + global_id.y * 2)*4 + global_id.z*4*4;
@@ -43,6 +47,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	vertices[index + 0] = x;
 	vertices[index + 1] = y;
 	vertices[index + 2] = f32(global_id.z) / uniforms.mipLevel;
-	//vertices[index + 2] = traversal[5]; 
+	//vertices[index + 2] = pixCoord.x;
 	vertices[index + 3] = 1.0;
 }

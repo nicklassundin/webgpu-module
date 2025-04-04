@@ -268,7 +268,7 @@ async function frame() {
 			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
 			firstClick = false;
 		}else{
-			let randCoord = [Math.random(), Math.random()];
+			let randCoord = [2*Math.random()-1, 2*Math.random()-1];
 			params.updateTravelValues(randCoord);
 			console.log("Random", frameCount)
 			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
