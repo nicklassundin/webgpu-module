@@ -213,9 +213,9 @@ const gui = new GUI();
 let frameCount = 0;
 let lastFrameTime = Date.now()
 // QuadTree compute pass
-async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
+async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
 	for (let i = 0; i < mipLevel; i++) {
-		f(i);
+		f(i, frame);
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
@@ -237,7 +237,7 @@ async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
 	// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 4*4*0, 64*4*4*4);
 }
-await quadTreePass((x) => {quadManager.pass(x)});
+await quadTreePass(0, (x) => {quadManager.pass(x)});
 
 const commandEncoderArg = device.createCommandEncoder();
 // updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
@@ -270,7 +270,7 @@ async function frame() {
 		params.change = false;
 		calls++;
 		await device.queue.onSubmittedWorkDone();
-		quadTreePass()
+		quadTreePass(frameCount)
 	}
 
 	// Render pass

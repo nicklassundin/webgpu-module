@@ -64,7 +64,8 @@ class VertexGen {
 		this.target = targetEval;
 		// 
 		const vertice = device.createBuffer({
-			size: Math.pow(4, 8),
+			// size: Math.pow(4, 8),
+			size: 4*mipLevelCount*grid*grid,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
 		});
 		// const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
@@ -117,9 +118,9 @@ class VertexGen {
 		this.layout = pipelineLayout;
 
 	}
-	async pass(mipLevel){
+	async pass(frame: number = 0){
 		const device = this.device;
-		this.createBindGroups(mipLevel);
+		this.createBindGroups(frame);
 		// generate vertex buffer
 		const commandEncoder = device.createCommandEncoder();
 		const computePass = commandEncoder.beginComputePass();
@@ -130,8 +131,9 @@ class VertexGen {
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
 	}
-	createBindGroups(level = 0){
+	createBindGroups(frame: number = 0){
 		// Create texture for quadtree bindGroupQuad
+		console.log(frame)
 		const bindGroupWrite = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.write,
 			entries: [
@@ -139,8 +141,11 @@ class VertexGen {
 					binding: 0,
 					resource: {
 						buffer: this.buffers.vertice,
-						offset: 0,
-						size: this.buffers.vertice.size,
+						// TODO adjust offset inside or outisde shader
+						// purpose is to fill the buffer with each new call
+						offset: 0, 
+						// size: this.buffers.vertice.size,
+						size: Math.pow(4, this.mipmapLevel),
 					}
 				},
 			],

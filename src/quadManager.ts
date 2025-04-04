@@ -39,15 +39,15 @@ class QuadManager {
 		this.genVertex = new VertexGen(this.device, this.textureSize, this.eval, this.quadTree, this.mipLevel);
 		// this.genVertex.pass(mipLevel);
 	}
-	pass(level){
+	pass(level, frame: number = 0){
 		this.target.pass(level)
-		this.genVertex.pass(level);
+		this.genVertex.pass(frame);
 		this.eval.pass(level);
 	}
-	iterate(level){
-		this.target.pass(level);
+	iterate(level, frame: number = 0){
+		// this.target.pass(level);
 		this.quadTree.pass(level);
-		this.genVertex.pass(level);
+		this.genVertex.pass(frame);
 		this.eval.pass(level);
 		
 	}
