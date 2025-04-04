@@ -228,8 +228,8 @@ class Render {
 		// passEncoder.drawIndexed(6, 1, 0, 4);
 		// passEncoder.drawIndexed(6, 1, 0, 8);
 		// passEncoder.drawIndexed(6, 1, 0, 8);
-		passEncoder.drawIndexed(6, 1, 0, 4*9);
-		passEncoder.drawIndexed(6, 1, 0, 4*10);
+		passEncoder.drawIndexed(6, 1, 0, 4*(this.mipLevel- mipLevel));
+		// passEncoder.drawIndexed(6, 1, 0, 4*10);
 		// passEncoder.drawIndexed(6, 1, 0, 4);
 		// passEncoder.drawIndexed(6, 1, 0, 4);
 		passEncoder.end();

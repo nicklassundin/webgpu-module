@@ -33,7 +33,7 @@ fn getTraversal(address: u32) -> Traversal {
 @fragment
 fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let pos = (fragCoord+1.0)/2.0;
-	return fragCoord;
+	//return fragCoord;
 	// TODO temporary	
 
 

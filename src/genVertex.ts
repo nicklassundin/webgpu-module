@@ -150,9 +150,7 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		// computePass.dispatchWorkgroups(4, 4);
 		computePass.dispatchWorkgroups(2, 2, this.mipmapLevel+1);
-		// computePass.dispatchWorkgroups(4, 4, this.mipmapLevel);
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
 	}
@@ -213,9 +211,9 @@ class VertexGen {
 				{
 					binding: 2,
 					resource: {
-						buffer: this.target.buffers.travBuffers[level],
+						buffer: this.target.buffers.travBuffers[1],
 						offset: 0,
-						size: this.target.buffers.travBuffers[level].size,
+						size: this.target.buffers.travBuffers[1].size,
 					},
 				},
 				{

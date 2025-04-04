@@ -240,7 +240,7 @@ async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	//
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
-	await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
+	// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
 	await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 4*4*0, 64*4*4*4);
 }
 await quadTreePass((x) => {quadManager.pass(x)});
