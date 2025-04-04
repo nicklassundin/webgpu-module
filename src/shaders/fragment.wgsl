@@ -1,9 +1,7 @@
 
 
-@group(0) @binding(0) var heatSampler: sampler;
-@group(0) @binding(1) var valueTexture: texture_2d<f32>;
-@group(0) @binding(2) var depthSampler: sampler;
-@group(0) @binding(3) var depthTexture: texture_depth_2d;
+@group(0) @binding(0) var depthSampler: sampler;
+@group(0) @binding(1) var depthTexture: texture_depth_2d;
 struct Uniforms {
 resolution: vec2<f32>,
 mipLevel: f32,
@@ -47,9 +45,6 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
 	let depth = textureSample(depthTexture, depthSampler, uv);
 	let nextDepth = fragCoord.z;
 
-	//let value_color = textureSample(valueTexture, heatSampler, uv);
-	//return value_color;
-	
 	// chess board pattern
 	let x = i32(floor(uv.x * 10));
 	let y = i32(floor(uv.y * 10));

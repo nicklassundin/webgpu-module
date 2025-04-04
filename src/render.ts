@@ -6,29 +6,14 @@ import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
 const BGL = {
 	entries: [
 		{
-			// Read 
 			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT,
-			sampler: {
-				type: 'filtering',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.FRAGMENT,
-			texture: {
-				sampleType: 'float',
-			},
-		},
-		{
-			binding: 2,
 			visibility: GPUShaderStage.FRAGMENT,
 			sampler: {
 				type: 'non-filtering',
 			},
 		},
 		{
-			binding: 3,
+			binding: 1,
 			visibility: GPUShaderStage.FRAGMENT,
 			texture: {
 				sampleType: 'depth',
@@ -61,12 +46,11 @@ const BGL_UNIFORM = {
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
 // Create bind group for uniform buffer
 class Render {
-	constructor(device: GPUDevice, context: GPUCanvasContext, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat, sampler, depthSampler, manager, mipLevel: number) { 
+	constructor(device: GPUDevice, context: GPUCanvasContext, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat, depthSampler, manager, mipLevel: number) { 
 		// Create binding group layout Used for mipmap and normal rendering
 		this.device = device;
 		this.context = context
 		this.canvas = canvas;
-		this.sampler = sampler;
 		this.depthSampler = depthSampler;
 		this.manager = manager;
 		this.quadTree = manager.quadTree; 
@@ -238,18 +222,10 @@ class Render {
 				entries: [
 					{
 						binding: 0,
-						resource: this.sampler,
-					},
-					{
-						binding: 1,
-						resource: this.eval.texture.createView(),
-					},
-					{
-						binding: 2,
 						resource: this.depthSampler,
 					},
 					{
-						binding: 3,
+						binding: 1,
 						resource: this.depthTextures[calls % this.frames].createView(),
 					},
 				],

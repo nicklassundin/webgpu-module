@@ -10,7 +10,12 @@ struct Traversal {
 	_pad5: vec4<f32>,
 };
 
-@group(0) @binding(0) var<storage, read_write> vertices: array<f32>;
+
+struct Vertex {
+	position: vec4<f32>,
+	values: vec4<f32>,
+};
+@group(0) @binding(0) var<storage, read_write> vertices: array<Vertex>;
 @group(0) @binding(1) var<storage, read_write> indices: array<u32>;
 
 @group(1) @binding(0) var<storage, read> selected: array<f32>;
@@ -44,12 +49,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	var y = f32(p_y+global_id.y) / grid;
 	y = y * 2.0 - 1.0;
 
-	let index = (global_id.x + global_id.y * 2)*SIZE + global_id.z*4*SIZE;
-	
-	vertices[index + 0] = x;
-	vertices[index + 1] = y;
-	vertices[index + 2] = f32(global_id.z) / uniforms.mipLevel;
-	vertices[index + 3] = 1.0;
+	let index = (global_id.x + global_id.y * 2) + global_id.z*4;
 
-	vertices[index + 4] = levelValues[global_id.z];
+	vertices[index].position = vec4<f32>(x, y, f32(global_id.z) / uniforms.mipLevel, 1.0);
+	vertices[index].values = vec4<f32>(levelValues[global_id.z], 0, 0, 0); 
 }

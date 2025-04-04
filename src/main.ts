@@ -121,12 +121,6 @@ device.queue.writeTexture(
 	{ bytesPerRow: textureSize * 4 },
 	[textureSize, textureSize, 1]
 );
-// sampler with mipmap enabled
-const sampler = device.createSampler({
-	magFilter: 'linear',
-	minFilter: 'linear',
-	mipmapFilter: 'linear',
-});
 // depth Sampler
 const depthSampler = device.createSampler({
 	compare: undefined,
@@ -146,7 +140,7 @@ quadManager.init(quadTree, mipLevel, DEFAULT_COORD);
 import Eval from "./eval";
 
 import Render from "./render";
-const render = new Render(device, context, canvas, presentationFormat, sampler, depthSampler, quadManager, mipLevel);
+const render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
 
 await device.queue.onSubmittedWorkDone();
 
@@ -293,7 +287,10 @@ async function frame() {
 	// await new Promise((resolve) => setTimeout(resolve, 3000));
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 
+	// wait for 0.5 second
+	await new Promise((resolve) => setTimeout(resolve, 250));
 	requestAnimationFrame(frame);
+
 }
 
 function resizeCanvas() {
