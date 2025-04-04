@@ -68,7 +68,7 @@ class QuadTreeTraversal {
 	results: GPUBuffer[];
 	constructor(device: GPUDevice, quadTree: QuadTree, mipLevel, uv: number[] = [0, 0]) {
 		this.device = device;
-		this.mipmapLevel = mipLevel;
+		this.mipLevel = mipLevel;
 		this.quadTree = quadTree;
 		let travBuffers: GPUBuffer[] = [];
 		for (let i = 0; i < mipLevel; i++) {
@@ -152,17 +152,17 @@ class QuadTreeTraversal {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.travBuffers[level % this.mipmapLevel],
+						buffer: this.buffers.travBuffers[level % this.mipLevel],
 						offset: 0,
-						size: this.buffers.travBuffers[level % this.mipmapLevel].size, 
+						size: this.buffers.travBuffers[level % this.mipLevel].size, 
 					},
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[(level+1) % this.mipmapLevel],
+						buffer: this.buffers.travBuffers[(level+1) % this.mipLevel],
 						offset: 0,
-						size: this.buffers.travBuffers[(level+1) % this.mipmapLevel].size,
+						size: this.buffers.travBuffers[(level+1) % this.mipLevel].size,
 					},
 				},
 				{
@@ -188,7 +188,7 @@ class QuadTreeTraversal {
 						offset: 0,
 						// TODO chould only access the current call
 						// offset: level * Float32Array.BYTES_PER_ELEMENT,
-						size: this.mipmapLevel * Float32Array.BYTES_PER_ELEMENT,
+						size: this.mipLevel * Float32Array.BYTES_PER_ELEMENT,
 					},
 				},
 			],

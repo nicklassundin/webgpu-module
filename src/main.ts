@@ -134,8 +134,8 @@ const quadTree = new QuadTree(device, quadTreeJson)
 
 
 import QuadManager from "./quadManager";
-const quadManager = new QuadManager(device, textureSize);
-quadManager.init(quadTree, mipLevel, DEFAULT_COORD);
+const quadManager = new QuadManager(device, textureSize, mipLevel, DEFAULT_COORD);
+quadManager.init(quadTree, DEFAULT_COORD);
 
 import Eval from "./eval";
 

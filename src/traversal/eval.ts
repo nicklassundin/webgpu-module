@@ -33,7 +33,6 @@ const QUADTREE_BGL = {
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
-						// type: 'storage',
 						type: 'read-only-storage',
 					}, 
 				},
@@ -70,13 +69,6 @@ class Eval {
 		this.device = device;
 		this.mipmapLevel = mipLevelCount;
 		this.target = quadTreeTravRef;
-		const frameTexture = device.createTexture({
-			size: [textureSize, textureSize, 1],
-			format: 'rgba8unorm',
-			usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
-			mipLevelCount: mipLevelCount,
-		});
-		this.texture = frameTexture;
 		let frames = 2;
 		
 		// 
