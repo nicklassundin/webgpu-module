@@ -21,7 +21,6 @@ struct Traversal {
 @group(0) @binding(0) var<storage, read_write> result: array<f32>;
 @group(0) @binding(1) var<storage, read_write> traversal: Traversal;
 
-
 @group(1) @binding(0) var<storage, read> selected: array<f32>;
 @group(1) @binding(1) var<storage, read> levelValues: array<f32>;
 

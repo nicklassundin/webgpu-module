@@ -1,5 +1,5 @@
-import Eval from './eval';
-import QuadTreeTraversal from './traversal';
+import Eval from './traversal/eval';
+import QuadTreeTraversal from './traversal/traversal';
 import VertexGen from './genVertex';
 
 class QuadManager {

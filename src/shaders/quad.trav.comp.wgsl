@@ -138,10 +138,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		return;
 	}
 	result[u32(trav.depth)] = values[address] / values[0];
-	//result[u32(trav.depth)] = trav.depth;
-	//result[u32(trav.depth)] = f32(address);
-	setTraversal(global_id.x, nextTrav);
-
-	//verticesFromBoundBox(boundBox, u32(trav.depth));
-
+	setTraversal(id, nextTrav);
 }
