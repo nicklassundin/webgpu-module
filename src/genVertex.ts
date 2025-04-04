@@ -73,13 +73,13 @@ class VertexGen {
 		    mipLevelCount: number = 11) {
 		this.device = device;
 		this.mipmapLevel = mipLevelCount;
-		this.mipmapLevel = 5
-		const grid = Math.pow(2, this.mipmapLevel);
+		this.mipmapLevel = 3
+		const grid = Math.pow(2, this.mipmapLevel) +1 ;
+		this.grid = grid;
 		this.target = targetEval;
 		// 
-		const frames = 2;
 		const vertice = device.createBuffer({
-			size: 4*4*Math.pow(grid, 2),
+			size: Math.pow(4, 8),
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
 		});
 		const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
@@ -87,7 +87,7 @@ class VertexGen {
 		// const indicesValues = new Uint32Array([0, 1, 10, 1, 9, 10]);
 		// const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
 		const indices = device.createBuffer({
-			size: 6*Math.pow((mipLevelCount + 2), 2)*4,
+			size: 6*Math.pow(mipLevelCount, 2)*4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
 		});
 		device.queue.writeBuffer(indices, 0, indicesValues.buffer);
@@ -130,22 +130,44 @@ class VertexGen {
 				entryPoint: 'main',
 			},
 		});
+
+		// this.indexPipeline = device.createComputePipeline({
+		// 	layout: pipelineLayout,
+		// 	compute: {
+		// 		module: device.createShaderModule({
+		// 			code: indexGenerateComputeShaderCode,
+		// 		}),
+		// 		entryPoint: 'main',
+		// 	},
+		// });
 		this.layout = pipelineLayout;
 
 	}
 	async pass(mipLevel){
+		await this.passIndex(mipLevel);
 		const device = this.device;
 		this.createBindGroups(mipLevel);
 		// generate vertex buffer
 		const commandEncoder = device.createCommandEncoder();
 		const computePass = commandEncoder.beginComputePass();
-		this.createBindGroups();
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		computePass.dispatchWorkgroups(this.mipmapLevel, this.mipmapLevel);
+		computePass.dispatchWorkgroups(this.grid, this.grid, 1);
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
+	}
+	async passIndex(mipLevel){
+		// const device = this.device;
+		// this.createBindGroups(mipLevel);
+		// const commandEncoder = device.createCommandEncoder();
+		// const computePass = commandEncoder.beginComputePass();
+		// computePass.setPipeline(this.indexPipeline);
+		// computePass.setBindGroup(0, this.bindGroups.write);
+		// computePass.setBindGroup(1, this.bindGroups.read);
+		// computePass.dispatchWorkgroups(this.mipmapLevel);
+		// computePass.end();
+		// await device.queue.submit([commandEncoder.finish()]);
 	}
 	createBindGroups(level = 0){
 		// Create texture for quadtree bindGroupQuad

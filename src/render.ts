@@ -170,9 +170,9 @@ class Render {
 				],
 			},
 			primitive: {
-				topology: 'triangle-list',
+				// topology: 'triangle-list',
 				// topology: 'point-list',
-				// topology: 'line-list',
+				topology: 'line-list',
 				cullMode: 'none',
 			},
 			depthStencil: {
@@ -211,8 +211,22 @@ class Render {
 		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertice);
 		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
 		// passEncoder.drawIndexed(6, 1, 6*1);
-		passEncoder.drawIndexed(6, 1, 0);
-		// passEncoder.draw(6*this.mipLevel);
+		const maxLevel = this.mipLevel;
+		// const maxLevel = 3;
+
+		const grid = Math.pow(2, this.mipLevel);
+		for (let i = 0; i < grid; i++) {
+			for (let j = 0; j <= grid; j++) {
+				if(((i)+8*(j+1)-j+1) % grid == 0 && (j) != 0){
+					console.log((i+8*j) % grid + j)
+				}else{
+					passEncoder.drawIndexed(6, 1, 0, i + grid * j)
+				}
+			}
+		}
+		// passEncoder.drawIndexed(6, 1, 0, 0);
+		// passEncoder.drawIndexed(6, 1, 0, 1);
+		// passEncoder.drawIndexed(6, 1, 0, 2);
 		passEncoder.end();
 
 		this.device.queue.submit([commandEncoder.finish()]);

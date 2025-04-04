@@ -21,18 +21,27 @@ mipLevel: f32,
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	let mipLevel = uniforms.mipLevel - f32(global_id.z);
-	let grid: f32 = pow(2.0, mipLevel);
-	var x = f32(global_id.x) / grid;
-	x = x * 2.0 - 1.0;
-	var y = f32(global_id.y) / grid;
-	y = y * 2.0 - 1.0;
-
-
-	let index = (global_id.x + global_id.y * u32(grid+1))*4;
+	let id = global_id.x;
+	let mipLevel = uniforms.mipLevel;
+	let grid: u32 = u32(pow(2, mipLevel));
 	
-	vertices[index + 0] = x;
-	vertices[index + 1] = y;
-	vertices[index + 2] = 0.0;
-	vertices[index + 3] = 1.0;
+	let index = u32(id)*6;
+	let i = 0u*6;
+	let offset: u32 = u32(grid-id);
+/*
+	indices[index] = 0;
+	indices[index + 1] = id+1;
+	indices[index + 2] = grid;
+	
+	indices[index + 3] = id+1;
+	indices[index + 4] = grid+1;
+	indices[index + 5] = grid;
+*/
+	indices[index] = 0;
+	indices[index + 1] = grid*(id+1);
+	indices[index + 2] = grid*(id+1)+1;
+
+	indices[index + 4] = 1;
+	indices[index + 5] = grid*(id+1)+1;
+	indices[index + 6] = grid;
 }

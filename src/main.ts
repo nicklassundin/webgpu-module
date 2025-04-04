@@ -78,7 +78,11 @@ vertexBuffer.unmap();
 // load image
 // Load Textures
 const image = await loadImageBitmap(textureList[0]);
-const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
+
+
+// TODO fix so mipLevel trasfers into structure
+// const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height))) + 1;
+const mipLevel = 3;
 const textureSize = image.width; // Assume square texture 
 // Create texture with mipmap levels
 const textureMipmap = device.createTexture({
@@ -195,7 +199,7 @@ const params = new Params(DEFAULT_COORD);
 const gui = new GUI();
 {
 	const folder = gui.addFolder("Mipmap");
-	folder.add({ value: 11}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
+	folder.add({ value: mipLevel}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
 		const resolution = new Float32Array([canvas.width,
 						    canvas.height,
 		value]);
@@ -235,8 +239,9 @@ async function quadTreePass(f = (x) => {quadManager.iterate(x)}) {
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[1], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	//
-	await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
-	await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
+	// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
+	await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 4*4*0, 64*4*4*4);
 }
 await quadTreePass((x) => {quadManager.pass(x)});
 
@@ -255,7 +260,7 @@ await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 let calls = 0;
 async function frame() {
-	if (current_mipLevel == mipLevel && frameCount < 60*11) {
+	if (current_mipLevel == mipLevel && frameCount < 60*mipLevel) {
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
 		if (params.change && firstClick) {
