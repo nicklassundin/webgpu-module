@@ -255,6 +255,7 @@ async function frame() {
 		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
 		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
 		// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+		// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 40);
 		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
 		requestAnimationFrame(frame);
 		return;
@@ -279,6 +280,9 @@ async function frame() {
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
 	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadTree.buffers.nodes, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 40);
 	
 	render.pass(frameCount, current_mipLevel);
 	current_mipLevel++;

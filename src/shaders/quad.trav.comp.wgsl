@@ -1,21 +1,8 @@
 
 struct Node {
 	valueAddress: f32, 
-	offset: f32,
-	size: f32,
 	children: vec4<f32>,	
 	quad: f32,
-};
-
-fn getNode(address: u32) -> Node {
-	let index = address*8;
-	var node: Node;
-	node.valueAddress = nodes[index];
-	node.offset = nodes[index + 1];
-	node.size = nodes[index + 2];
-	node.children = vec4<f32>(nodes[index + 3], nodes[index + 4], nodes[index + 5], nodes[index + 6]);
-	node.quad = nodes[index + 7];
-	return node;
 };
 
 
@@ -68,15 +55,13 @@ fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
 @group(0) @binding(0) var<storage, read> traversal: array<Traversal>;
 @group(0) @binding(1) var<storage, read_write> nTrav: array<Traversal>;
 @group(0) @binding(2) var<storage, read_write> values: array<f32>;
-@group(0) @binding(3) var<storage, read_write> nodes: array<f32>;
+@group(0) @binding(3) var<storage, read_write> nodes: array<Node>;
 
 @group(0) @binding(4) var<storage, read_write> result: array<f32>;
 
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	//let id = global_id.x;
-	// TODO : use offset value in future instead of global_id.x;
 	let id = global_id.x; 
 	var trav = traversal[id]; 
 	trav.depth = f32(id);
@@ -91,7 +76,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		return;
 	}
 
-	let node = getNode(address);
+	let node = nodes[address]; 
 	var boundBox = trav.boundBox;
 	if (values[address] == 0.0) {
 		nextTrav.address = f32(address);
@@ -100,7 +85,16 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	}
 	let quad = getQuadIndex(trav.coord.xy, boundBox);
 
-	let child = node.children[quad];
+	var child = 0.0;
+	if (u32(nodes[u32(node.children[0u])].quad) == quad) {
+		child = node.children[0u];
+	} else if (u32(nodes[u32(node.children[1u])].quad) == quad) {
+		child = node.children[1u];
+	} else if (u32(nodes[u32(node.children[2u])].quad) == quad) {
+		child = node.children[2u];
+	} else if (u32(nodes[u32(node.children[3u])].quad) == quad) {
+		child = node.children[3u];
+	}
 
 	nextTrav.boundBox = getBoundBox(trav.coord.xy, boundBox);
 	nextTrav.address = child;
