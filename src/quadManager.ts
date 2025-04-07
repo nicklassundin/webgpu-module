@@ -49,7 +49,12 @@ class QuadManager {
 		this.quadTree.pass(level);
 		this.genVertex.pass(frame);
 		this.eval.pass(level);
-		
+	}
+	unmap(){
+		this.quadTree.unmap();
+		this.eval.unmap();
+		this.genVertex.unmap();
+		this.target.unmap();
 	}
 }
 export default QuadManager;

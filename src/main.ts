@@ -213,12 +213,12 @@ async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
 		f(i, frame);
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 32, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// console.log("Level 1")
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
@@ -249,6 +249,7 @@ await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 let calls = 0;
 async function frame() {
+
 	if (current_mipLevel == mipLevel) {
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
@@ -316,25 +317,19 @@ var firstClick = true;
 canvas.addEventListener('click', async (event) => {
 	firstClick = true;
 	const rect = canvas.getBoundingClientRect();
-	const x = event.clientX - rect.left;
-	const y = event.clientY - rect.top;
+	const x = (event.clientX - rect.left);
+	const y = (event.clientY - rect.top);
 	const uv = [x / canvas.width, y / canvas.height];
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
-	params.updateTravelValues(uv);
+	params.updateTravelValues([2*uv[0]-1, 2*uv[1]-1]);
 	// await updateTravBufferCoord(uv);
 });
 
 // On close unbind buffers
 window.addEventListener('beforeunload', async () => {
 	await device.queue.onSubmittedWorkDone();
-	for (let i = 0; i < mipLevel; i++) {
-		quadManager.quadTree.buffers.travBuffers[i].unmap();
-	}
-	quadManager.quadTree.buffers.valuesBuffer.unmap();
-	quadManager.quadTree.buffers.nodesBuffer.unmap();
-	quadManager.quadTree.result.unmap();
-	quadManger.eval.texture.unmap();
+	quadManager.unmap();
 });
 

@@ -196,5 +196,12 @@ class QuadTreeTraversal {
 			}),
 		}
 	}
+	unmap(){
+		this.buffers.travBuffers.forEach((buffer: GPUBuffer) => {
+			buffer.unmap();
+		})
+		// this.buffers.valuesBuffer.unmap();
+		// this.buffers.nodesBuffer.unmap();
+	}
 }
 export default QuadTreeTraversal;

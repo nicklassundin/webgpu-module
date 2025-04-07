@@ -5,8 +5,6 @@ struct Node {
 	quad: f32,
 };
 
-
-
 struct Traversal {
 	depth: f32,
 	address: f32,

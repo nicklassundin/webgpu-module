@@ -185,5 +185,15 @@ class Eval {
 			quadTree: bindGroupQuadTree,
 		}
 	}
+	unmap(){
+		this.buffers.result.forEach(buffer => {
+			buffer.unmap();
+		});
+		this.buffers.travBuffers.forEach(buffer => {
+			buffer.unmap();
+		});
+		this.target.unmap();
+		this.device.queue.onSubmittedWorkDone();
+	}
 }
 export default Eval;
