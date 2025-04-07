@@ -161,24 +161,19 @@ class Params {
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffers) {
 	const mipLevel = travBuffers.length; 
 
-	const allValues = new Float32Array([
-		0, // Mip Level 
-		0, 0, 1, 1, // bound box 
-		uv[0], uv[1], // target coordinates
-		0]); // addressArrayBuffer
 
-		for (let i = 0; i < mipLevel; i++) {
-			const values = new Float32Array([i, 0, 0, 1, 1, uv[0], uv[1], 0]);
-			const stagingBuffer = device.createBuffer({
-				size: values.byteLength,
-				usage: GPUBufferUsage.COPY_SRC,
-				mappedAtCreation: true
-			});
-			const arrayBuffer = stagingBuffer.getMappedRange();
-			(new Float32Array(arrayBuffer)).set(values);
-			commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffers[i], 0, values.byteLength);
-			stagingBuffer.unmap();
-		}
+	for (let i = 0; i < mipLevel; i++) {
+		const values = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
+		const stagingBuffer = device.createBuffer({
+			size: values.byteLength,
+			usage: GPUBufferUsage.COPY_SRC,
+			mappedAtCreation: true
+		});
+		const arrayBuffer = stagingBuffer.getMappedRange();
+		(new Float32Array(arrayBuffer)).set(values);
+		commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffers[i], 0, values.byteLength);
+		stagingBuffer.unmap();
+	}
 }
 
 
@@ -223,7 +218,7 @@ async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 32, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// console.log("Level 1")
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
+	await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);

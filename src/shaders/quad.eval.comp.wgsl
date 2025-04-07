@@ -9,17 +9,13 @@ struct Node {
 
 struct Traversal {
 	depth: f32,
-	_pad: vec3<f32>,
-	boundBox: vec4<f32>,
-	coord: vec4<f32>,
 	address: f32,
-	_pad2: vec3<f32>,
-	_pad4: vec4<f32>,
-	_pad5: vec4<f32>,
+	coord: vec2<f32>,
+	boundBox: vec4<f32>,
 };
 
 @group(0) @binding(0) var<storage, read_write> result: array<f32>;
-@group(0) @binding(1) var<storage, read_write> traversal: Traversal;
+@group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
 
 @group(1) @binding(0) var<storage, read> selected: array<f32>;
 @group(1) @binding(1) var<storage, read> levelValues: array<f32>;
@@ -27,7 +23,8 @@ struct Traversal {
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	let index = u32(traversal.depth);
+	let index = global_id.x;
+	//let index = u32(traversal.depth);
 		
 	result[index] = abs(selected[index] - levelValues[index]);
 	//result[index] = index;
