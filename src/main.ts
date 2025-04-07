@@ -247,11 +247,11 @@ await device.queue.onSubmittedWorkDone();
 // await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 async function frame() {
-	if (params.change) {
+	if (params.change && firstClick) {
+		console.log('click')
 		frameCount = 0;
 		current_mipLevel = 0;
 
-		console.log('click')
 		quadManager.unmap();
 		quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
 		quadManager.init(quadTree, params.travelValues);
@@ -270,7 +270,22 @@ async function frame() {
 		await device.queue.submit([commandBufferArg]);
 		await device.queue.onSubmittedWorkDone();
 		params.change = false;
-		await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+		firstClick = false;
+		// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+	}else if (current_mipLevel == mipLevel){
+		current_mipLevel = 0;
+		const commandEncoderArg = device.createCommandEncoder();
+		let randCoord = [2*Math.random()-1, 2*Math.random()-1];
+		params.updateTravelValues(randCoord);
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+		const commandBufferArg = commandEncoderArg.finish();
+		device.queue.submit([commandBufferArg]);
+		for (let i = 0; i < mipLevel; i++) {
+			quadManager.target.pass(i)
+			quadManager.quadTree.pass(i);
+			quadManager.genVertex.pass(frameCount);
+			quadManager.eval.pass(i);
+		}
 	}
 	// if (current_mipLevel == mipLevel) {
 	// 	current_mipLevel = 0;
@@ -304,7 +319,7 @@ async function frame() {
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 
 	// wait for 0.5 second
-	await new Promise((resolve) => setTimeout(resolve, 250));
+	await new Promise((resolve) => setTimeout(resolve, 150));
 	requestAnimationFrame(frame);
 
 }
@@ -335,7 +350,7 @@ async function loadImageBitmap(url: string) {
 
 }
 // listen and find uv coordinates of mouse on click
-var firstClick = true;
+var firstClick = false;
 canvas.addEventListener('click', async (event) => {
 	firstClick = true;
 	const rect = canvas.getBoundingClientRect();
