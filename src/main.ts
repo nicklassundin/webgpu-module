@@ -208,10 +208,6 @@ const gui = new GUI();
 let frameCount = 0;
 let lastFrameTime = Date.now()
 // QuadTree compute pass
-async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
-	for (let i = 0; i < mipLevel; i++) {
-		f(i, frame);
-	}
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 0, 32);
@@ -230,8 +226,6 @@ async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
 	// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 3*6*4*0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 4*4*0, 64*4*4*4);
-}
-await quadTreePass(0, (x) => {quadManager.pass(x)});
 
 const commandEncoderArg = device.createCommandEncoder();
 // updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
@@ -287,25 +281,11 @@ async function frame() {
 			quadManager.eval.pass(i);
 		}
 	}
-	// if (current_mipLevel == mipLevel) {
-	// 	current_mipLevel = 0;
-	// 	const commandEncoderArg = device.createCommandEncoder();
-	// 	if (params.change && firstClick) {
-	// 		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
-	// 		firstClick = false;
-	// 	}else{
-	// 		// let randCoord = [2*Math.random()-1, 2*Math.random()-1];
-	// 		// params.updateTravelValues(randCoord);
-	// 		// updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
-	// 	}
-	// 	const commandBufferArg = commandEncoderArg.finish();
-	// 	device.queue.submit([commandBufferArg]);
-	// 	params.change = false;
-	// 	calls++;
-	// 	await device.queue.onSubmittedWorkDone();
-	// 	quadTreePass(frameCount)
-	// }
-
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.nodesBuffer, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
 	// Render pass
 	// if (lastFrameTime < Date.now()){
 	if (current_mipLevel < mipLevel){ 
