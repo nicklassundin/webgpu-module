@@ -155,9 +155,9 @@ class VertexGen {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.target.buffers.level,
+						buffer: this.target.buffers.path,
 						offset: 0,
-						size: this.target.buffers.level.size,
+						size: this.target.buffers.path.size,
 					},
 				},
 				{

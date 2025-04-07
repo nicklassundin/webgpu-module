@@ -82,8 +82,9 @@ class Eval {
 		}
 
 		this.buffers = {
-			level: quadTreeTrav.result,
+			path: quadTreeTrav.result,
 			travBuffers: quadTreeTrav.buffers.travBuffers,
+			values: quadTreeTrav.buffers.valuesBuffer,
 			result,
 		}
 		
@@ -146,9 +147,9 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[(level) % this.mipmapLevel],
+						buffer: this.buffers.values,
 						offset: 0,
-						size: this.buffers.travBuffers[(level) % this.mipmapLevel].size,
+						size: this.buffers.values.size,
 					}
 				}
 			],
@@ -159,9 +160,9 @@ class Eval {
 				{
 					binding: 0,	
 					resource: {
-						buffer: this.buffers.level,
+						buffer: this.buffers.path,
 						offset: 0,
-						size: this.buffers.level.size
+						size: this.buffers.path.size
 					},
 				},
 				{

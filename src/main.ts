@@ -134,13 +134,13 @@ const quadTree = new QuadTree(device, quadTreeJson)
 
 
 import QuadManager from "./quadManager";
-const quadManager = new QuadManager(device, textureSize, mipLevel, DEFAULT_COORD);
+let quadManager = new QuadManager(device, textureSize, mipLevel, DEFAULT_COORD);
 quadManager.init(quadTree, DEFAULT_COORD);
 
 import Eval from "./eval";
 
 import Render from "./render";
-const render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
+let render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
 
 await device.queue.onSubmittedWorkDone();
 
@@ -213,13 +213,12 @@ async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
 		f(i, frame);
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 32, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// console.log("Level 1")
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
-	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// console.log("Level 2")
@@ -247,27 +246,50 @@ await device.queue.onSubmittedWorkDone();
 // device.queue.submit([commandBuffer]);
 // await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
-let calls = 0;
 async function frame() {
-
-	if (current_mipLevel == mipLevel) {
+	if (params.change) {
+		frameCount = 0;
 		current_mipLevel = 0;
-		const commandEncoderArg = device.createCommandEncoder();
-		if (params.change && firstClick) {
-			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
-			firstClick = false;
-		}else{
-			let randCoord = [2*Math.random()-1, 2*Math.random()-1];
-			params.updateTravelValues(randCoord);
-			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+
+		console.log('click')
+		quadManager.unmap();
+		quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
+		quadManager.init(quadTree, params.travelValues);
+		render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
+		for (let i = 0; i < mipLevel; i++) {
+			quadManager.target.pass(i)
+			quadManager.quadTree.pass(i);
+			quadManager.genVertex.pass(frameCount);
+			quadManager.eval.pass(i);
 		}
+
+		const commandEncoderArg = device.createCommandEncoder();
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
 		const commandBufferArg = commandEncoderArg.finish();
-		device.queue.submit([commandBufferArg]);
-		params.change = false;
-		calls++;
+		await device.queue.submit([commandBufferArg]);
 		await device.queue.onSubmittedWorkDone();
-		quadTreePass(frameCount)
+		params.change = false;
+		await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	}
+	// if (current_mipLevel == mipLevel) {
+	// 	current_mipLevel = 0;
+	// 	const commandEncoderArg = device.createCommandEncoder();
+	// 	if (params.change && firstClick) {
+	// 		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
+	// 		firstClick = false;
+	// 	}else{
+	// 		// let randCoord = [2*Math.random()-1, 2*Math.random()-1];
+	// 		// params.updateTravelValues(randCoord);
+	// 		// updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+	// 	}
+	// 	const commandBufferArg = commandEncoderArg.finish();
+	// 	device.queue.submit([commandBufferArg]);
+	// 	params.change = false;
+	// 	calls++;
+	// 	await device.queue.onSubmittedWorkDone();
+	// 	quadTreePass(frameCount)
+	// }
 
 	// Render pass
 	// if (lastFrameTime < Date.now()){
@@ -282,7 +304,7 @@ async function frame() {
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 
 	// wait for 0.5 second
-	// await new Promise((resolve) => setTimeout(resolve, 250));
+	await new Promise((resolve) => setTimeout(resolve, 250));
 	requestAnimationFrame(frame);
 
 }
@@ -323,7 +345,7 @@ canvas.addEventListener('click', async (event) => {
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
-	params.updateTravelValues([2*uv[0]-1, 2*uv[1]-1]);
+	params.updateTravelValues([2*uv[0]-1, 1-2*uv[1]]);
 	// await updateTravBufferCoord(uv);
 });
 

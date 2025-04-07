@@ -59,15 +59,13 @@ fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
 @group(0) @binding(4) var<storage, read_write> result: array<f32>;
 
 
-@compute @workgroup_size(1)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	//let id = global_id.x;
-	// TODO : use offset value in future instead of global_id.x;
-	let id = global_id.x; 
+@compute @workgroup_size(4,4)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
+@builtin(local_invocation_id) local_id: vec3<u32>) {
+	let id = local_id.x + local_id.y * 4u;
 	var trav = traversal[id]; 
-	var nextTrav = traversal[id];
+	trav.depth = f32(id);
 	nTrav[id] = trav;
-	nTrav[id].depth = f32(id);
 
 	let address = u32(trav.address);
 	
@@ -78,19 +76,27 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let node = nodes[address];
 	var boundBox = trav.boundBox;
 	if (values[address] == 0.0) {
-		nextTrav.address = f32(address);
-		nextTrav.boundBox = boundBox; 
 		return;
 	}
 	let quad = getQuadIndex(trav.coord.xy, boundBox);
-
-	let child = node.children[quad];
-
-	nextTrav.boundBox = getBoundBox(trav.coord.xy, boundBox);
+	var child = -1.0;
+	if (u32(nodes[u32(node.children[0u])].quad) == quad){
+		child = node.children[0u];
+	} else if (u32(nodes[u32(node.children[1u])].quad) == quad){
+		child = node.children[1u];
+	} else if (u32(nodes[u32(node.children[2u])].quad) == quad){
+		child = node.children[2u];
+	} else if (u32(nodes[u32(node.children[3u])].quad) == quad){
+		child = node.children[3u];
+	}
+	var nextTrav = trav;
 	nextTrav.address = child;
+
+	trav.boundBox = getBoundBox(trav.coord.xy, boundBox);
+	trav.address = child;
 	if child == 0.0 {
-		nextTrav.address = 0.0;
-		nTrav[id + 1] = nextTrav;
+		trav.address = 0.0;
+		nTrav[id + 1] = trav;
 		return;
 	}
 	result[u32(trav.depth)] = values[address] / values[0];

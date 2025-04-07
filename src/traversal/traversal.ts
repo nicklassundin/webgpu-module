@@ -71,10 +71,10 @@ class QuadTreeTraversal {
 		this.mipLevel = mipLevel;
 		this.quadTree = quadTree;
 		let travBuffers: GPUBuffer[] = [];
+		const travVal = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
 		for (let i = 0; i < mipLevel; i++) {
-			const travVal = new Float32Array([i, 0, uv[0], uv[1], 0, 0, 1, 1]);
 			const buffer = device.createBuffer({
-				size: Float32Array.BYTES_PER_ELEMENT * 64, 
+				size: travVal.byteLength*Math.pow(4, mipLevel),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			});
 			device.queue.writeBuffer(buffer, 0, travVal, 0);
@@ -104,7 +104,7 @@ class QuadTreeTraversal {
 		// console.log(travValues.byteLength)
 		// console.log(values.byteLength)
 		// console.log(nodes.byteLength)
-		console.log(resultArray.byteLength)
+		// console.log(resultArray.byteLength)
 		// create bindGroup for quadTree
 		const bindGroupQuadTree = this.createBindGroup();
 		// Create pipeline layout for quadTree
@@ -141,7 +141,8 @@ class QuadTreeTraversal {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroup.quadTree);
 		// computePass.dispatchWorkgroups(1);
-		computePass.dispatchWorkgroups(mipLevel+1);
+		// computePass.dispatchWorkgroups(mipLevel+1);
+		computePass.dispatchWorkgroups(this.mipLevel);
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
 	}
@@ -153,17 +154,17 @@ class QuadTreeTraversal {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.travBuffers[level % this.mipLevel],
+						buffer: this.buffers.travBuffers[(level + 1)% this.mipLevel],
 						offset: 0,
-						size: this.buffers.travBuffers[level % this.mipLevel].size, 
+						size: this.buffers.travBuffers[(level + 1)% this.mipLevel].size, 
 					},
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[(level+1) % this.mipLevel],
+						buffer: this.buffers.travBuffers[(level+2) % this.mipLevel],
 						offset: 0,
-						size: this.buffers.travBuffers[(level+1) % this.mipLevel].size,
+						size: this.buffers.travBuffers[(level+2) % this.mipLevel].size,
 					},
 				},
 				{
