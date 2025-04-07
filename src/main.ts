@@ -134,13 +134,13 @@ const quadTree = new QuadTree(device, quadTreeJson)
 
 
 import QuadManager from "./quadManager";
-const quadManager = new QuadManager(device, textureSize, mipLevel, DEFAULT_COORD);
+let quadManager = new QuadManager(device, textureSize, mipLevel);
 quadManager.init(quadTree, DEFAULT_COORD);
 
 import Eval from "./eval";
 
 import Render from "./render";
-const render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
+let render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
 
 await device.queue.onSubmittedWorkDone();
 
@@ -153,7 +153,7 @@ class Params {
 	}
 	updateTravelValues(travelValues: number[]) {
 		this.change = true;
-		this.travelValues = travelValues;
+		this.travelValues = [2*travelValues[0] - 1, 2*travelValues[1] - 1];
 	}
 }
 
@@ -203,7 +203,6 @@ const gui = new GUI();
 	folder.open();
 }
 
-
 // Main loop
 let frameCount = 0;
 let lastFrameTime = Date.now()
@@ -218,7 +217,7 @@ async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.vertexBuffer, 32, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// console.log("Level 1")
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
@@ -235,53 +234,58 @@ async function quadTreePass(frame, f = (x, y) => {quadManager.iterate(x, y)}) {
 await quadTreePass(0, (x) => {quadManager.pass(x)});
 
 const commandEncoderArg = device.createCommandEncoder();
-// updateTravBufferCoord([0.6, 0.4], commandEncoderArg);
 const commandBufferArg = commandEncoderArg.finish();
 await device.queue.submit([commandBufferArg]);
 await device.queue.onSubmittedWorkDone();
 
 
-// const commandEncoder = device.createCommandEncoder();
-// updateTravBufferCoord([0.6, 0.4], commandEncoder);
-// const commandBuffer = commandEncoder.finish();
-// device.queue.submit([commandBuffer]);
-// await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
-let calls = 0;
+let click = false;
 async function frame() {
-	if (current_mipLevel == mipLevel) {
+	const commandEncoderArg = device.createCommandEncoder();
+	if(click){
 		current_mipLevel = 0;
-		const commandEncoderArg = device.createCommandEncoder();
-		if (params.change && firstClick) {
-			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
-			firstClick = false;
-		}else{
-			let randCoord = [2*Math.random()-1, 2*Math.random()-1];
-			params.updateTravelValues(randCoord);
-			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+		frameCount = 0;
+		quadManager.reset();
+		quadManager = new QuadManager(device, textureSize, mipLevel);
+		quadManager.init(quadTree, params.travelValues);
+		render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
+		click = false;
+		await device.queue.onSubmittedWorkDone();
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.target.buffers.travBuffers);
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+		// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 64);
+		requestAnimationFrame(frame);
+		return;
+	}
+	if (params.change){
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+		params.change = false;
+		for (let i = 0; i < mipLevel; i++) {
+			quadManager.target.pass(current_mipLevel);
+			quadManager.quadTree.pass(current_mipLevel);
+			quadManager.eval.pass(current_mipLevel);
+			quadManager.genVertex.pass(frameCount);
 		}
+	}else{
+		let randCoord = [Math.random(), Math.random()];
+		params.updateTravelValues(randCoord);
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
 		const commandBufferArg = commandEncoderArg.finish();
 		device.queue.submit([commandBufferArg]);
-		params.change = false;
-		calls++;
-		await device.queue.onSubmittedWorkDone();
-		quadTreePass(frameCount)
+		requestAnimationFrame(frame);
+		return;
 	}
-
-	// Render pass
-	// if (lastFrameTime < Date.now()){
-	if (current_mipLevel < mipLevel){ 
-		// console.log(frameCount, current_mipLevel)
-		render.pass(frameCount, current_mipLevel);
-		current_mipLevel++;
-	}
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	
+	render.pass(frameCount, current_mipLevel);
+	current_mipLevel++;
 	frameCount++;
 
-	// await new Promise((resolve) => setTimeout(resolve, 3000));
-	// await new Promise((resolve) => setTimeout(resolve, 300));
-
 	// wait for 0.5 second
-	// await new Promise((resolve) => setTimeout(resolve, 250));
+	await new Promise((resolve) => setTimeout(resolve, 250));
 	requestAnimationFrame(frame);
 
 }
@@ -312,29 +316,23 @@ async function loadImageBitmap(url: string) {
 
 }
 // listen and find uv coordinates of mouse on click
-var firstClick = true;
 canvas.addEventListener('click', async (event) => {
-	firstClick = true;
 	const rect = canvas.getBoundingClientRect();
 	const x = event.clientX - rect.left;
-	const y = event.clientY - rect.top;
+	const y = event.clientY - rect.top
 	const uv = [x / canvas.width, y / canvas.height];
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
 	params.updateTravelValues(uv);
-	// await updateTravBufferCoord(uv);
+	click = true;
 });
 
 // On close unbind buffers
 window.addEventListener('beforeunload', async () => {
 	await device.queue.onSubmittedWorkDone();
-	for (let i = 0; i < mipLevel; i++) {
-		quadManager.quadTree.buffers.travBuffers[i].unmap();
-	}
-	quadManager.quadTree.buffers.valuesBuffer.unmap();
-	quadManager.quadTree.buffers.nodesBuffer.unmap();
-	quadManager.quadTree.result.unmap();
-	quadManger.eval.texture.unmap();
+	quadManager.unmap();
+	render.unmap();
 });
+
 

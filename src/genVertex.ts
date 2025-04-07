@@ -133,7 +133,6 @@ class VertexGen {
 	}
 	createBindGroups(frame: number = 0){
 		// Create texture for quadtree bindGroupQuad
-		console.log(frame)
 		const bindGroupWrite = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.write,
 			entries: [
@@ -164,9 +163,9 @@ class VertexGen {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.target.buffers.travBuffers[1],
+						buffer: this.target.buffers.travBuffers[(frame) % this.target.buffers.travBuffers.length],
 						offset: 0,
-						size: this.target.buffers.travBuffers[1].size,
+						size: this.target.buffers.travBuffers[0].size,
 					},
 				},
 				{
@@ -183,6 +182,9 @@ class VertexGen {
 			write: bindGroupWrite, 
 			read: bindGroudRead, 
 		}
+	}
+	unmap(){
+		this.buffers.uniform.unmap();
 	}
 }
 export default VertexGen;

@@ -79,12 +79,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	// TODO : use offset value in future instead of global_id.x;
 	let id = global_id.x; 
 	var trav = traversal[id]; 
-	var nextTrav = traversal[id];
+	trav.depth = f32(id);
+	var nextTrav = trav; 
 	nTrav[id] = trav;
 	nTrav[id].depth = f32(id);
 
 	let address = u32(trav.address);
 	
+	// Spacial case wher no address aka no value
 	if(address == 0u && trav.depth != 0.0){
 		return;
 	}

@@ -146,9 +146,9 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[(level) % this.mipmapLevel],
+						buffer: this.buffers.travBuffers[(level) % 2],
 						offset: 0,
-						size: this.buffers.travBuffers[(level) % this.mipmapLevel].size,
+						size: this.buffers.travBuffers[(level) % 2].size,
 					}
 				}
 			],
@@ -184,6 +184,17 @@ class Eval {
 			texture: bindGroupQuadTreeTexture,
 			quadTree: bindGroupQuadTree,
 		}
+	}
+	unmap(){
+		this.device.queue.onSubmittedWorkDone();
+		this.buffers.travBuffers.forEach((buffer) => {
+			buffer.unmap();
+		});
+		this.result.forEach((buffer) => {
+			buffer.unmap();
+		});
+		this.target.unmap();
+		this.device.queue.onSubmittedWorkDone();
 	}
 }
 export default Eval;

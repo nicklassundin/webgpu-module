@@ -194,9 +194,7 @@ class Render {
 
 		this.device.queue.submit([commandEncoder.finish()]);
 	}
-	createBindGroups(calls = 0, mipLevel = 0) {
-		// console.log('mipLevel', mipLevel)
-		// console.log('travBuffer size', this.quadTree.buffers.travBuffers.length)
+	createBindGroups(call = 0) {
 		this.bindGroups = {
 			traversal: this.device.createBindGroup({
 				layout: this.bindGroupLayouts.traversal,
@@ -207,7 +205,7 @@ class Render {
 					},
 					{
 						binding: 1,
-						resource: this.depthTextures[calls % this.frames].createView(),
+						resource: this.depthTextures[call % this.frames].createView(),
 					},
 				],
 			}),
@@ -225,6 +223,12 @@ class Render {
 				],
 			}),
 		}
+	}
+	unmap() {
+		this.manager.quadTree.unmap();
+		this.manager.eval.unmap();
+		this.manager.genVertex.unmap();
+		this.device.queue.writeBuffer(this.buffers.uniform, 0, new Float32Array([this.canvas.width, this.canvas.height, this.mipLevel]).buffer);
 	}
 }
 export default Render;

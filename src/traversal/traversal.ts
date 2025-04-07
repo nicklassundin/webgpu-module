@@ -74,7 +74,7 @@ class QuadTreeTraversal {
 		for (let i = 0; i < mipLevel; i++) {
 			const travVal = new Float32Array([i, 0, uv[0], uv[1], 0, 0, 1, 1]);
 			const buffer = device.createBuffer({
-				size: Float32Array.BYTES_PER_ELEMENT * 64, 
+				size: 4*3*Float32Array.BYTES_PER_ELEMENT*Math.pow(4, mipLevel), 
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			});
 			device.queue.writeBuffer(buffer, 0, travVal, 0);
@@ -140,8 +140,8 @@ class QuadTreeTraversal {
 
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroup.quadTree);
-		// computePass.dispatchWorkgroups(1);
-		computePass.dispatchWorkgroups(mipLevel+1);
+		// computePass.dispatchWorkgroups(1)
+		computePass.dispatchWorkgroups(mipLevel);
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
 	}
@@ -195,6 +195,13 @@ class QuadTreeTraversal {
 			],
 			}),
 		}
+	}
+	unmap(){
+		this.device.queue.onSubmittedWorkDone();
+		this.buffers.travBuffers.forEach((buffer) => {
+			buffer.unmap();
+		});
+		this.result.unmap();
 	}
 }
 export default QuadTreeTraversal;
