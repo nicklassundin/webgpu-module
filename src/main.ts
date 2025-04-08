@@ -158,10 +158,11 @@ class Params {
 }
 
 
+let nUpdates = 0;
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffers) {
 	const mipLevel = travBuffers.length; 
 
-
+	nUpdates++;
 	for (let i = 0; i < mipLevel; i++) {
 		const values = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
 		const stagingBuffer = device.createBuffer({
@@ -282,7 +283,8 @@ async function frame() {
 		}
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[1], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.nodesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
