@@ -19,6 +19,8 @@ struct Traversal {
 	address: f32,
 	coord: vec2<f32>,
 	boundBox: vec4<f32>,
+	calls: u32,
+	_pad: vec3<u32>,
 };
 
 // function to get quad index from cordinates and boundbox
@@ -76,6 +78,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	//let id = global_id.x;
 	var trav = traversal[id]; 
 	trav.depth = f32(id);
+	
+	if(trav.coord.x != nTrav[id].coord.x && trav.coord.y != nTrav[id].coord.y){
+		trav.calls = trav.calls + 1u;
+	}
+
 	nTrav[id] = trav;
 
 	let address = i32(trav.address);
@@ -85,7 +92,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	if(address == 0 && trav.depth != 0.0){
 		return;
 	}
-	
 
 	var node = getNode(u32(address)); 
 	var boundBox = trav.boundBox;

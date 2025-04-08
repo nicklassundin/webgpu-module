@@ -158,11 +158,10 @@ class Params {
 }
 
 
-let nUpdates = 0;
+let calls = 0;
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffers) {
 	const mipLevel = travBuffers.length; 
 
-	nUpdates++;
 	for (let i = 0; i < mipLevel; i++) {
 		const values = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
 		const stagingBuffer = device.createBuffer({
@@ -270,7 +269,7 @@ async function frame() {
 	}else if (current_mipLevel == mipLevel){
 		current_mipLevel = 0;
 		const commandEncoderArg = device.createCommandEncoder();
-		let randCoord = [2*Math.random()-1, 2*Math.random()-1];
+		let randCoord = [Math.random(), Math.random()];
 		params.updateTravelValues(randCoord);
 		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
 		const commandBufferArg = commandEncoderArg.finish();
@@ -283,11 +282,12 @@ async function frame() {
 		}
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-	await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[1], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.nodesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
 	// Render pass
 	// if (lastFrameTime < Date.now()){
 	if (current_mipLevel < mipLevel){ 
@@ -342,7 +342,7 @@ canvas.addEventListener('click', async (event) => {
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
-	params.updateTravelValues([2*uv[0]-1, 1-2*uv[1]]);
+	params.updateTravelValues([uv[0], uv[1]]);
 	// await updateTravBufferCoord(uv);
 });
 

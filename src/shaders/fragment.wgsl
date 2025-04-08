@@ -15,7 +15,7 @@ struct FragInput {
 @fragment
 fn main(input: FragInput) -> @location(0) vec4f {
 	let fragCoord = input.position;
-	let pos = (fragCoord+1.0)/2.0;
+	let pos = fragCoord.xy; 
 
 	//return fragCoord;
 	// TODO temporary	
