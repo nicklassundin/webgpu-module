@@ -22,7 +22,8 @@ const QUADTREE_BGL_CONFIG = {
 			binding: 0,
 			visibility: GPUShaderStage.COMPUTE,
 			buffer: {
-				type: 'read-only-storage' 
+				// type: 'read-only-storage' 
+				type: 'storage'
 			}
 		},
 		{
@@ -135,7 +136,7 @@ class QuadTreeTraversal {
 		computePass.setBindGroup(0, this.bindGroup.quadTree);
 		// computePass.dispatchWorkgroups(1);
 		// computePass.dispatchWorkgroups(mipLevel+1);
-		computePass.dispatchWorkgroups(this.mipLevel);
+		computePass.dispatchWorkgroups(1)
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
 	}

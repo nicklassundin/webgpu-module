@@ -7,9 +7,9 @@ struct Node {
 
 
 fn getNode(index: u32) -> Node {
-	let node: Node = Node(nodes[index * 5u],
-		vec4<f32>(nodes[index * 5u + 1u], nodes[index * 5u + 2u], nodes[index * 5u + 3u], nodes[index * 5u + 4u]),
-		nodes[index * 5u + 5u]
+	let node: Node = Node(nodes[index * 6u],
+		vec4<f32>(nodes[index * 6u + 1u], nodes[index * 6u + 2u], nodes[index * 6u + 3u], nodes[index * 6u + 4u]),
+		nodes[index * 6u + 5u]
 	);
 	return node;
 }
@@ -24,7 +24,7 @@ struct Traversal {
 };
 
 
-@group(0) @binding(0) var<storage, read> traversal: array<Traversal>;
+@group(0) @binding(0) var<storage, read_write> traversal: array<Traversal>;
 @group(0) @binding(1) var<storage, read_write> values: array<f32>;
 @group(0) @binding(2) var<storage, read_write> nodes: array<f32>;
 
@@ -44,18 +44,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 		result[u32(trav.depth)] = 0.0;
 		return;
 	}
-	if(address == 0 && trav.depth == 0.0){
+	if(address == 0 && id == 0){
 		result[0] = 1.0;
 		return;
 	}
 
-	var node = getNode(u32(address)); 
-	let child = i32(node.children[u32(trav.quad)]);
-	if(child == -1) {
-		result[u32(trav.depth)] = 0.0;
-		return;
-	}
-	result[u32(trav.depth)] = values[child] / values[0];
-	//result[u32(trav.depth)] = values[child];
-	//result[u32(trav.depth)] = f32(child); 
+	result[u32(trav.depth)] = values[address] / values[0];
+	//result[u32(trav.depth)] = values[address];
+	//result[u32(trav.depth)] = f32(address); 
 }

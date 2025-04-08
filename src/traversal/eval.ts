@@ -42,6 +42,13 @@ const QUADTREE_BGL = {
 					buffer: {
 						type: 'read-only-storage',
 					}
+				},
+				{
+					binding:3,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'read-only-storage',
+					}
 				}
 			],
 }
@@ -73,9 +80,9 @@ class Eval {
 		
 		// 
 		const result = [];
-		for (let i = 0; i < frames; i++) {
+		for (let i = 0; i < 2; i++) {
 			result.push(device.createBuffer({
-				size: quadTreeTrav.result.size,
+				size: quadTreeTrav.result.size*4*4,
 				offset: 0,
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			}));
@@ -86,6 +93,7 @@ class Eval {
 			travBuffers: quadTreeTrav.buffers.travBuffers,
 			values: quadTreeTrav.buffers.valuesBuffer,
 			result,
+			nodes: quadTreeTrav.buffers.nodesBuffer,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -178,6 +186,14 @@ class Eval {
 					resource: {
 						buffer: this.result[level % 2],
 					}
+				},
+				{
+					binding: 3,
+					resource: {
+						buffer: this.buffers.nodes,
+						offset: 0,
+						size: this.buffers.nodes.size
+					},
 				}
 			],
 		});
