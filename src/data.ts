@@ -9,7 +9,6 @@ class QuadTree {
 		device.queue.writeBuffer(valuesBuffer, 0, values.buffer);
 
 		const nodes = new Float32Array(json.nodes);
-		console.log(json.nodes)
 		const nodesBuffer = device.createBuffer({
 			size: nodes.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,

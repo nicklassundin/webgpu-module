@@ -45,13 +45,6 @@ const QUADTREE_BGL_CONFIG = {
 			buffer: {
 				type: 'storage'
 			},
-		},
-		{
-			binding: 4,
-			visibility: GPUShaderStage.COMPUTE,
-			buffer: {
-				type: 'storage'
-			},
 		}
 	],
 }
@@ -72,7 +65,7 @@ class QuadTreeTraversal {
 		this.quadTree = quadTree;
 		let travBuffers: GPUBuffer[] = [];
 		const travVal = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
-		for (let i = 0; i < mipLevel; i++) {
+		for (let i = 0; i < 2; i++) {
 			const buffer = device.createBuffer({
 				size: travVal.byteLength*Math.pow(4, mipLevel),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
@@ -154,21 +147,13 @@ class QuadTreeTraversal {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.travBuffers[(level + 1)% this.mipLevel],
+						buffer: this.buffers.travBuffers[(level) % 2],
 						offset: 0,
-						size: this.buffers.travBuffers[(level + 1)% this.mipLevel].size, 
+						size: this.buffers.travBuffers[(level) % 2].size, 
 					},
 				},
 				{
 					binding: 1,
-					resource: {
-						buffer: this.buffers.travBuffers[(level+2) % this.mipLevel],
-						offset: 0,
-						size: this.buffers.travBuffers[(level+2) % this.mipLevel].size,
-					},
-				},
-				{
-					binding: 2,
 					resource: {
 						buffer: this.buffers.valuesBuffer,
 						offset: 0,
@@ -176,7 +161,7 @@ class QuadTreeTraversal {
 					},
 				},
 				{
-					binding: 3,
+					binding: 2,
 					resource: {
 						buffer: this.buffers.nodesBuffer,
 						offset: 0,
@@ -184,7 +169,7 @@ class QuadTreeTraversal {
 					},
 				},
 				{
-					binding: 4,
+					binding: 3,
 					resource: {
 						buffer: this.result,
 						offset: 0,

@@ -183,10 +183,10 @@ class VertexGen {
 			read: bindGroudRead, 
 		}
 	}
-	unmap(){
-		this.buffers.vertice.unmap();
-		this.buffers.indices.unmap();
-		this.buffers.uniform.unmap();
+	async unmap(){
+		await this.buffers.vertice.unmap();
+		await this.buffers.indices.unmap();
+		await this.buffers.uniform.unmap();
 		this.bindGroups.write = null;
 		this.bindGroups.read = null;
 	}

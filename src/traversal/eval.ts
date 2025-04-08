@@ -139,17 +139,17 @@ class Eval {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.result[(level + 1)% 2],
+						buffer: this.result[(level+1)% 2],
 						offset: 0,
-						size: this.result[(level + 1) % 2].size,
+						size: this.result[(level+1) % 2].size,
 					}
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.values,
+						buffer: this.buffers.travBuffers[level % 2],
 						offset: 0,
-						size: this.buffers.values.size,
+						size: this.buffers.travBuffers[level % 2].size,
 					}
 				}
 			],
