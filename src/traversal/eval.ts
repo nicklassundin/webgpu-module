@@ -42,6 +42,13 @@ const QUADTREE_BGL = {
 					buffer: {
 						type: 'read-only-storage',
 					}
+				},
+				{
+					binding:3,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'read-only-storage',
+					}
 				}
 			],
 }
@@ -73,18 +80,20 @@ class Eval {
 		
 		// 
 		const result = [];
-		for (let i = 0; i < frames; i++) {
+		for (let i = 0; i < 2; i++) {
 			result.push(device.createBuffer({
-				size: quadTreeTrav.result.size,
+				size: quadTreeTrav.result.size*4*4,
 				offset: 0,
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			}));
 		}
 
 		this.buffers = {
-			level: quadTreeTrav.result,
+			path: quadTreeTrav.result,
 			travBuffers: quadTreeTrav.buffers.travBuffers,
+			values: quadTreeTrav.buffers.valuesBuffer,
 			result,
+			nodes: quadTreeTrav.buffers.nodesBuffer,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -138,17 +147,17 @@ class Eval {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.result[(level + 1)% 2],
+						buffer: this.result[(level+1)% 2],
 						offset: 0,
-						size: this.result[(level + 1) % 2].size,
+						size: this.result[(level+1) % 2].size,
 					}
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[(level) % 2],
+						buffer: this.buffers.travBuffers[level % 2],
 						offset: 0,
-						size: this.buffers.travBuffers[(level) % 2].size,
+						size: this.buffers.travBuffers[level % 2].size,
 					}
 				}
 			],
@@ -159,9 +168,9 @@ class Eval {
 				{
 					binding: 0,	
 					resource: {
-						buffer: this.buffers.level,
+						buffer: this.buffers.path,
 						offset: 0,
-						size: this.buffers.level.size
+						size: this.buffers.path.size
 					},
 				},
 				{
@@ -177,6 +186,14 @@ class Eval {
 					resource: {
 						buffer: this.result[level % 2],
 					}
+				},
+				{
+					binding: 3,
+					resource: {
+						buffer: this.buffers.nodes,
+						offset: 0,
+						size: this.buffers.nodes.size
+					},
 				}
 			],
 		});
@@ -186,11 +203,10 @@ class Eval {
 		}
 	}
 	unmap(){
-		this.device.queue.onSubmittedWorkDone();
-		this.buffers.travBuffers.forEach((buffer) => {
+		this.buffers.result.forEach(buffer => {
 			buffer.unmap();
 		});
-		this.result.forEach((buffer) => {
+		this.buffers.travBuffers.forEach(buffer => {
 			buffer.unmap();
 		});
 		this.target.unmap();

@@ -22,7 +22,8 @@ const QUADTREE_BGL_CONFIG = {
 			binding: 0,
 			visibility: GPUShaderStage.COMPUTE,
 			buffer: {
-				type: 'read-only-storage' 
+				// type: 'read-only-storage' 
+				type: 'storage'
 			}
 		},
 		{
@@ -41,13 +42,6 @@ const QUADTREE_BGL_CONFIG = {
 		},
 		{
 			binding: 3,
-			visibility: GPUShaderStage.COMPUTE,
-			buffer: {
-				type: 'storage'
-			},
-		},
-		{
-			binding: 4,
 			visibility: GPUShaderStage.COMPUTE,
 			buffer: {
 				type: 'storage'
@@ -71,10 +65,10 @@ class QuadTreeTraversal {
 		this.mipLevel = mipLevel;
 		this.quadTree = quadTree;
 		let travBuffers: GPUBuffer[] = [];
-		for (let i = 0; i < mipLevel; i++) {
-			const travVal = new Float32Array([i, 0, uv[0], uv[1], 0, 0, 1, 1]);
+		const travVal = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
+		for (let i = 0; i < 2; i++) {
 			const buffer = device.createBuffer({
-				size: 4*3*Float32Array.BYTES_PER_ELEMENT*Math.pow(4, mipLevel), 
+				size: travVal.byteLength*Math.pow(4, mipLevel),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			});
 			device.queue.writeBuffer(buffer, 0, travVal, 0);
@@ -104,7 +98,7 @@ class QuadTreeTraversal {
 		// console.log(travValues.byteLength)
 		// console.log(values.byteLength)
 		// console.log(nodes.byteLength)
-		console.log(resultArray.byteLength)
+		// console.log(resultArray.byteLength)
 		// create bindGroup for quadTree
 		const bindGroupQuadTree = this.createBindGroup();
 		// Create pipeline layout for quadTree
@@ -127,7 +121,7 @@ class QuadTreeTraversal {
 		this.layout = pipelineLayoutQuadTree;
 		// this.texture = frameTexture;
 	}
-	async pass(mipLevel){
+	async pass(frame){
 		// calculate workgroup based on mipmap
 		const device = this.device;
 		await device.queue.onSubmittedWorkDone();
@@ -135,17 +129,18 @@ class QuadTreeTraversal {
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
 
-		this.createBindGroup(mipLevel);
-
+		// this.createBindGroup(mipLevel);
+		this.createBindGroup(frame);
 
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroup.quadTree);
-		// computePass.dispatchWorkgroups(1)
-		computePass.dispatchWorkgroups(mipLevel);
+		// computePass.dispatchWorkgroups(1);
+		// computePass.dispatchWorkgroups(mipLevel+1);
+		computePass.dispatchWorkgroups(1)
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
 	}
-	createBindGroup(level = 0){
+	createBindGroup(level = this.mipLevel){
 		this.bindGroup = {
 			quadTree: this.device.createBindGroup({
 			layout: this.bindGroupLayouts.quadTree,
@@ -153,21 +148,13 @@ class QuadTreeTraversal {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.travBuffers[level % this.mipLevel],
+						buffer: this.buffers.travBuffers[(level) % 2],
 						offset: 0,
-						size: this.buffers.travBuffers[level % this.mipLevel].size, 
+						size: this.buffers.travBuffers[(level) % 2].size, 
 					},
 				},
 				{
 					binding: 1,
-					resource: {
-						buffer: this.buffers.travBuffers[(level+1) % this.mipLevel],
-						offset: 0,
-						size: this.buffers.travBuffers[(level+1) % this.mipLevel].size,
-					},
-				},
-				{
-					binding: 2,
 					resource: {
 						buffer: this.buffers.valuesBuffer,
 						offset: 0,
@@ -175,7 +162,7 @@ class QuadTreeTraversal {
 					},
 				},
 				{
-					binding: 3,
+					binding: 2,
 					resource: {
 						buffer: this.buffers.nodesBuffer,
 						offset: 0,
@@ -183,7 +170,7 @@ class QuadTreeTraversal {
 					},
 				},
 				{
-					binding: 4,
+					binding: 3,
 					resource: {
 						buffer: this.result,
 						offset: 0,
@@ -197,11 +184,11 @@ class QuadTreeTraversal {
 		}
 	}
 	unmap(){
-		this.device.queue.onSubmittedWorkDone();
-		this.buffers.travBuffers.forEach((buffer) => {
+		this.buffers.travBuffers.forEach((buffer: GPUBuffer) => {
 			buffer.unmap();
-		});
-		this.result.unmap();
+		})
+		// this.buffers.valuesBuffer.unmap();
+		// this.buffers.nodesBuffer.unmap();
 	}
 }
 export default QuadTreeTraversal;

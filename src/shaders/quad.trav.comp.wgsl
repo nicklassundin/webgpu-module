@@ -1,108 +1,63 @@
 
 struct Node {
-	valueAddress: f32, 
+	valueAddress: f32,
 	children: vec4<f32>,	
 	quad: f32,
 };
 
+
+fn getNode(index: u32) -> Node {
+	let node: Node = Node(nodes[index * 6u],
+		vec4<f32>(nodes[index * 6u + 1u], nodes[index * 6u + 2u], nodes[index * 6u + 3u], nodes[index * 6u + 4u]),
+		nodes[index * 6u + 5u]
+	);
+	return node;
+}
 
 struct Traversal {
 	depth: f32,
 	address: f32,
 	coord: vec2<f32>,
 	boundBox: vec4<f32>,
-};
-
-// function to get quad index from cordinates and boundbox
-fn getQuadIndex(coord: vec2<f32>, boundBox: vec4<f32>) -> u32 {
-	let center = (boundBox.xy + boundBox.zw) * 0.5;
-	if coord.x < center.x {
-		if coord.y < center.y {
-			return 0u;
-		} else {
-			return 1u;
-		}
-	} else {
-		if coord.y < center.y {
-			return 2u;
-		} else {
-			return 3u;
-		}
-	}
-};
-// function that return boundBox for quadrant
-fn getBoundBox(coord: vec2<f32>, boundBox: vec4<f32>) -> vec4<f32> {
-	let center = (boundBox.xy + boundBox.zw) * 0.5;
-	var newBoundBox = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-	if coord.x < center.x {
-		newBoundBox.x = boundBox.x;
-		newBoundBox.z = center.x;
-	} else {
-		newBoundBox.x = center.x;
-		newBoundBox.z = boundBox.z;
-	}
-	if coord.y < center.y {
-		newBoundBox.y = boundBox.y;
-		newBoundBox.w = center.y;
-	} else {
-		newBoundBox.y = center.y;
-		newBoundBox.w = boundBox.w;
-	}
-	return newBoundBox;
+	quad: i32,
+	_pad: vec3<i32>,
 };
 
 
-@group(0) @binding(0) var<storage, read> traversal: array<Traversal>;
-@group(0) @binding(1) var<storage, read_write> nTrav: array<Traversal>;
-@group(0) @binding(2) var<storage, read_write> values: array<f32>;
-@group(0) @binding(3) var<storage, read_write> nodes: array<Node>;
+@group(0) @binding(0) var<storage, read_write> traversal: array<Traversal>;
+@group(0) @binding(1) var<storage, read_write> values: array<f32>;
+@group(0) @binding(2) var<storage, read_write> nodes: array<f32>;
 
-@group(0) @binding(4) var<storage, read_write> result: array<f32>;
+@group(0) @binding(3) var<storage, read_write> result: array<f32>;
 
 
-@compute @workgroup_size(1)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	let id = global_id.x; 
-	var trav = traversal[id]; 
-	trav.depth = f32(id);
-	var nextTrav = trav; 
-	nTrav[id] = trav;
-	nTrav[id].depth = f32(id);
+//@compute @workgroup_size(1)
+@compute @workgroup_size(4,4)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
+@builtin(local_invocation_id) local_id: vec3<u32>) {
+	let id = local_id.x + local_id.y * 4u;
+	var parent = traversal[id]; 
 
-	let address = u32(trav.address);
-	
-	// Spacial case wher no address aka no value
-	if(address == 0u && trav.depth != 0.0){
+	let quad = parent.quad;
+	let address = parent.address;
+	if(address == 0 && id == 0){
+		result[0] = 1.0;
+	}
+	if (id != 0 && parent.address == 0) {
+		traversal[id+1].address = 0.0;
+		return;
+	}
+	var child = getNode(u32(address)).children[u32(quad)];
+
+	traversal[id+1].address = f32(child); 
+	if(child < 0.0) {
+		traversal[id+1].address = 0.0;
 		return;
 	}
 
-	let node = nodes[address]; 
-	var boundBox = trav.boundBox;
-	if (values[address] == 0.0) {
-		nextTrav.address = f32(address);
-		nextTrav.boundBox = boundBox; 
-		return;
-	}
-	let quad = getQuadIndex(trav.coord.xy, boundBox);
-
-	var child = 0.0;
-	if (u32(nodes[u32(node.children[0u])].quad) == quad) {
-		child = node.children[0u];
-	} else if (u32(nodes[u32(node.children[1u])].quad) == quad) {
-		child = node.children[1u];
-	} else if (u32(nodes[u32(node.children[2u])].quad) == quad) {
-		child = node.children[2u];
-	} else if (u32(nodes[u32(node.children[3u])].quad) == quad) {
-		child = node.children[3u];
-	}
-
-	nextTrav.boundBox = getBoundBox(trav.coord.xy, boundBox);
-	nextTrav.address = child;
-	if child == 0.0 {
-		nextTrav.address = 0.0;
-		nTrav[id + 1] = nextTrav;
-		return;
-	}
-	result[u32(trav.depth)] = values[address] / values[0];
-	nTrav[id + 1] = nextTrav;
+	//result[u32(trav.depth)] = address; 
+	result[u32(parent.depth)+1] = f32(parent.quad); 
+	result[u32(parent.depth)+1] = values[u32(child)] / values[0];
+	//result[u32(trav.depth)] = values[address];
+	//result[u32(trav.depth)] = f32(address); 
 }

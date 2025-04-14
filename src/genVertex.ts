@@ -155,9 +155,9 @@ class VertexGen {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.target.buffers.level,
+						buffer: this.target.buffers.path,
 						offset: 0,
-						size: this.target.buffers.level.size,
+						size: this.target.buffers.path.size,
 					},
 				},
 				{
@@ -183,8 +183,12 @@ class VertexGen {
 			read: bindGroudRead, 
 		}
 	}
-	unmap(){
-		this.buffers.uniform.unmap();
+	async unmap(){
+		await this.buffers.vertice.unmap();
+		await this.buffers.indices.unmap();
+		await this.buffers.uniform.unmap();
+		this.bindGroups.write = null;
+		this.bindGroups.read = null;
 	}
 }
 export default VertexGen;

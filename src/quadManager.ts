@@ -30,15 +30,11 @@ class QuadManager {
 		this.genVertex.pass(frame);
 		this.eval.pass(level);
 	}
-	reset(){
-		this.eval.unmap();
-		this.quadTree.unmap();
-		this.genVertex.unmap();
-	}
-	unmap(){
-		this.eval.unmap();
-		this.quadTree.unmap();
-		this.genVertex.unmap();
+	async unmap(){
+		await this.quadTree.unmap();
+		await this.eval.unmap();
+		await this.genVertex.unmap();
+		await this.target.unmap();
 	}
 }
 export default QuadManager;
