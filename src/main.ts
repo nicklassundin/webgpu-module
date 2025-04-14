@@ -255,7 +255,7 @@ async function frame() {
 		await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 		await requestAnimationFrame(frame);
 		return;
-	}else if (current_mipLevel == mipLevel){
+	}else if (current_mipLevel < mipLevel){
 		// current_mipLevel = 0;
 		// const commandEncoderArg = device.createCommandEncoder();
 		// let randCoord = [Math.random(), Math.random()];
@@ -265,7 +265,6 @@ async function frame() {
 		// device.queue.submit([commandBufferArg]);
 		quadManager.eval.pass(current_mipLevel);
 		if(reference){
-			console.log('reference', current_mipLevel)
 			quadManager.target.pass(current_mipLevel)
 		}
 		quadManager.quadTree.pass(current_mipLevel);
@@ -296,23 +295,23 @@ async function frame() {
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
 	// Render pass
 	// if (lastFrameTime < Date.now()){
-	if (current_mipLevel < mipLevel){ 
+	if (current_mipLevel > mipLevel){ 
 		reference = false;
 		// console.log(frameCount, current_mipLevel)
-		render.pass(frameCount, current_mipLevel);
 	}
+	render.pass(frameCount)
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.nodes, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 40);
 	
-	render.pass(frameCount, current_mipLevel);
+	//render.pass(frameCount, current_mipLevel);
 	current_mipLevel++;
 	frameCount++;
 
 	// wait for 0.5 second
-	await new Promise((resolve) => setTimeout(resolve, 150));
+	// await new Promise((resolve) => setTimeout(resolve, 150));
 	// if( frameCount > 120){
 	// 	frameCount = 0;
 	// 	return;

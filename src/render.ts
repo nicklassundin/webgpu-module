@@ -155,8 +155,7 @@ class Render {
 		});
 
 	}
-	pass(calls, mipLevel) {
-		mipLevel = mipLevel % this.mipLevel;
+	pass(calls) {
 
 		const commandEncoder = this.device.createCommandEncoder();
 		const currentTexture = this.context.getCurrentTexture();
@@ -170,7 +169,7 @@ class Render {
 		const depthTextureView = this.depthTextures[(calls + 1) % this.frames].createView();
 		this.renderPassDescriptor.depthStencilAttachment.view = depthTextureView;
 		// update bindGroups
-		this.createBindGroups(calls, mipLevel);
+		this.createBindGroups(calls)
 
 
 		const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);

@@ -4,6 +4,8 @@ struct Traversal {
 	address: f32,
 	coord: vec2<f32>,
 	boundBox: vec4<f32>,
+	quad: i32,
+	_pad: vec3<i32>,
 };
 
 
@@ -29,7 +31,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let mipLevel = uniforms.mipLevel - f32(global_id.z);
 	let grid: f32 = pow(2.0, mipLevel);
 	
-	var coord = traversal[0u].coord;
+	//var coord = traversal[0].coord;
+	var coord = traversal[global_id.z].coord;
 
 	let pixCoord = coord*grid;
 	

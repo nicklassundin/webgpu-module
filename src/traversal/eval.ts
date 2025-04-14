@@ -17,6 +17,13 @@ const TEXT_STRG_BGL = {
 					buffer: {
 						type: 'storage'
 					}
+				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'storage'
+					}
 				}
 			],
 }
@@ -88,12 +95,19 @@ class Eval {
 			}));
 		}
 
+		// quad tree traversal buffer
+		const quadTreeBuffer = device.createBuffer({
+			size: Math.pow(2, 2 * mipLevelCount) * 4 * 4, 
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		});
+
 		this.buffers = {
 			path: quadTreeTrav.result,
 			travBuffers: quadTreeTrav.buffers.travBuffers,
 			values: quadTreeTrav.buffers.valuesBuffer,
 			result,
 			nodes: quadTreeTrav.buffers.nodesBuffer,
+			quadTreeMap: quadTreeBuffer,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -158,6 +172,14 @@ class Eval {
 						buffer: this.buffers.travBuffers[level % 2],
 						offset: 0,
 						size: this.buffers.travBuffers[level % 2].size,
+					}
+				},
+				{
+					binding: 2,
+					resource: {
+						buffer: this.buffers.quadTreeMap,
+						offset: 0,
+						size: this.buffers.quadTreeMap.size,
 					}
 				}
 			],
