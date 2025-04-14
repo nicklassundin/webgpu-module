@@ -153,7 +153,7 @@ class Params {
 	}
 	updateTravelValues(travelValues: number[]) {
 		this.change = true;
-		this.travelValues = [2*travelValues[0] - 1, 2*travelValues[1] - 1];
+		this.travelValues = [travelValues[0], travelValues[1]];
 	}
 }
 
@@ -233,11 +233,14 @@ await device.queue.onSubmittedWorkDone();
 
 
 let current_mipLevel = 0;
+var reference = true;
 async function frame() {
-	if (params.change && firstClick) {
+	if (params.change) {
 		console.log('click')
 		frameCount = 0;
 		current_mipLevel = 0;
+		params.change = false;
+		reference = true
 
 		await quadManager.unmap();
 		quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
@@ -249,26 +252,22 @@ async function frame() {
 		const commandBufferArg = commandEncoderArg.finish();
 		await device.queue.submit([commandBufferArg]);
 		await device.queue.onSubmittedWorkDone();
-		for (let i = 0; i < mipLevel; i++) {
-			quadManager.target.pass(i)
-			quadManager.eval.pass(frameCount);
-		}
-		// quadManager.quadTree.pass(i);
-		// quadManager.genVertex.pass(frameCount);
-
-		params.change = false;
-		firstClick = false;
-		// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+		await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
+		await requestAnimationFrame(frame);
+		return;
 	}else if (current_mipLevel == mipLevel){
-		current_mipLevel = 0;
-		const commandEncoderArg = device.createCommandEncoder();
-		let randCoord = [Math.random(), Math.random()];
-		params.updateTravelValues(randCoord);
-		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
-		const commandBufferArg = commandEncoderArg.finish();
-		device.queue.submit([commandBufferArg]);
+		// current_mipLevel = 0;
+		// const commandEncoderArg = device.createCommandEncoder();
+		// let randCoord = [Math.random(), Math.random()];
+		// params.updateTravelValues(randCoord);
+		// updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+		// const commandBufferArg = commandEncoderArg.finish();
+		// device.queue.submit([commandBufferArg]);
 		quadManager.eval.pass(current_mipLevel);
-		quadManager.target.pass(0)
+		if(reference){
+			console.log('reference', current_mipLevel)
+			quadManager.target.pass(current_mipLevel)
+		}
 		quadManager.quadTree.pass(current_mipLevel);
 		quadManager.genVertex.pass(current_mipLevel);
 		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
@@ -277,29 +276,33 @@ async function frame() {
 		current_mipLevel++;
 	}else{
 		quadManager.eval.pass(current_mipLevel);
-		quadManager.target.pass(current_mipLevel)
+		if(reference){
+			quadManager.target.pass(current_mipLevel)
+		}
 		quadManager.quadTree.pass(current_mipLevel);
 		quadManager.genVertex.pass(current_mipLevel);
 		current_mipLevel++;
 	}
-	console.log('current mip level', current_mipLevel)
-	console.log('mip level', mipLevel)
+	// console.log('current mip level', current_mipLevel)
+	// console.log(frameCount)
+	// console.log('mip level', mipLevel)
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.nodesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 128);
-	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[1], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
 	// Render pass
 	// if (lastFrameTime < Date.now()){
 	if (current_mipLevel < mipLevel){ 
+		reference = false;
 		// console.log(frameCount, current_mipLevel)
 		render.pass(frameCount, current_mipLevel);
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.nodes, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 40);
@@ -309,7 +312,7 @@ async function frame() {
 	frameCount++;
 
 	// wait for 0.5 second
-	// await new Promise((resolve) => setTimeout(resolve, 150));
+	await new Promise((resolve) => setTimeout(resolve, 150));
 	// if( frameCount > 120){
 	// 	frameCount = 0;
 	// 	return;
@@ -344,7 +347,6 @@ async function loadImageBitmap(url: string) {
 
 }
 // listen and find uv coordinates of mouse on click
-var firstClick = false;
 canvas.addEventListener('click', async (event) => {
 	const rect = canvas.getBoundingClientRect();
 	const x = (event.clientX - rect.left);
