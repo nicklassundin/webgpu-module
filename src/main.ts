@@ -268,12 +268,12 @@ async function frame() {
 		// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[0], 0, 64);
 	}else if (current_mipLevel == mipLevel){
 		current_mipLevel = 0;
-		// const commandEncoderArg = device.createCommandEncoder();
-		// let randCoord = [Math.random(), Math.random()];
-		// params.updateTravelValues(randCoord);
-		// updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
-		// const commandBufferArg = commandEncoderArg.finish();
-		// device.queue.submit([commandBufferArg]);
+		const commandEncoderArg = device.createCommandEncoder();
+		let randCoord = [Math.random(), Math.random()];
+		params.updateTravelValues(randCoord);
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
+		const commandBufferArg = commandEncoderArg.finish();
+		device.queue.submit([commandBufferArg]);
 		quadManager.eval.pass(current_mipLevel);
 		quadManager.target.pass(0)
 		quadManager.quadTree.pass(current_mipLevel);
@@ -291,11 +291,11 @@ async function frame() {
 	}
 	console.log('current mip level', current_mipLevel)
 	console.log('mip level', mipLevel)
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.nodesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 128);
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
+	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[1], 0, 64);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
