@@ -274,28 +274,36 @@ async function frame() {
 		// updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffers);
 		// const commandBufferArg = commandEncoderArg.finish();
 		// device.queue.submit([commandBufferArg]);
-		let index = frameCount / 10
-		quadManager.target.pass(index)
-		quadManager.eval.pass(index);
-		quadManager.quadTree.pass(index);
-		quadManager.genVertex.pass(index);
-		console.log('onepass')
-	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
-	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 64);
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+		quadManager.eval.pass(current_mipLevel);
+		quadManager.target.pass(0)
+		quadManager.quadTree.pass(current_mipLevel);
+		quadManager.genVertex.pass(current_mipLevel);
+		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
+		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+		// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
+		current_mipLevel++;
+	}else{
+		quadManager.eval.pass(current_mipLevel);
+		quadManager.target.pass(current_mipLevel)
+		quadManager.quadTree.pass(current_mipLevel);
+		quadManager.genVertex.pass(current_mipLevel);
+		current_mipLevel++;
 	}
+	console.log('current mip level', current_mipLevel)
+	console.log('mip level', mipLevel)
+	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.target.result, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[1], 0, 64);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.nodesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 128);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.target.buffers.travBuffers[1], 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
 	// Render pass
 	// if (lastFrameTime < Date.now()){
 	if (current_mipLevel < mipLevel){ 
 		// console.log(frameCount, current_mipLevel)
 		render.pass(frameCount, current_mipLevel);
-		current_mipLevel++;
 	}
 	frameCount++;
 
@@ -304,6 +312,10 @@ async function frame() {
 
 	// wait for 0.5 second
 	// await new Promise((resolve) => setTimeout(resolve, 150));
+	// if( frameCount > 120){
+	// 	frameCount = 0;
+	// 	return;
+	// }
 	await requestAnimationFrame(frame);
 
 }

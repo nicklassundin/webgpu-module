@@ -36,20 +36,28 @@ struct Traversal {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	let id = local_id.x + local_id.y * 4u;
-	var trav = traversal[id]; 
-	trav.depth = f32(id);
+	var parent = traversal[id]; 
 
-	let address = i32(trav.address);
-	if (address == -1) {
-		result[u32(trav.depth)] = 0.0;
-		return;
-	}
+	let quad = parent.quad;
+	let address = parent.address;
 	if(address == 0 && id == 0){
 		result[0] = 1.0;
+	}
+	if (id != 0 && parent.address == 0) {
+		traversal[id+1].address = 0.0;
+		return;
+	}
+	var child = getNode(u32(address)).children[u32(quad)];
+
+	traversal[id+1].address = f32(child); 
+	if(child < 0.0) {
+		traversal[id+1].address = 0.0;
 		return;
 	}
 
-	result[u32(trav.depth)] = values[address] / values[0];
+	//result[u32(trav.depth)] = address; 
+	result[u32(parent.depth)+1] = f32(parent.quad); 
+	result[u32(parent.depth)+1] = values[u32(child)] / values[0];
 	//result[u32(trav.depth)] = values[address];
 	//result[u32(trav.depth)] = f32(address); 
 }

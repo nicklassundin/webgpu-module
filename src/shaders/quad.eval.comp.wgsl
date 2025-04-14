@@ -70,23 +70,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
 	
 	//let node = getNode(u32(traversal[index].address));
-	//let child = node.children[quad];	
-	if ((coord.x+coord.y == 0.0) & (boundBox.x + boundBox.y + boundBox.z + boundBox.w == 0.0)){
-		// if both are zero, we are done
-		traversal[index+1].depth = -1;
-		traversal[index+1].address = -1;
-		traversal[index+1].coord = vec2<f32>(0.0, 0.0);
-		traversal[index+1].boundBox = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-		traversal[index+1].quad = -1;
-		return;
-	}
-
 	traversal[index+1].depth = f32(index+1);
-	traversal[index+1].address = f32(quad);
+	//traversal[index+1].address = f32(quad);
 	traversal[index+1].coord = traversal[index].coord;
 	traversal[index+1].boundBox = nBoundBox;
 	traversal[index+1].quad = i32(quad);
 
 	
-	//result[index] = abs(selected[index] - levelValues[index]);
+	result[index] = abs(selected[index] - levelValues[index]);
 }

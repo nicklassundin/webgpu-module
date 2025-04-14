@@ -121,7 +121,7 @@ class QuadTreeTraversal {
 		this.layout = pipelineLayoutQuadTree;
 		// this.texture = frameTexture;
 	}
-	async pass(mipLevel){
+	async pass(frame){
 		// calculate workgroup based on mipmap
 		const device = this.device;
 		await device.queue.onSubmittedWorkDone();
@@ -129,8 +129,8 @@ class QuadTreeTraversal {
 		const commandEncoderQuad = device.createCommandEncoder();
 		const computePass = commandEncoderQuad.beginComputePass();
 
-		this.createBindGroup(mipLevel);
-
+		// this.createBindGroup(mipLevel);
+		this.createBindGroup(frame);
 
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroup.quadTree);
@@ -140,7 +140,7 @@ class QuadTreeTraversal {
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
 	}
-	createBindGroup(level = 0){
+	createBindGroup(level = this.mipLevel){
 		this.bindGroup = {
 			quadTree: this.device.createBindGroup({
 			layout: this.bindGroupLayouts.quadTree,

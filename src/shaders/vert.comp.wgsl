@@ -43,4 +43,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 	vertices[index].position = vec4<f32>(x, y, f32(global_id.z) / uniforms.mipLevel, 1.0);
 	vertices[index].values = vec4<f32>(levelValues[global_id.z], 0, 0, 0); 
+	//vertices[index].values = vec4<f32>(0.5, 0, 0, 0); 
 }
