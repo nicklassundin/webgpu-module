@@ -182,20 +182,7 @@ class Render {
 		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
 		// passEncoder.drawIndexed(6, 1, 6*1);
 		const maxLevel = this.mipLevel;
-		// const maxLevel = 3;
-		
-		// TODO continue draw depending on number of calls
-		let offset = 1;
-		for (let i = 0; i <= this.mipLevel+calls; i++) {
-			passEncoder.drawIndexed(6*offset, 1, 0, 4*i);
-		}
-		// passEncoder.drawIndexed(6, 1, 0, 4*1);
-		// passEncoder.drawIndexed(6, 1, 0, 4*2);
-		// passEncoder.drawIndexed(6, 1, 0, 4*3);
-		// passEncoder.drawIndexed(6, 1, 0, 4*4);
-		// passEncoder.drawIndexed(6, 1, 0, 4*5);
-		// passEncoder.drawIndexed(6, 1, 0, 4*6);
-
+		passEncoder.drawIndexed(6*Math.pow(4, this.mipLevel), 1, 0);
 		passEncoder.end();
 
 		this.device.queue.submit([commandEncoder.finish()]);

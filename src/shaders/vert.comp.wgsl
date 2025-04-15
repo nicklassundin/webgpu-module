@@ -60,16 +60,16 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	vertices[index].values = vec4<f32>(levelValues[level], 0, 0, 0); 
 	//vertices[index].values = vec4<f32>(0.5, 0, 0, 0);
 
-	let quad = (local_id.x + local_id.y * 2);
+	let quad = index % 4;
 	if(quad == 0){
-		indices[z].indices[0] = quad;
+		indices[z].indices[0] = index;
 	}else if(quad == 1){
-		indices[z].indices[1] = quad;
-		indices[z].indices[3] = quad;
+		indices[z].indices[1] = index;
+		indices[z].indices[3] = index;
 	}else if(quad == 2){
-		indices[z].indices[2] = quad;
-		indices[z].indices[5] = quad;
+		indices[z].indices[2] = index;
+		indices[z].indices[5] = index;
 	}else if(quad == 3){
-		indices[z].indices[4] = quad;
+		indices[z].indices[4] = index;
 	}
 }

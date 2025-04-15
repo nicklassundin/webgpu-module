@@ -79,7 +79,7 @@ class VertexGen {
 		// const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
 		// const indicesValues = new Uint32Array([0, 1, 2, 0, 0, 0]);
 		const indices = device.createBuffer({
-			size: 6*Math.pow(mipLevelCount, 2)*4,
+			size: 6*Math.pow(4, mipLevelCount)*4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
 		});
 		// device.queue.writeBuffer(indices, 0, indicesValues.buffer);
