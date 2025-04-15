@@ -69,40 +69,44 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	let index = local_id.x + local_id.y * 4;
 
-	
-
 	//let index = local_id.x + local_id.y * 4 + global_id.z * 16;
 	let boundBox = traversal[index].boundBox;
 	var coord = traversal[index].coord;
-
+	let depth = traversal[index].depth;
+	
 	var quad = quadFromeCoord(coord, boundBox);
-	var q0 = getNodeIndex(f32(traversal[index].depth), f32(quad));
-	var q1 = getNodeIndex(f32(traversal[index].depth), f32((quad + 1u) % 4u));
-	var q2 = getNodeIndex(f32(traversal[index].depth), f32((quad + 2u) % 4u));
-	var q3 = getNodeIndex(f32(traversal[index].depth), f32((quad + 3u) % 4u));
+	var q0 = getNodeIndex(f32(depth), f32(quad));
+	var q1 = getNodeIndex(f32(depth), f32((quad + 1u) % 4u));
+	var q2 = getNodeIndex(f32(depth), f32((quad + 2u) % 4u));
+	var q3 = getNodeIndex(f32(depth), f32((quad + 3u) % 4u));
 	if (quadMap[q0] == 0u){
 		quadMap[q0] = 1u;
 	} else if (quadMap[q1] == 0u){
 		quad = (quad + 1u) % 4u;
 		quadMap[q1] = 1u;
+		coord = vec2<f32>(coord.x * 0.5, coord.y * 0.5);
 	} else if (quadMap[q2] == 0u){
 		quad = (quad + 2u) % 4u;
 		quadMap[q2] = 1u;
+		coord = vec2<f32>(coord.x * 0.5, coord.y * 0.5);
 	} else if (quadMap[q3] == 0u){
 		quad = (quad + 3u) % 4u;
 		quadMap[q3] = 1u;
+		coord = vec2<f32>(coord.x * 0.5, coord.y * 0.5);
 	}
 	
-	//traversal[index].coord = vec2<f32>((boundBox.x + boundBox.z)/2, (boundBox.y + boundBox.w)/2);
 	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
+	//let nIndex = index + (quad+1)*u32(pow(4, f32(depth)));
+	let nIndex = index + 1;
+	traversal[nIndex].coord = coord;
+	//traversal[nIndex].coord = vec2<f32>((nBoundBox.x + nBoundBox.z)/2, (nBoundBox.y + nBoundBox.w)/2);
 	
-	traversal[index+1].depth = f32(index+1);
-	//traversal[index+1].address = f32(quad);
-	traversal[index+1].coord = coord;
-	traversal[index+1].boundBox = nBoundBox;
-	traversal[index+1].quad = i32(quad);
+	traversal[nIndex].depth = f32(depth+1);
+	//traversal[nIndex].coord = coord;
+	traversal[nIndex].boundBox = nBoundBox;
+	traversal[nIndex].quad = i32(quad);
 
-	result[index] = abs(selected[index] - levelValues[index]);
+	result[nIndex] = abs(selected[index] - levelValues[index]);
 
 
 }

@@ -311,7 +311,7 @@ async function frame() {
 	frameCount++;
 
 	// wait for 0.5 second
-	// await new Promise((resolve) => setTimeout(resolve, 150));
+	await new Promise((resolve) => setTimeout(resolve, 200));
 	// if( frameCount > 120){
 	// 	frameCount = 0;
 	// 	return;

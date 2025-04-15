@@ -185,8 +185,9 @@ class Render {
 		// const maxLevel = 3;
 		
 		// TODO continue draw depending on number of calls
+		let offset = 1;
 		for (let i = 0; i <= this.mipLevel; i++) {
-			passEncoder.drawIndexed(6, 1, 0, 4*i);
+			passEncoder.drawIndexed(6*offset, 1, 0, 4*i*offset);
 		}
 
 		passEncoder.end();
