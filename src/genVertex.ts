@@ -19,6 +19,13 @@ const WRITE_BGL = {
 					buffer: {
 						type: 'storage'
 					}
+				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'storage',
+					}
 				}
 			],
 }
@@ -90,14 +97,18 @@ class VertexGen {
 		});
 		const resolution = new Float32Array([canvas.width,
 						    	canvas.height,
-							this.mipmapLevel
-		]);
+							this.mipmapLevel]);
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
-
+		// State buffer
+		const stateBuffer = device.createBuffer({
+			size: 4 * 4 * 4,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		});
 		this.buffers = {
 			vertice,
 			indices,
 			uniform: uniformBuffer,
+			state: stateBuffer,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -135,7 +146,8 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		computePass.dispatchWorkgroups(1, 1, this.mipmapLevel+1)
+		// computePass.dispatchWorkgroups(1, 1, this.mipmapLevel+1)
+		computePass.dispatchWorkgroups(1);
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
 	}
@@ -162,6 +174,14 @@ class VertexGen {
 						offset: 0,
 						size: this.buffers.indices.size,
 					}
+				},
+				{
+					binding: 2,
+					resource: {
+						buffer: this.buffers.state,
+						offset: 0,
+						size: this.buffers.state.size,
+					}
 				}
 			],
 		});
@@ -179,7 +199,7 @@ class VertexGen {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.target.buffers.travBuffers[(frame) % this.target.buffers.travBuffers.length],
+						buffer: this.target.buffers.travBuffers[(frame+8) % this.target.buffers.travBuffers.length],
 						offset: 0,
 						size: this.target.buffers.travBuffers[0].size,
 					},
@@ -203,8 +223,6 @@ class VertexGen {
 		await this.buffers.vertice.unmap();
 		await this.buffers.indices.unmap();
 		await this.buffers.uniform.unmap();
-		this.bindGroups.write = null;
-		this.bindGroups.read = null;
 	}
 }
 export default VertexGen;

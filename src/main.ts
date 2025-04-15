@@ -301,6 +301,7 @@ async function frame() {
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*8, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*10, 32);
 	// Render pass
+	await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.state, 0, 64);
 	// if (lastFrameTime < Date.now()){
 	if (current_mipLevel > mipLevel){ 
 		reference = false;

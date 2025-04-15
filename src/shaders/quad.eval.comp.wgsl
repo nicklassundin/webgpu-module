@@ -104,5 +104,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	traversal[nIndex].boundBox = nBoundBox;
 	traversal[nIndex].quad = i32(quad);
 
-	result[nIndex] = abs(selected[index] - levelValues[index]);
+	result[index+1] = abs(selected[index] - levelValues[index]);
 }
