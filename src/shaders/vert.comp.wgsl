@@ -30,6 +30,7 @@ const SIZE = 4*2;
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let mipLevel = uniforms.mipLevel - f32(global_id.z);
 	let grid: f32 = pow(2.0, mipLevel);
+	let level: u32 = u32(traversal[global_id.z].depth);
 	
 	//var coord = traversal[0].coord;
 	var coord = traversal[global_id.z].coord;
@@ -45,6 +46,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let index = (global_id.x + global_id.y * 2) + global_id.z*4;
 
 	vertices[index].position = vec4<f32>(x, y, f32(global_id.z) / uniforms.mipLevel, 1.0);
-	vertices[index].values = vec4<f32>(levelValues[global_id.z], 0, 0, 0); 
+	vertices[index].values = vec4<f32>(levelValues[level], 0, 0, 0); 
 	//vertices[index].values = vec4<f32>(0.5, 0, 0, 0); 
 }
