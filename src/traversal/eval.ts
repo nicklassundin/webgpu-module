@@ -149,7 +149,7 @@ class Eval {
 		computePass.setBindGroup(0, this.bindGroups.texture);
 		computePass.setBindGroup(1, this.bindGroups.quadTree);
 		// computePass.dispatchWorkgroups(this.mipmapLevel)
-		computePass.dispatchWorkgroups(1)
+		computePass.dispatchWorkgroups(1,1,4)
 		computePass.end();
 		await device.queue.submit([commandEncoderQuad.finish()]);
 	}

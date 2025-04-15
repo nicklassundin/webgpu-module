@@ -65,8 +65,8 @@ class QuadTreeTraversal {
 		this.mipLevel = mipLevel;
 		this.quadTree = quadTree;
 		let travBuffers: GPUBuffer[] = [];
-		const travVal = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
 		for (let i = 0; i < 2; i++) {
+			const travVal = new Float32Array([i, 0, uv[0], uv[1], 0, 0, 1, 1]);
 			const buffer = device.createBuffer({
 				size: travVal.byteLength*Math.pow(4, mipLevel),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,

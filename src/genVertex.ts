@@ -13,6 +13,13 @@ const WRITE_BGL = {
 						type: 'storage'
 					}
 				},
+				{
+					binding: 1,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'storage'
+					}
+				}
 			],
 }
 const READ_BGL = {
@@ -65,16 +72,17 @@ class VertexGen {
 		// 
 		const vertice = device.createBuffer({
 			// size: Math.pow(4, 8),
-			size: 4*mipLevelCount*grid*grid,
+			size: 4*4*Math.pow(4, this.mipmapLevel)*Float32Array.BYTES_PER_ELEMENT,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
 		});
 		// const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
-		const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
+		// const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
+		// const indicesValues = new Uint32Array([0, 1, 2, 0, 0, 0]);
 		const indices = device.createBuffer({
 			size: 6*Math.pow(mipLevelCount, 2)*4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
 		});
-		device.queue.writeBuffer(indices, 0, indicesValues.buffer);
+		// device.queue.writeBuffer(indices, 0, indicesValues.buffer);
 		// create index buffer
 		const uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
@@ -127,8 +135,7 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		computePass.dispatchWorkgroups(1,1, this.mipmapLevel+1);
-		// computePass.dispatchWorkgroups(this.mipmapLevel+1)
+		computePass.dispatchWorkgroups(1, 1, this.mipmapLevel+1)
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
 	}
@@ -148,6 +155,14 @@ class VertexGen {
 						size: Math.pow(4, this.mipmapLevel),
 					}
 				},
+				{
+					binding: 1,
+					resource: {
+						buffer: this.buffers.indices,
+						offset: 0,
+						size: this.buffers.indices.size,
+					}
+				}
 			],
 		});
 		const bindGroudRead = this.device.createBindGroup({

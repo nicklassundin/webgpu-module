@@ -14,6 +14,10 @@ struct Vertex {
 	values: vec4<f32>,
 };
 @group(0) @binding(0) var<storage, read_write> vertices: array<Vertex>;
+struct Indices {
+	indices: array<u32, 6>,
+};
+@group(0) @binding(1) var<storage, read_write> indices: array<Indices>;
 
 @group(1) @binding(0) var<storage, read> levelValues: array<f32>;
 @group(1) @binding(1) var<storage, read> traversal: array<Traversal>; 
@@ -30,8 +34,7 @@ const SIZE = 4*2;
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	let z = global_id.z;
-	//let z = global_id.x;
-	let level: u32 = u32(traversal[z].depth);
+	let level: u32 = u32(traversal[z].depth+1);
 	let grid: f32 = pow(2.0, uniforms.mipLevel - f32(level));
 
 /*
@@ -51,9 +54,22 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	var x = f32(p_x+local_id.x) / grid;
 	var y = f32(p_y+local_id.y) / grid;
 
-	let index = (local_id.x + local_id.y * 2) + z*4;
+	let index = (local_id.x + local_id.y * 2) + z*2*2;
 
 	vertices[index].position = vec4<f32>(x, y, f32(z) / uniforms.mipLevel, 1.0);
 	vertices[index].values = vec4<f32>(levelValues[level], 0, 0, 0); 
-	//vertices[index].values = vec4<f32>(0.5, 0, 0, 0); 
+	//vertices[index].values = vec4<f32>(0.5, 0, 0, 0);
+
+	let quad = (local_id.x + local_id.y * 2);
+	if(quad == 0){
+		indices[z].indices[0] = quad;
+	}else if(quad == 1){
+		indices[z].indices[1] = quad;
+		indices[z].indices[3] = quad;
+	}else if(quad == 2){
+		indices[z].indices[2] = quad;
+		indices[z].indices[5] = quad;
+	}else if(quad == 3){
+		indices[z].indices[4] = quad;
+	}
 }

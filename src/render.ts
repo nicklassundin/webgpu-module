@@ -115,7 +115,7 @@ class Render {
 					code: baseVertexShaderCode,
 				}),
 				buffers: [{
-				arrayStride: 16*Math.pow(2, 1),
+				arrayStride: 32, 
 				attributes: [
 					{
 						shaderLocation: 0,
@@ -144,7 +144,7 @@ class Render {
 				topology: 'triangle-list',
 				// topology: 'point-list',
 				// topology: 'line-list',
-				cullMode: 'none',
+				// cullMode: 'none',
 			},
 			depthStencil: {
 				format: 'depth24plus',
@@ -186,9 +186,15 @@ class Render {
 		
 		// TODO continue draw depending on number of calls
 		let offset = 1;
-		for (let i = 0; i <= this.mipLevel; i++) {
-			passEncoder.drawIndexed(6*offset, 1, 0, 4*i*offset);
+		for (let i = 0; i <= this.mipLevel+calls; i++) {
+			passEncoder.drawIndexed(6*offset, 1, 0, 4*i);
 		}
+		// passEncoder.drawIndexed(6, 1, 0, 4*1);
+		// passEncoder.drawIndexed(6, 1, 0, 4*2);
+		// passEncoder.drawIndexed(6, 1, 0, 4*3);
+		// passEncoder.drawIndexed(6, 1, 0, 4*4);
+		// passEncoder.drawIndexed(6, 1, 0, 4*5);
+		// passEncoder.drawIndexed(6, 1, 0, 4*6);
 
 		passEncoder.end();
 
