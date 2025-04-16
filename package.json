@@ -6,7 +6,8 @@
   },
   "dependencies": {
     "@webgpu/glslang": "^0.0.15",
-    "dat.gui": "^0.7.9"
+    "dat.gui": "^0.7.9",
+    "stats.js": "^0.17.0"
   },
   "scripts": {
     "dev": "vite",

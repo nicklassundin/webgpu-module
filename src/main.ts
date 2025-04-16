@@ -10,6 +10,10 @@ import depthFragmentShaderCode from "./shaders/depth.frag.wgsl?raw";
 
 import { GUI } from 'dat.gui';
 import Debugger from "./debug";
+import Stats from 'stats.js'
+const stats = new Stats();
+stats.showPanel(0)
+document.body.appendChild(stats.dom);
 
 const DEFAULT_COORD = [0.5, 0.6];
 
@@ -230,6 +234,8 @@ await device.queue.onSubmittedWorkDone();
 let current_mipLevel = 0;
 var reference = true;
 async function frame() {
+	stats.begin();
+	// Update the stats panel
 	if (params.change) {
 		console.log('click')
 		frameCount = 0;
@@ -321,6 +327,7 @@ async function frame() {
 	// 	frameCount = 0;
 	// 	return;
 	// }
+	stats.end();
 	await requestAnimationFrame(frame);
 
 }

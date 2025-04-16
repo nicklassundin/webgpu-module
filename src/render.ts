@@ -181,16 +181,10 @@ class Render {
 		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertice);
 		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
 		const maxLevel = this.mipLevel;
-		passEncoder.drawIndexed(6, 1, 0);
-		passEncoder.drawIndexed(6, 1, 6);
-		passEncoder.drawIndexed(6, 1, 6*2);
-		passEncoder.drawIndexed(6, 1, 6*3);
-		passEncoder.drawIndexed(6, 1, 6*4);
-		passEncoder.drawIndexed(6, 1, 6*5);
-		passEncoder.drawIndexed(6, 1, 6*6);
-		passEncoder.drawIndexed(6, 1, 6*7);
-		passEncoder.drawIndexed(6, 1, 6*8);
-		passEncoder.drawIndexed(6, 1, 6*9);
+		passEncoder.drawIndexed(6*Math.pow(4,this.mipLevel), 1, 0);
+		// passEncoder.drawIndexed(6, 1, 0);
+		// passEncoder.drawIndexed(6, 1, 6);
+
 
 
 		// passEncoder.drawIndexed(6*Math.pow(4, this.mipLevel), 1, 0);
