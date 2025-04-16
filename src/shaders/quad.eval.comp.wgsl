@@ -14,7 +14,7 @@ struct Traversal {
 	pad: vec3<i32>,
 };
 
-@group(0) @binding(0) var<storage, read_write> result: array<f32>;
+@group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
 @group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
 @group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
@@ -52,8 +52,18 @@ fn boundBoxFromeCoord(quad: u32, boundBox: vec4<f32>) -> vec4<f32> {
 	return nBoundBox;
 }
 
+const PI: f32 = 3.14159265358979323846;
+
 fn getNodeIndex(level: f32, pos: f32) -> u32 {
-	return u32((pow(4, level + 1) - 1) / 3 + pos);
+	return u32((pow(4, level)) / 3 + pos);
+}
+const rotateMatrix = mat2x2<f32>(cos(PI / 2.0), -sin(PI / 2.0), sin(PI / 2.0), cos(PI / 2.0));
+fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
+	let q = f32(quad);
+	var nCoord = vec2<f32>(0.0, 0.0);
+	// rotate matrix
+	nCoord = coord*rotateMatrix;
+	return nCoord;
 }
 
 @compute @workgroup_size(4,4)
@@ -61,7 +71,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	//let index = local_id.x + local_id.y * 4;
 	let index = local_id.x + local_id.y * 4 + global_id.z * 16;
+	let mipLevel = global_id.x / 16u;
 	let boundBox = traversal[index].boundBox;
+	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
 	let depth = traversal[index].depth;
 	
@@ -75,28 +87,29 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	} else if (quadMap[q1] == 0u){
 		quad = (quad + 1u) % 4u;
 		quadMap[q1] = 1u;
-		//coord = vec2<f32>(coord.x * 0.5, coord.y * 0.5);
 	} else if (quadMap[q2] == 0u){
 		quad = (quad + 2u) % 4u;
-		quadMap[q2] = 1u;
-		//coord = vec2<f32>(coord.x * 0.5, coord.y * 0.5);
+		quadMap[q2] += 1u;
 	} else if (quadMap[q3] == 0u){
 		quad = (quad + 3u) % 4u;
-		quadMap[q3] = 1u;
-		//coord = vec2<f32>(coord.x * 0.5, coord.y * 0.5);
+		quadMap[q3] = 1u; 
 	}
 	
 	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
 	//let nIndex = index + (quad+1)*u32(pow(4, f32(depth)));
 	let nIndex = index + 1;
-	//traversal[nIndex].coord = vec2<f32>((nBoundBox.x + nBoundBox.z)/2, (nBoundBox.y + nBoundBox.w)/2);
 	
 	traversal[nIndex].depth = f32(depth+1);
 	traversal[nIndex].coord = coord;
 	traversal[nIndex].boundBox = nBoundBox;
-	traversal[nIndex].quad = i32(quad);
 
-	result[index] = abs(levelValues[0][index] - levelValues[0][index]);
+	result[global_id.x / 16u][index] = abs(levelValues[0][index] - levelValues[global_id.x / 16u][index]);
+	coord = turnCoord(1u, coord);
+	traversal[index+16].coord = coord;
+	traversal[index+16].quad = i32(quad);
+	traversal[index+16].boundBox = boundBox;
+	traversal[index+16].depth = f32(depth);
+
 
 
 }

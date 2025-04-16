@@ -45,17 +45,13 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 fn modf(a: f32, b: f32) -> f32 {
     return a - b * floor(a / b);
 }
-fn getNodeCoord(level: f32, pos: f32) -> vec2<f32> {
-	let grid = pow(2.0, level);
-	let x = modf(pos, grid);
-	let y = floor(pos / grid);
-	return vec2<f32>(x, y);
-}
+
 
 @compute @workgroup_size(2,2)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
-	let index = global_id.z % u32(uniforms.mipLevel);
+	//let index = global_id.z % u32(uniforms.mipLevel);
+	let index = global_id.z;
 	let e = local_id.x + local_id.y * 2;
 	let level: u32 = u32(traversal[index].depth);
 	let grid: f32 = pow(2.0, f32(level));
@@ -65,7 +61,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 
 	
 	//var coord = traversal[0].coord;
-	var coord = traversal[index].coord;
+	let coord = traversal[index].coord;
 
 	let pixCoord = coord*grid;
 	
@@ -80,10 +76,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	//let vIndex = (local_id.x + local_id.y * 2) + index*2*2;
 	let quad = traversal[index].quad;
 	let vIndex = getNodeIndex(f32(level), f32(quad));
-	/*
-	vertices[0].vertices[e].position = vec4<f32>(f32(getNodeIndex(f32(level), f32(quad))), 0.0, 0.0, 0.0);
-	return;
-	*/
 	if (((uniforms.mipLevel - f32(index+1))/uniforms.mipLevel) < 0.0){
 
 	}else{
