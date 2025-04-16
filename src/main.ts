@@ -260,14 +260,12 @@ async function frame() {
 		quadManager.eval.pass(current_mipLevel);
 		quadManager.quadTree.pass(current_mipLevel);
 		// quadManager.genVertex.pass(current_mipLevel);
-		console.log('quadtree result')
-		await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-		console.log('eval result 0')
-		await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
-		console.log('eval result 1')
-		await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 32);
-	// await new Promise((resolve) => setTimeout(resolve, 300));
-		// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (5*4*4*4+2*4)*0, 64);
+		// console.log('quadtree result')
+		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+		// console.log('eval result 0')
+		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
+		// console.log('eval result 1')
+		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 32);
 		current_mipLevel++;
 	}else{
 		quadManager.eval.pass(current_mipLevel);
@@ -275,6 +273,9 @@ async function frame() {
 		quadManager.genVertex.pass(current_mipLevel);
 		current_mipLevel++;
 	}
+		console.log('Vertices')
+		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 0, 64)
+		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 64);
 	// console.log('current mip level', current_mipLevel)
 	// console.log(frameCount)
 	// console.log('mip level', mipLevel)

@@ -186,7 +186,6 @@ class Eval {
 		this.buffers.travBuffers.forEach(buffer => {
 			buffer.unmap();
 		});
-		this.target.unmap();
 		this.device.queue.onSubmittedWorkDone();
 	}
 }
