@@ -60,9 +60,11 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 const rotateMatrix = mat2x2<f32>(cos(PI / 2.0), -sin(PI / 2.0), sin(PI / 2.0), cos(PI / 2.0));
 fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 	let q = f32(quad);
-	var nCoord = vec2<f32>(0.0, 0.0);
+	var nCoord = coord*2.0 - 1.0;
 	// rotate matrix
-	nCoord = coord*rotateMatrix;
+	
+	nCoord = nCoord*rotateMatrix;
+	nCoord = nCoord * 0.5 + 0.5;
 	return nCoord;
 }
 
@@ -70,11 +72,11 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	let index = local_id.x + local_id.y * 4;
-	//let index = local_id.x + local_id.y * 4 + global_id.z * 16;
-	let mipLevel = global_id.z / 16u;
+	//let index = local_id.x + local_id.y * 4 + global_id.z*17;
 	let boundBox = traversal[index].boundBox;
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
+	traversal[index].depth = f32(local_id.x + local_id.y * 4);
 	let depth = traversal[index].depth;
 	
 	var quad = quadFromeCoord(coord, boundBox);
@@ -96,7 +98,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	}
 	
 	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
-	//let nIndex = index + (quad+1)*u32(pow(4, f32(depth)));
 	let nIndex = index + 1;
 	
 	traversal[nIndex].depth = f32(depth+1);
@@ -105,10 +106,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 
 	result[global_id.x / 16u][index] = abs(levelValues[0][index] - levelValues[global_id.x / 16u][index]);
 	coord = turnCoord(1u, coord);
-	traversal[index+16].coord = coord;
-	traversal[index+16].quad = i32(quad);
-	traversal[index+16].boundBox = boundBox;
-	traversal[index+16].depth = f32(depth);
+	traversal[index+17].coord = coord;
+	traversal[index+17].quad = i32(quad);
+	traversal[index+17].boundBox = boundBox;
+	traversal[index+17].depth = f32(depth);
 
 
 
