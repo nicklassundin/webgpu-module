@@ -180,9 +180,10 @@ class Render {
 		passEncoder.setBindGroup(2, this.bindGroups.nav);
 		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertice);
 		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
-		// passEncoder.drawIndexed(6, 1, 6*1);
 		const maxLevel = this.mipLevel;
-		passEncoder.drawIndexed(6*Math.pow(4, this.mipLevel), 1, 0);
+		passEncoder.drawIndexed(6, 1, 6);
+		passEncoder.drawIndexed(6, 1, 12);
+		// passEncoder.drawIndexed(6*Math.pow(4, this.mipLevel), 1, 0);
 		passEncoder.end();
 
 		this.device.queue.submit([commandEncoder.finish()]);

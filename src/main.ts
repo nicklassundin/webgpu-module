@@ -273,9 +273,12 @@ async function frame() {
 		quadManager.genVertex.pass(current_mipLevel);
 		current_mipLevel++;
 	}
+
+	if ( frameCount == mipLevel){
 		console.log('Vertices')
 		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 0, 64)
 		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 64);
+	}
 	// console.log('current mip level', current_mipLevel)
 	// console.log(frameCount)
 	// console.log('mip level', mipLevel)
@@ -313,7 +316,7 @@ async function frame() {
 	// wait for 0.5 second
 	// await new Promise((resolve) => setTimeout(resolve, 200));
 	// await new Promise((resolve) => setTimeout(resolve, 300));
-	await new Promise((resolve) => setTimeout(resolve, 1/(frameCount+1) * 1000));
+	// await new Promise((resolve) => setTimeout(resolve, 1/(frameCount+1) * 1000));
 	// if( frameCount > 120){
 	// 	frameCount = 0;
 	// 	return;
