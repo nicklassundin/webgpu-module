@@ -41,11 +41,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	//let z = global_id.z;
 	let z = local_id.z;
-	//let index = z + global_id.z*4;
 	let index = z + state.iter[z]/2;
 	//let index = z;
 	let level: u32 = u32(traversal[index].depth);
-	let grid: f32 = pow(2.0, uniforms.mipLevel - f32(level+1));
+	let grid: f32 = pow(2.0, f32(level));
 
 	
 	//var coord = traversal[0].coord;
@@ -62,7 +61,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	//let vIndex = (local_id.x + local_id.y * 2) + index*2*2;
 	let vIndex = (local_id.x + local_id.y * 2) + index*2*2;
 
-	vertices[vIndex].position = vec4<f32>(x, y, f32(index) / uniforms.mipLevel, 1.0);
+	vertices[vIndex].position = vec4<f32>(x, y, (uniforms.mipLevel - f32(index+1)) / uniforms.mipLevel, 1.0);
 	vertices[vIndex].values = vec4<f32>(levelValues[level], 0, 0, 0); 
 
 	let quad = vIndex % 4;

@@ -5,14 +5,6 @@ struct Node {
 	quad: f32,
 };
 
-fn getNode(index: u32) -> Node {
-	let node: Node = Node(nodes[index * 5u],
-		vec4<f32>(nodes[index * 5u + 1u], nodes[index * 5u + 2u], nodes[index * 5u + 3u], nodes[index * 5u + 4u]),
-		nodes[index * 5u + 5u]
-	);
-	return node;
-}
-
 struct Traversal {
 	depth: f32,
 	address: f32,
@@ -28,7 +20,6 @@ struct Traversal {
 
 @group(1) @binding(0) var<storage, read> selected: array<f32>;
 @group(1) @binding(1) var<storage, read> levelValues: array<f32>;
-@group(1) @binding(2) var<storage, read> nodes: array<f32>;
 
 
 fn quadFromeCoord(uv: vec2<f32>, boundBox: vec4<f32>) -> u32 {
@@ -105,4 +96,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	traversal[nIndex].quad = i32(quad);
 
 	result[index+1] = abs(selected[index] - levelValues[index]);
+
 }

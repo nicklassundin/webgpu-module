@@ -43,13 +43,14 @@ fn main(input: FragInput) -> @location(0) vec4f {
 		smallestDepth = depth;
 	}
 	
-	
 
 	//let value = levelValues[u32(mipLevel*(1.0 - depth))];
 	let value = input.values.x;
 	let index = mipLevel * (1.0 - depth)/mipLevel;
 	let nIndex = mipLevel * (1.0 - nextDepth)/mipLevel; 
 
+	
+	//return vec4<f32>(nextDepth, value, 0.0, 1.0);
 		
 	var color = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 	if (smallestDepth >= 0.0) {

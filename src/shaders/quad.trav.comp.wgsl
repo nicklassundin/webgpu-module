@@ -55,9 +55,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 		return;
 	}
 
-	//result[u32(trav.depth)] = address; 
-	result[u32(parent.depth)+1] = f32(parent.quad); 
 	result[u32(parent.depth)+1] = values[u32(child)] / values[0];
-	//result[u32(trav.depth)] = values[address];
-	//result[u32(trav.depth)] = f32(address); 
 }

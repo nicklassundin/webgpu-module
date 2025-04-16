@@ -72,14 +72,14 @@ class VertexGen {
 		    quadTreeTrav: QuadTreeTraversal, 
 		    mipLevelCount: number) {
 		this.device = device;
-		this.mipmapLevel = mipLevelCount;
-		const grid = Math.pow(2, this.mipmapLevel) +1 ;
+		this.mipLevel = mipLevelCount;
+		const grid = Math.pow(2, this.mipLevel) +1 ;
 		this.grid = grid;
-		this.target = targetEval;
+		this.eval= targetEval;
 		// 
 		const vertice = device.createBuffer({
 			// size: Math.pow(4, 8),
-			size: 4*4*Math.pow(4, this.mipmapLevel)*Float32Array.BYTES_PER_ELEMENT,
+			size: 4*4*Math.pow(4, this.mipLevel)*Float32Array.BYTES_PER_ELEMENT,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
 		});
 		// const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
@@ -97,7 +97,7 @@ class VertexGen {
 		});
 		const resolution = new Float32Array([canvas.width,
 						    	canvas.height,
-							this.mipmapLevel]);
+							this.mipLevel]);
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 		// State buffer
 		const stateBuffer = device.createBuffer({
@@ -146,7 +146,7 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		// computePass.dispatchWorkgroups(1, 1, this.mipmapLevel+1)
+		// computePass.dispatchWorkgroups(1, 1, this.mipLevel+1)
 		computePass.dispatchWorkgroups(1);
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
@@ -164,7 +164,7 @@ class VertexGen {
 						// purpose is to fill the buffer with each new call
 						offset: 0, 
 						// size: this.buffers.vertice.size,
-						size: Math.pow(4, this.mipmapLevel),
+						size: Math.pow(4, this.mipLevel),
 					}
 				},
 				{
@@ -191,17 +191,17 @@ class VertexGen {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.target.buffers.path,
+						buffer: this.eval.buffers.path,
 						offset: 0,
-						size: this.target.buffers.path.size,
+						size: this.eval.buffers.path.size,
 					},
 				},
 				{
 					binding: 1,
 					resource: {
-						buffer: this.target.buffers.travBuffers[(frame+8) % this.target.buffers.travBuffers.length],
+						buffer: this.eval.buffers.travBuffers[(frame+this.mipLevel) % this.eval.buffers.travBuffers.length],
 						offset: 0,
-						size: this.target.buffers.travBuffers[0].size,
+						size: this.eval.buffers.travBuffers[0].size,
 					},
 				},
 				{

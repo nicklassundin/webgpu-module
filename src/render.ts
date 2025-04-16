@@ -91,9 +91,9 @@ class Render {
 			colorAttachments: [
 				{
 					view: undefined,
-					clearValue: [0, 0, 1, 1], // Clear to transparent
-					// loadOp: 'clear',
-					loadOp: 'load',
+					clearValue: [0, 0, 0, 1], // Clear to transparent
+					loadOp: 'clear',
+					// loadOp: 'load',
 					storeOp: 'store',
 				},
 			],

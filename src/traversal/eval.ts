@@ -50,13 +50,6 @@ const QUADTREE_BGL = {
 						type: 'read-only-storage',
 					}
 				},
-				{
-					binding:3,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'read-only-storage',
-					}
-				}
 			],
 }
 
@@ -209,14 +202,6 @@ class Eval {
 						buffer: this.result[level % 2],
 					}
 				},
-				{
-					binding: 3,
-					resource: {
-						buffer: this.buffers.nodes,
-						offset: 0,
-						size: this.buffers.nodes.size
-					},
-				}
 			],
 		});
 		this.bindGroups = {
