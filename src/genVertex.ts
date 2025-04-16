@@ -146,8 +146,8 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		// computePass.dispatchWorkgroups(1, 1, this.mipLevel+1)
-		computePass.dispatchWorkgroups(1);
+		computePass.dispatchWorkgroups(1, 1, this.mipLevel)
+		// computePass.dispatchWorkgroups(1);
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
 	}

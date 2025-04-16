@@ -50,7 +50,6 @@ canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
 context.configure({
 	device,
 	format: presentationFormat,
@@ -276,8 +275,9 @@ async function frame() {
 
 	if ( frameCount == mipLevel){
 		console.log('Vertices')
-		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 0, 64)
-		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 64);
+		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 0, 128)
+		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 128);
+		// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 64, 128);
 	}
 	// console.log('current mip level', current_mipLevel)
 	// console.log(frameCount)

@@ -33,13 +33,14 @@ offset: u32,
 
 @group(0) @binding(0) var<storage, read_write> vertices: array<Quad>;
 @group(0) @binding(1) var<storage, read_write> indices: array<Indices>;
+//@group(0) @binding(1) var<storage, read_write> indices: array<u32>;
 @group(0) @binding(2) var<storage, read_write> state: State;
 @group(1) @binding(0) var<storage, read> levelValues: array<f32>;
 @group(1) @binding(1) var<storage, read> traversal: array<Traversal>; 
 @group(1) @binding(2) var<uniform> uniforms: Uniforms; 
 
 fn getNodeIndex(level: f32, pos: f32) -> u32 {
-	return u32((pow(4, level + 1) - 1) / 3 + pos);
+	return u32((pow(4, level)) / 3 + pos);
 }
 fn modf(a: f32, b: f32) -> f32 {
     return a - b * floor(a / b);
@@ -51,14 +52,11 @@ fn getNodeCoord(level: f32, pos: f32) -> vec2<f32> {
 	return vec2<f32>(x, y);
 }
 
-@compute @workgroup_size(2,2,2)
+@compute @workgroup_size(2,2)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
-	//let z = global_id.z;
-	let z = local_id.z;
-	let index = z + state.iter[z]/2;
-	//let index = z;
-	let edge = local_id.x + local_id.y * 2;
+	let index = global_id.z % u32(uniforms.mipLevel);
+	let e = local_id.x + local_id.y * 2;
 	let level: u32 = u32(traversal[index].depth);
 	let grid: f32 = pow(2.0, f32(level));
 	
@@ -79,29 +77,32 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	
 
 	// TODO fix so flat indexing
-	let vIndex = (local_id.x + local_id.y * 2) + index*2*2;
-	/*
+	//let vIndex = (local_id.x + local_id.y * 2) + index*2*2;
 	let quad = traversal[index].quad;
-	let vIndex = getNodeIndex(uniforms.mipLevel - f32(level), f32(quad))*4;
-	indices[0].indices[0] = p_x;
-	indices[0].indices[1] = p_y;
-	vertices[0].vertices[0].position = vec4<f32>(getNodeCoord(uniforms.mipLevel - f32(level), f32(quad)), 0.0, 0.0);
+	let vIndex = getNodeIndex(f32(level), f32(quad));
+	/*
+	vertices[0].vertices[e].position = vec4<f32>(f32(getNodeIndex(f32(level), f32(quad))), 0.0, 0.0, 0.0);
 	return;
 	*/
-	vertices[index].vertices[edge].position = vec4<f32>(x, y, (uniforms.mipLevel - f32(index+1)) / uniforms.mipLevel, 1.0);
-	vertices[index].vertices[edge].values = vec4<f32>(levelValues[level], 0, 0, 0); 
+	if (((uniforms.mipLevel - f32(index+1))/uniforms.mipLevel) < 0.0){
 
-	let i = edge;
-	if(i == 0){
-		indices[index].indices[0] = vIndex;
-	}else if(i == 1){
-		indices[index].indices[1] = vIndex;
-		indices[index].indices[3] = vIndex;
-	}else if(i == 2){
-		indices[index].indices[2] = vIndex;
-		indices[index].indices[5] = vIndex;
-	}else if(i == 3){
-		indices[index].indices[4] = vIndex;
+	}else{
+		vertices[vIndex].vertices[e].position = vec4<f32>(x, y, (uniforms.mipLevel - f32(index+1)) / uniforms.mipLevel, 1.0);
+		vertices[vIndex].vertices[e].values = vec4<f32>(levelValues[level], 0, 0, 0); 
 	}
-	state.iter[z] += 4;
+	
+	let j = vIndex;
+	let i = e; 
+	let k = (vIndex+e)*6;
+	if(i == 0){
+		indices[j].indices[0] = vIndex*4+e;
+	}else if(i == 1){
+		indices[j].indices[1] = vIndex*4+e;
+		indices[j].indices[3] = vIndex*4+e;
+	}else if(i == 2){
+		indices[j].indices[2] = vIndex*4+e;
+		indices[j].indices[5] = vIndex*4+e;
+	}else if(i == 3){
+		indices[j].indices[4] = vIndex*4+e;
+	}
 }
