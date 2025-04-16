@@ -18,8 +18,9 @@ struct Traversal {
 @group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
 @group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
-@group(1) @binding(0) var<storage, read> selected: array<f32>;
-@group(1) @binding(1) var<storage, read> levelValues: array<f32>;
+
+
+@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 
 
 fn quadFromeCoord(uv: vec2<f32>, boundBox: vec4<f32>) -> u32 {
@@ -95,6 +96,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	traversal[nIndex].boundBox = nBoundBox;
 	traversal[nIndex].quad = i32(quad);
 
-	result[index+1] = abs(selected[index] - levelValues[index]);
+	result[index] = abs(levelValues[0][index] - levelValues[0][index]);
+
 
 }

@@ -36,20 +36,6 @@ const QUADTREE_BGL = {
 						type: 'read-only-storage'
 					}
 				},
-				{
-					binding: 1,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'read-only-storage',
-					}, 
-				},
-				{
-					binding: 2,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'read-only-storage',
-					}
-				},
 			],
 }
 
@@ -70,12 +56,10 @@ class Eval {
 	}
 	constructor(device: GPUDevice,
 		    textureSize,
-		    quadTreeTravRef: QuadTreeTraversal,
 		    quadTreeTrav: QuadTreeTraversal, 
 		    mipLevelCount: number = 11) {
 		this.device = device;
 		this.mipmapLevel = mipLevelCount;
-		this.target = quadTreeTravRef;
 		let frames = 2;
 		
 		// 
@@ -187,20 +171,6 @@ class Eval {
 						offset: 0,
 						size: this.buffers.path.size
 					},
-				},
-				{
-					binding: 1,
-					resource: {
-						buffer: this.target.result,
-						offset: 0,
-						size: this.target.result.size
-					},
-				},
-				{
-					binding: 2,
-					resource: {
-						buffer: this.result[level % 2],
-					}
 				},
 			],
 		});

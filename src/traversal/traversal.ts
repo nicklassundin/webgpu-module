@@ -81,7 +81,7 @@ class QuadTreeTraversal {
 		// create mipLevelCount from textureSize as int
 		const resultArray = new Float32Array(mipLevel);
 		this.result = device.createBuffer({
-			size: Float32Array.BYTES_PER_ELEMENT * mipLevel,
+			size: Float32Array.BYTES_PER_ELEMENT * Math.pow(4, this.mipLevel),
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 

@@ -14,14 +14,12 @@ class QuadManager {
 		this.mipLevel = mipLevel;	
 	}
 	init(quadTree: QuadTree, uv: number[]) {
-		this.target = new QuadTreeTraversal(this.device, quadTree, this.mipLevel, uv);
 		this.quadTree = new QuadTreeTraversal(this.device, quadTree, this.mipLevel, uv);
-		this.eval = new Eval(this.device, this.textureSize, this.target, this.quadTree);
+		this.eval = new Eval(this.device, this.textureSize, this.quadTree);
 		this.genVertex = new VertexGen(this.device, this.textureSize, this.eval, this.quadTree, this.mipLevel);
 		// this.genVertex.pass(mipLevel);
 	}
 	pass(level, frame: number = 0){
-		this.target.pass(level)
 		this.genVertex.pass(frame);
 		this.eval.pass(level);
 	}
@@ -34,7 +32,6 @@ class QuadManager {
 		await this.quadTree.unmap();
 		await this.eval.unmap();
 		await this.genVertex.unmap();
-		await this.target.unmap();
 	}
 }
 export default QuadManager;
