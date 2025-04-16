@@ -280,16 +280,14 @@ async function frame() {
 	}
 
 	if ( frameCount > mipLevel){
-		console.log('Vertices')
+		// console.log('Vertices')
 		// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 0, 128)
 		// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 128);
 		// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 64, 128);
 		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
-		// let i = 16;
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 32*i, 128);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 32*(i+1), 128);
+		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 128);
 		// await dbug_mngr.u32fromBufferToLog(quadManager.eval.buffers.quadTreeMap, 0, 32);
 	}
 	// console.log('current mip level', current_mipLevel)

@@ -69,9 +69,9 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 @compute @workgroup_size(4,4)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
-	//let index = local_id.x + local_id.y * 4;
-	let index = local_id.x + local_id.y * 4 + global_id.z * 16;
-	let mipLevel = global_id.x / 16u;
+	let index = local_id.x + local_id.y * 4;
+	//let index = local_id.x + local_id.y * 4 + global_id.z * 16;
+	let mipLevel = global_id.z / 16u;
 	let boundBox = traversal[index].boundBox;
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
