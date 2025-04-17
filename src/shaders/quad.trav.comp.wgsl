@@ -35,8 +35,9 @@ struct Traversal {
 @compute @workgroup_size(4,4)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
-	let id = local_id.x + local_id.y * 4u + global_id.z * 16u;;
-	var parent = traversal[id]; 
+	//let id = local_id.x + local_id.y * 4u + global_id.z * 16u;
+	let id = local_id.x + local_id.y * 4u + 16u * ((global_id.z+1u) / 16u - 1u); 
+	var parent = traversal[id+1]; 
 
 	let quad = parent.quad;
 	let address = parent.address;

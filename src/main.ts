@@ -264,26 +264,20 @@ async function frame() {
 	if ( frameCount == mipLevel){
 	// if ( frameCount > mipLevel){
 		console.log('Vertices')
+		console.log('index', 0);
 		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 0, 128)
+		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 4*6);
+		await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 4*4)
+		console.log('index', 128/(4*8))
 		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 128, 128)
-		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 128*5, 128)
-		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 128);
-		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 64, 128);
-		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 64*5, 128);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 128);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*1, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*6, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*14, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*15, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*16, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*17, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*18, 32);
-
+		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 4*6, 4*6);
+		await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*16, 4*4);
+		console.log('index', 128/(4*8)*2)
+		await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 128*2, 128)
+		await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 4*6*5, 4*6);
+		await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*(16+15), 4*4);
 		// await dbug_mngr.u32fromBufferToLog(quadManager.eval.buffers.quadTreeMap, 0, 32);
+		await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	}
 	// console.log('current mip level', current_mipLevel)
 	// console.log(frameCount)
