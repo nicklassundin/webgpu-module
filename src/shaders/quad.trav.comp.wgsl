@@ -36,7 +36,7 @@ struct Traversal {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	//let id = local_id.x + local_id.y * 4u + global_id.z * 16u;
-	let id = local_id.x + local_id.y * 4u + 16u * ((global_id.z+1u) / 16u - 1u); 
+	let id = local_id.x + local_id.y * 4u;
 	
 	let pTrav = traversal[id];
 	var trav = traversal[id+1];

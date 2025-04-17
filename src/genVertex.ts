@@ -152,6 +152,7 @@ class VertexGen {
 		await device.queue.submit([commandEncoder.finish()]);
 	}
 	createBindGroups(frame: number = 0){
+		frame = frame / 2;
 		// Create texture for quadtree bindGroupQuad
 		const bindGroupWrite = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.write,

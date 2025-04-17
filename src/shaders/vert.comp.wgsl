@@ -56,10 +56,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	let level: u32 = u32(traversal[index].depth);
 	let grid: f32 = pow(2.0, f32(level));
 	
-
-	
-
-	
 	//var coord = traversal[0].coord;
 	let coord = traversal[index].coord;
 
