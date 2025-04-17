@@ -72,7 +72,7 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	let index = local_id.x + local_id.y * 4;
-	//let index = local_id.x + local_id.y * 4 + global_id.z*17;
+	//let index = local_id.x + local_id.y * 4 + global_id.z*16;
 	let boundBox = traversal[index].boundBox;
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
@@ -96,20 +96,23 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 		quad = (quad + 3u) % 4u;
 		quadMap[q3] = 1u; 
 	}
-	
+
+	if ((index+1u) % 16u == 0u){
+		return;
+	}
 	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
 	let nIndex = index + 1;
-	
+
 	traversal[nIndex].depth = f32(depth+1);
 	traversal[nIndex].coord = coord;
 	traversal[nIndex].boundBox = nBoundBox;
 
 	result[global_id.x / 16u][index] = abs(levelValues[0][index] - levelValues[global_id.x / 16u][index]);
-	coord = turnCoord(1u, coord);
-	traversal[index+17].coord = coord;
-	traversal[index+17].quad = i32(quad);
-	traversal[index+17].boundBox = boundBox;
-	traversal[index+17].depth = f32(depth);
+	//coord = turnCoord(1u, coord);
+	//traversal[index+16].coord = coord;
+	traversal[index+16].quad = i32(quad);
+	traversal[index+16].boundBox = boundBox;
+	traversal[index+16].depth = f32(depth);
 
 
 
