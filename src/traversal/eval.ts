@@ -132,6 +132,7 @@ class Eval {
 	}
 	createBindGroups(level = 0){
 		// Create texture for quadtree bindGroupQuad
+		level = level / 2;
 		const bindGroupQuadTreeTexture = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.texture,
 			entries: [

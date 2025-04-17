@@ -191,9 +191,9 @@ class VertexGen {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.eval.buffers.path,
+						buffer: this.eval.buffers.result[frame % 2],
 						offset: 0,
-						size: this.eval.buffers.path.size,
+						size: this.eval.buffers.result[frame % 2].size,
 					},
 				},
 				{

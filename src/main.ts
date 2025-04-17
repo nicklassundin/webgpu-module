@@ -278,6 +278,8 @@ async function frame() {
 		await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 64*(16+15), 4*4);
 		// await dbug_mngr.u32fromBufferToLog(quadManager.eval.buffers.quadTreeMap, 0, 32);
 		await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+		await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 128);
+		await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 128);
 	}
 	// console.log('current mip level', current_mipLevel)
 	// console.log(frameCount)
