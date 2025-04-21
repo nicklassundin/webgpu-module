@@ -2,7 +2,7 @@ import quadEvaluationComputeShaderCode from '../shaders/quad.eval.comp.wgsl?raw'
 
 import QuadTreeTraversal from './traversal';
 
-const TEXT_STRG_BGL = {
+const WRITE_BGL = {
 			entries: [
 				{
 					binding: 0,
@@ -24,16 +24,31 @@ const TEXT_STRG_BGL = {
 					buffer: {
 						type: 'storage'
 					}
+				},{
+					binding: 3,
+					visibility: GPUShaderStage.COMPUTE,
+					storageTexture: {
+						format: 'rgba8unorm',
+						viewDimension: '2d',
+						accessMode: 'write-only',
+					}
 				}
 			],
 }
-const QUADTREE_BGL = {
+const READ_BGL = {
 			entries: [
 				{
 					binding: 0,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
 						type: 'read-only-storage'
+					}
+				},
+				{
+					binding: 1,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: {
+						type: 'uniform'
 					}
 				},
 			],
@@ -59,7 +74,7 @@ class Eval {
 		    quadTreeTrav: QuadTreeTraversal, 
 		    mipLevelCount: number = 11) {
 		this.device = device;
-		this.mipmapLevel = mipLevelCount;
+		this.mipLevel = mipLevelCount;
 		let frames = 2;
 		
 		// 
@@ -77,6 +92,27 @@ class Eval {
 			size: Math.pow(2, 2 * mipLevelCount) * 4 * 4, 
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
+		// Mipmap texture
+		const mipmapTexture = device.createTexture({
+			size: {
+				width: textureSize,
+				height: textureSize,
+				depthOrArrayLayers: 1,
+			},
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.STORAGE | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
+			mipLevelCount: mipLevelCount,
+		});
+		// Uniform buffer storing current mipmap level
+		let uniforms: GPUBuffer[] = [];
+		for (let i = 0; i < this.mipLevel; i++) {
+			const uniformValue = new Float32Array([i]);
+			uniforms.push(device.createBuffer({
+				size: travValues.byteLength,
+				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.UNIFORM,
+			}));
+			device.queue.writeBuffer(uniforms[i], 0, uniformValue.buffer);
+		}
 
 		this.buffers = {
 			path: quadTreeTrav.result,
@@ -85,14 +121,16 @@ class Eval {
 			result,
 			nodes: quadTreeTrav.buffers.nodesBuffer,
 			quadTreeMap: quadTreeBuffer,
+			texture: mipmapTexture,
+			uniforms,
 		}
 		
 		// create bindgrouopLayout for quadtree
 		// Texture Storage Layout
 
 		this.bindGroupLayouts = {
-			quadTree: device.createBindGroupLayout(QUADTREE_BGL),
-			texture: device.createBindGroupLayout(TEXT_STRG_BGL),
+			quadTree: device.createBindGroupLayout(READ_BGL),
+			texture: device.createBindGroupLayout(WRITE_BGL),
 		}
 		// Initialize bindGroups 
 		// this.createBindGroups();
@@ -116,7 +154,7 @@ class Eval {
 
 	async pass(mipLevel){
 		// calculate workgroup based on mipmap
-		// const workgroupSize = Math.pow(2, this.mipmapLevel - mipLevel);
+		// const workgroupSize = Math.pow(2, this.mipLevel - mipLevel);
 		const device = this.device;
 		// update bindGroup
 		this.createBindGroups(mipLevel);
@@ -125,8 +163,9 @@ class Eval {
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroups.texture);
 		computePass.setBindGroup(1, this.bindGroups.quadTree);
-		// computePass.dispatchWorkgroups(this.mipmapLevel)
-		computePass.dispatchWorkgroups(1,1,4)
+		// computePass.dispatchWorkgroups(this.mipLevel)
+		// computePass.dispatchWorkgroups(1,1,4)
+		computePass.dispatchWorkgroups(1)
 		computePass.end();
 		await device.queue.submit([commandEncoderQuad.finish()]);
 	}
@@ -159,6 +198,13 @@ class Eval {
 						offset: 0,
 						size: this.buffers.quadTreeMap.size,
 					}
+				},
+				{
+					binding: 3,
+					resource: this.buffers.texture.createView({
+						baseMipLevel: level % this.mipLevel,
+						mipLevelCount: 1,
+					}),
 				}
 			],
 		});
@@ -172,6 +218,14 @@ class Eval {
 						offset: 0,
 						size: this.buffers.path.size
 					},
+				},
+				{
+					binding: 1,
+					resource: {
+						buffer: this.buffers.uniforms[level % this.mipLevel],
+						offset: 0,
+						size: this.buffers.uniforms[level % this.mipLevel].size,
+					}
 				},
 			],
 		});

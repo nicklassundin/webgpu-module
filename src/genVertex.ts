@@ -26,7 +26,16 @@ const WRITE_BGL = {
 					buffer: {
 						type: 'storage',
 					}
-				}
+				},
+				{
+					// texture binding
+					binding: 3,
+					visibility: GPUShaderStage.COMPUTE,
+					texture: {
+						viewDimension: '2d',
+						sampleType: 'float',
+					}
+				},
 			],
 }
 const READ_BGL = {
@@ -49,7 +58,16 @@ const READ_BGL = {
 					binding: 2,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {}
-				}
+				},
+				{
+					// texture binding
+					binding: 3,
+					visibility: GPUShaderStage.COMPUTE,
+					texture: {
+						viewDimension: '2d',
+						sampleType: 'float',
+					}
+				},
 			],
 }
 
@@ -104,11 +122,18 @@ class VertexGen {
 			size: 4 * 4 * 4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
+		// Texture
+		const texture = device.createTexture({
+			size: { width: textureSize, height: textureSize, depthOrArrayLayers: 1 },
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST,
+		});
 		this.buffers = {
 			vertice,
 			indices,
 			uniform: uniformBuffer,
 			state: stateBuffer,
+			texture,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -182,7 +207,12 @@ class VertexGen {
 						offset: 0,
 						size: this.buffers.state.size,
 					}
-				}
+				},
+				// write texture
+				{
+					binding: 3,
+					resource: this.buffers.texture.createView(),
+				},
 			],
 		});
 		const bindGroudRead = this.device.createBindGroup({
@@ -212,6 +242,10 @@ class VertexGen {
 						size: this.buffers.uniform.size,
 					},
 				},
+				{
+					binding: 3,
+					resource: this.eval.buffers.texture.createView(),
+				}
 			],
 		});
 		this.bindGroups = {

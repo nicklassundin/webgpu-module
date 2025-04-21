@@ -18,9 +18,15 @@ struct Traversal {
 @group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
 @group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
+@group(1) @binding(0) var texture: texture_storage_2d<rgba8unorm, write>;
+
 
 
 @group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
+struct Uniform {
+	depth: f32,
+}
+@group(1) @binding(1) var<storage, read> uniforms: Uniform;
 
 
 fn quadFromeCoord(uv: vec2<f32>, boundBox: vec4<f32>) -> u32 {
