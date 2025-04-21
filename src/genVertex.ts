@@ -31,9 +31,9 @@ const WRITE_BGL = {
 					// texture binding
 					binding: 3,
 					visibility: GPUShaderStage.COMPUTE,
-					texture: {
-						viewDimension: '2d',
-						sampleType: 'float',
+					storageTexture: {
+						access: 'write-only',
+						format: 'rgba8unorm',
 					}
 				},
 			],
