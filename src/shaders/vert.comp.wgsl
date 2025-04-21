@@ -39,6 +39,9 @@ offset: u32,
 @group(1) @binding(1) var<storage, read> traversal: array<Traversal>; 
 @group(1) @binding(2) var<uniform> uniforms: Uniforms; 
 
+// texture
+@group(2) @binding(0) var texture: texture_2d<f32>;
+
 fn getNodeIndex(level: f32, pos: f32) -> u32 {
 	return u32((pow(4, level)) / 3 + pos);
 }

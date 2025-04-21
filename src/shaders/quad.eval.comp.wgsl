@@ -18,7 +18,7 @@ struct Traversal {
 @group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
 @group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
-@group(1) @binding(0) var texture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(3) var texture: texture_storage_2d<rgba8unorm, write>;
 
 
 
@@ -121,4 +121,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	traversal[index+16].boundBox = boundBox;
 	traversal[index+16].depth = f32(depth);
 
+
+	let textureDimensions = textureDimensions(texture);
+	let uv = vec2<f32>(coord.x / f32(textureDimensions.x), coord.y / f32(textureDimensions.y));
+	textureStore(texture, vec2<i32>(i32(global_id.x), i32(global_id.y)), vec4<f32>(uv, 0.0, 1.0));
 }
