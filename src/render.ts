@@ -3,24 +3,6 @@
 import baseVertexShaderCode from "./shaders/base.vertex.wgsl?raw";
 import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
 
-const BGL = {
-	entries: [
-		{
-			binding: 0,
-			visibility: GPUShaderStage.FRAGMENT,
-			sampler: {
-				type: 'non-filtering',
-			},
-		},
-		{
-			binding: 1,
-			visibility: GPUShaderStage.FRAGMENT,
-			texture: {
-				sampleType: 'depth',
-			},
-		},
-	],
-}
 // binding group layout for mipmap
 const BGL_UNIFORM = {
 	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: {}  }],
@@ -52,19 +34,7 @@ class Render {
 		this.buffers = {
 			uniform: uniformBuffer,
 		}
-		// Create depth texture manually
 		this.frames = 2;
-		let depthTextures: GPUTexture[] = [];
-		for (let i = 0; i < this.frames; i++) {
-			const depthTexture = device.createTexture({
-				size: { width: canvas.width, height: canvas.height, depthOrArrayLayers: 1 },
-				format: 'depth24plus',
-				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-			});
-			depthTextures.push(depthTexture);
-		}
-		this.depthTextures = depthTextures;
-
 		this.frameBuffer = []
 		for (let i = 0; i < this.frames; i++) {
 			this.frameBuffer.push(device.createTexture({
@@ -76,13 +46,12 @@ class Render {
 
 
 		this.bindGroupLayouts = {
-			traversal: device.createBindGroupLayout(BGL),
 			uniform: device.createBindGroupLayout(BGL_UNIFORM),
 		}
 		this.createBindGroups();
 		// Create Pipeline Layout
 		this.pipelineLayout = device.createPipelineLayout({
-			bindGroupLayouts: [this.bindGroupLayouts.traversal, this.bindGroupLayouts.uniform, this.bindGroupLayouts.nav],
+			bindGroupLayouts: [this.bindGroupLayouts.uniform, this.bindGroupLayouts.nav],
 		});
 		// Pipeline
 		this.createPipeline(mipLevel);
@@ -97,13 +66,6 @@ class Render {
 					storeOp: 'store',
 				},
 			],
-			depthStencilAttachment: {
-				view: undefined, 
-				// depthLoadOp: 'load',
-				depthLoadOp: 'clear',
-				depthStoreOp: 'store',
-				depthClearValue: 1.0,
-			},
 		};
 	}
 	createPipeline(level, presentationFormat = 'bgra8unorm'){
@@ -146,12 +108,6 @@ class Render {
 				// topology: 'line-list',
 				// cullMode: 'none',
 			},
-			depthStencil: {
-				format: 'depth24plus',
-				depthWriteEnabled: true,
-				// depthCompare: 'less',
-				depthCompare: 'less-equal',
-			},
 		});
 
 	}
@@ -166,8 +122,6 @@ class Render {
 		// TODO render to framebuffer and create second pipeline for canvas
 		const textureView = currentTexture.createView();
 		this.renderPassDescriptor.colorAttachments[0].view = textureView;
-		const depthTextureView = this.depthTextures[(calls + 1) % this.frames].createView();
-		this.renderPassDescriptor.depthStencilAttachment.view = depthTextureView;
 		// update bindGroups
 		this.createBindGroups(calls)
 
@@ -175,9 +129,8 @@ class Render {
 		const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 		passEncoder.setPipeline(this.pipeline);
 		// passEncoder.setVertexBuffer(0, vertexBuffer);
-		passEncoder.setBindGroup(0, this.bindGroups.traversal); 
-		passEncoder.setBindGroup(1, this.bindGroups.uniform);
-		passEncoder.setBindGroup(2, this.bindGroups.nav);
+		passEncoder.setBindGroup(0, this.bindGroups.uniform);
+		passEncoder.setBindGroup(1, this.bindGroups.nav);
 		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertice);
 		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
 		const maxLevel = this.mipLevel;
@@ -198,19 +151,6 @@ class Render {
 	}
 	createBindGroups(call = 0) {
 		this.bindGroups = {
-			traversal: this.device.createBindGroup({
-				layout: this.bindGroupLayouts.traversal,
-				entries: [
-					{
-						binding: 0,
-						resource: this.depthSampler,
-					},
-					{
-						binding: 1,
-						resource: this.depthTextures[call % this.frames].createView(),
-					},
-				],
-			}),
 			uniform: this.device.createBindGroup({
 				layout: this.bindGroupLayouts.uniform,
 				entries: [
