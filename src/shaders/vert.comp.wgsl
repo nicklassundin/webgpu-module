@@ -69,13 +69,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	
 
 	// TODO fix so flat indexing
-	//let vIndex = (local_id.x + local_id.y * 2) + index*2*2;
 	let quad = traversal[index].quad;
 	let vIndex = getNodeIndex(f32(level), f32(quad));
 	if (((uniforms.mipLevel - f32(index+1))/uniforms.mipLevel) < 0.0){
 
 	}else{
-		vertices[vIndex].vertices[e].position = vec4<f32>(x, y, (uniforms.mipLevel - f32(index+1)) / uniforms.mipLevel, 1.0);
+		vertices[vIndex].vertices[e].position = vec4<f32>(x, y, (uniforms.mipLevel - f32(level+1)) / uniforms.mipLevel, 1.0);
 		vertices[vIndex].vertices[e].values = vec4<f32>(levelValues[level], 0, 0, 0); 
 	}
 	

@@ -115,6 +115,4 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	traversal[index+16].boundBox = boundBox;
 	traversal[index+16].depth = f32(depth);
 
-
-
 }
