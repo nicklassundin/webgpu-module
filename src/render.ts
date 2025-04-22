@@ -5,7 +5,22 @@ import fragmentShaderCode from "./shaders/fragment.wgsl?raw";
 
 // binding group layout for mipmap
 const BGL_UNIFORM = {
-	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: {}  }],
+	entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: {}  },
+		{
+			binding: 1,
+			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX,
+			sampler: {
+				type: 'filtering',
+			},
+		},
+		{
+			binding: 2,
+			visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX,
+			texture: {
+				viewDimension: '2d',
+				sampleType: 'float',
+			},
+		}],
 }
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
 // Create bind group for uniform buffer
@@ -31,8 +46,23 @@ class Render {
 						    canvas.height,
 		mipLevel]);
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
+		// Sampler
+		const sampler = device.createSampler({ 
+			minFilter: 'linear',
+			magFilter: 'linear',
+			mipmapFilter: 'linear',
+			// minFilter: 'nearest',
+			// magFilter: 'nearest',
+			// mipmapFilter: 'nearest',
+			addressModeU: 'clamp-to-edge',
+			addressModeV: 'clamp-to-edge',
+			addressModeW: 'clamp-to-edge',
+			// compare: 'less-equal',
+			// maxAnisotropy: 16,
+		});
 		this.buffers = {
 			uniform: uniformBuffer,
+			sampler: sampler,
 		}
 		this.frames = 2;
 		this.frameBuffer = []
@@ -106,7 +136,7 @@ class Render {
 				topology: 'triangle-list',
 				// topology: 'point-list',
 				// topology: 'line-list',
-				// cullMode: 'none',
+				cullMode: 'none',
 			},
 		});
 
@@ -134,7 +164,8 @@ class Render {
 		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertice);
 		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
 		const maxLevel = this.mipLevel;
-		passEncoder.drawIndexed(6*Math.pow(4,this.mipLevel), 1, 0);
+		// passEncoder.drawIndexed(6*Math.pow(4,this.mipLevel), 1, 0);
+		passEncoder.drawIndexed(6, 1, 0);
 		// passEncoder.drawIndexed(6, 1, 0);
 		// passEncoder.drawIndexed(6, 1, 6);
 		// passEncoder.drawIndexed(6, 1, 6*5);
@@ -161,6 +192,16 @@ class Render {
 							offset: 0,
 							size: uniformBufferSize,
 						},
+					},
+					// Sampler from buffers.sampler
+					{
+						binding: 1,
+						resource: this.buffers.sampler,
+					},
+					// Texture from genVertex.buffers.texture
+					{
+						binding: 2,
+						resource: this.manager.genVertex.buffers.texture.createView(),
 					},
 				],
 			}),

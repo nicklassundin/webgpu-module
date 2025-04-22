@@ -10,26 +10,12 @@ const WRITE_BGL = {
 					binding: 0,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
-						type: 'storage'
-					}
-				},
-				{
-					binding: 1,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'storage'
-					}
-				},
-				{
-					binding: 2,
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
 						type: 'storage',
 					}
 				},
 				{
 					// texture binding
-					binding: 3,
+					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					storageTexture: {
 						access: 'write-only',
@@ -93,21 +79,28 @@ class VertexGen {
 		this.mipLevel = mipLevelCount;
 		const grid = Math.pow(2, this.mipLevel) +1 ;
 		this.grid = grid;
+		this.textureSize = textureSize;
 		this.eval= targetEval;
 		// 
+		const verticeValues = new Float32Array([
+			0, 0, 0, 1, 0, 0, 0, 1,
+			1, 0, 0, 1, 0, 0, 0, 1,
+			0, 1, 0, 1, 0, 0, 0, 1,
+			1, 1, 0, 1, 0, 0, 0, 1,
+		]);
 		const vertice = device.createBuffer({
 			// size: Math.pow(4, 8),
-			size: 4*4*Math.pow(4, this.mipLevel)*Float32Array.BYTES_PER_ELEMENT,
+			size: verticeValues.byteLength, 
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
 		});
-		// const indicesValues = new Uint32Array([0, 1, grid, 1, grid+1, grid]);
-		// const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
+		device.queue.writeBuffer(vertice, 0, verticeValues.buffer);
+		const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
 		// const indicesValues = new Uint32Array([0, 1, 2, 0, 0, 0]);
 		const indices = device.createBuffer({
 			size: 6*Math.pow(4, mipLevelCount)*4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
 		});
-		// device.queue.writeBuffer(indices, 0, indicesValues.buffer);
+		device.queue.writeBuffer(indices, 0, indicesValues.buffer);
 		// create index buffer
 		const uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
@@ -170,8 +163,11 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		computePass.dispatchWorkgroups(1, 1, this.mipLevel)
-		// computePass.dispatchWorkgroups(1);
+		// round up to next
+		const workgroupSize = Math.ceil(this.textureSize / 64); 
+		console.log(workgroupSize);
+		computePass.dispatchWorkgroups(workgroupSize, workgroupSize);
+		// computePass.dispatchWorkgroups(1)
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
 	}
@@ -184,25 +180,6 @@ class VertexGen {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.vertice,
-						// TODO adjust offset inside or outisde shader
-						// purpose is to fill the buffer with each new call
-						offset: 0, 
-						// size: this.buffers.vertice.size,
-						size: Math.pow(4, this.mipLevel),
-					}
-				},
-				{
-					binding: 1,
-					resource: {
-						buffer: this.buffers.indices,
-						offset: 0,
-						size: this.buffers.indices.size,
-					}
-				},
-				{
-					binding: 2,
-					resource: {
 						buffer: this.buffers.state,
 						offset: 0,
 						size: this.buffers.state.size,
@@ -210,7 +187,7 @@ class VertexGen {
 				},
 				// write texture
 				{
-					binding: 3,
+					binding: 1,
 					resource: this.buffers.texture.createView(),
 				},
 			],

@@ -5,6 +5,9 @@ resolution: vec2<f32>,
 mipLevel: f32,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms; 
+// texture
+@group(0) @binding(1) var textureSampler: sampler; 
+@group(0) @binding(2) var texture: texture_2d<f32>;
 
 struct FragInput {
 	@location(0) position: vec4<f32>,
@@ -14,5 +17,8 @@ struct FragInput {
 fn main(input: FragInput) -> @location(0) vec4f {
 	let fragCoord = input.position;
 	let pos = fragCoord.xy; 
-	return fragCoord;
+	let texDim = textureDimensions(texture);
+	let uv = pos / vec2<f32>(texDim);
+	return textureSample(texture, textureSampler, uv);
+	//return fragCoord;
 }
