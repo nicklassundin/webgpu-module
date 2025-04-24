@@ -25,8 +25,9 @@ class QuadManager {
 	}
 	iterate(level, frame: number = 0){
 		this.quadTree.pass(level);
-		this.genVertex.pass(frame);
 		this.eval.pass(level);
+		
+		this.genVertex.pass(frame);
 	}
 	async unmap(){
 		await this.quadTree.unmap();

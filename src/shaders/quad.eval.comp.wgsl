@@ -23,10 +23,13 @@ struct Traversal {
 
 
 @group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
-struct Uniform {
-	depth: f32,
-}
-@group(1) @binding(1) var<storage, read> uniforms: Uniform;
+
+
+struct ThreadInfo {
+	reference: array<f32, 16>,
+	iterations: array<u32>,
+};
+@group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
 
 fn quadFromeCoord(uv: vec2<f32>, boundBox: vec4<f32>) -> u32 {
@@ -74,18 +77,18 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 	return nCoord;
 }
 
-//@compute @workgroup_size(4,4)
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 // TODO have problem with extra first one spawning siblings each itera tion should be 4x4-1 in size
-	let index = local_id.x + local_id.y * 4;
-	//let index = local_id.x + local_id.y * 4 + global_id.z * 16u;
+	let threadIndex = local_id.x % 16u;
+	let iter = (threadIterations.iterations[threadIndex] / 2u) % 16u;
+	let index = iter % 16u;
 	let boundBox = traversal[index].boundBox;
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
-	traversal[index].depth = f32(local_id.x + local_id.y * 4);
-	let depth = traversal[index].depth;
+	let depth = threadIterations.iterations[global_id.x / 16u];
+	traversal[index].depth = f32(depth);
 	
 	var quad = quadFromeCoord(coord, boundBox);
 	var q0 = getNodeIndex(f32(depth), f32(quad));
@@ -114,16 +117,22 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	traversal[nIndex].depth = f32(depth+1);
 	traversal[nIndex].coord = coord;
 	traversal[nIndex].boundBox = nBoundBox;
-
-	result[global_id.x / 16u][index] = abs(levelValues[0][index] - levelValues[global_id.x / 16u][index]);
 	//coord = turnCoord(1u, coord);
-	//traversal[index+16].coord = coord;
-	traversal[index+16].quad = i32(quad);
-	traversal[index+16].boundBox = boundBox;
-	traversal[index+16].depth = f32(depth);
-
+	//traversal[index].coord = coord;
+	/*
+	traversal[index].quad = i32(quad);
+	traversal[index].boundBox = boundBox;
+	traversal[index].depth = f32(depth);
+*/
 
 	let textureDimensions = textureDimensions(texture);
 	let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-	textureStore(texture, texCoord, vec4<f32>(0.5, 0.0, 0.0, 1.0));
+	textureStore(texture, texCoord, vec4<f32>(coord, 0.0, 1.0));
+	
+	threadIterations.iterations[global_id.x / 16u] = 66u; 
+	if(threadIterations.iterations[global_id.x / 16] < 16u) {
+		threadIterations.reference[iter % 16u] = levelValues[0][index];
+	}else{
+		result[iter % 16u][index] = threadIterations.reference[iter % 16u]; 
+	}
 }

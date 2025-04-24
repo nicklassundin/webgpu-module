@@ -178,11 +178,8 @@ class VertexGen {
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
 		// round up to next
-		const xWorkGroupSize = Math.ceil(this.textureSize.width / 8);
-		const yWorkGroupSize = Math.ceil(this.textureSize.height / 8);
-		console.log(xWorkGroupSize, yWorkGroupSize) 
-		console.log(xWorkGroupSize*8, yWorkGroupSize*8)
-		console.log(this.textureSize.width, this.textureSize.height)
+		const xWorkGroupSize = Math.ceil(this.textureSize.width / 16);
+		const yWorkGroupSize = Math.ceil(this.textureSize.height / 16);
 		computePass.dispatchWorkgroups(xWorkGroupSize, yWorkGroupSize);
 		// computePass.dispatchWorkgroups(1)
 		computePass.end();

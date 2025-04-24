@@ -251,16 +251,10 @@ async function frame() {
 	// if ( frameCount > mipLevel){
 		// console.log('Vertices')
 		// console.log('index', 0);
-		// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 0, 128)
-		// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 0, 4*6);
 		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[1], 0, 4*4)
 		// console.log('index', 128/(4*8))
-		// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 128, 128)
-		// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 4*6, 4*6);
 		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[1], 64*16, 4*4);
 		// console.log('index', 128/(4*8)*2)
-		// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, 128*2, 128)
-		// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.indices, 4*6*5, 4*6);
 		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[1], 64*(16+15), 4*4);
 		// await dbug_mngr.u32fromBufferToLog(quadManager.eval.buffers.quadTreeMap, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
@@ -271,46 +265,11 @@ async function frame() {
 	// console.log(frameCount)
 	// console.log('mip level', mipLevel)
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.nodesBuffer, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[1], 0, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*2, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*(2+16), 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*3, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*4, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*5, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*6, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*7, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*15, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*16, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 16*4*17, 16*4);
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 64);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.valuesBuffer, 0, 32);
-	
-	// console.log('first vertice')
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*1, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*2, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*3, 32);
-	// console.log('second vertice')
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*4, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*5, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*6, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*7, 32);
-	// console.log('third vertice')
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*8, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*9, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*10, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*11, 32);
-	// console.log('Sixed vertice')
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*20, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*21, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*22, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.genVertex.buffers.vertice, (8*4)*23, 32);
-
-	// Render pass
-	// await dbug_mngr.u32fromBufferToLog(quadManager.genVertex.buffers.state, 0, 64);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 	// if (lastFrameTime < Date.now()){
 	if (frameCount % mipLevel > 7){ 
 		reference = false;
@@ -319,7 +278,6 @@ async function frame() {
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadTree.buffers.nodes, 0, 32);
 	
 	// await new Promise((resolve) => setTimeout(resolve, 300));

@@ -134,13 +134,12 @@ class QuadTreeTraversal {
 
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroup.quadTree);
-		// computePass.dispatchWorkgroups(1);
-		// computePass.dispatchWorkgroups(mipLevel+1);
 		computePass.dispatchWorkgroups(1)
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
 	}
 	createBindGroup(level = this.mipLevel){
+		level = level / 2;
 		this.bindGroup = {
 			quadTree: this.device.createBindGroup({
 			layout: this.bindGroupLayouts.quadTree,
@@ -148,9 +147,9 @@ class QuadTreeTraversal {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.travBuffers[(level) % 2],
+						buffer: this.buffers.travBuffers[(level+1) % 2],
 						offset: 0,
-						size: this.buffers.travBuffers[(level) % 2].size, 
+						size: this.buffers.travBuffers[(level+1) % 2].size, 
 					},
 				},
 				{

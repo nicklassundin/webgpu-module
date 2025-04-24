@@ -2,6 +2,7 @@ import quadEvaluationComputeShaderCode from '../shaders/quad.eval.comp.wgsl?raw'
 
 import QuadTreeTraversal from './traversal';
 
+const NUM_THREADS = 1;
 const WRITE_BGL = {
 			entries: [
 				{
@@ -48,7 +49,7 @@ const READ_BGL = {
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {
-						type: 'uniform'
+						type: 'storage'
 					}
 				},
 			],
@@ -99,16 +100,12 @@ class Eval {
 			usage: GPUTextureUsage.STORAGE | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
 			mipLevelCount: mipLevelCount,
 		});
-		// Uniform buffer storing current mipmap level
-		let uniforms: GPUBuffer[] = [];
-		for (let i = 0; i < this.mipLevel; i++) {
-			const uniformValue = new Float32Array([i]);
-			uniforms.push(device.createBuffer({
-				size: travValues.byteLength,
-				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.UNIFORM,
-			}));
-			device.queue.writeBuffer(uniforms[i], 0, uniformValue.buffer);
-		}
+		// Uniform buffer storing current mipmap level u32 bit
+		const threadIterationsBuffer = device.createBuffer({
+			// 16 is fixed max mipmap level
+			size: NUM_THREADS * 4 + Float32Array.BYTES_PER_ELEMENT * 16,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC, 
+		});
 
 		this.buffers = {
 			path: quadTreeTrav.result,
@@ -118,7 +115,7 @@ class Eval {
 			nodes: quadTreeTrav.buffers.nodesBuffer,
 			quadTreeMap: quadTreeBuffer,
 			texture: mipmapTexture,
-			uniforms,
+			threadIterations: threadIterationsBuffer,
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -168,6 +165,7 @@ class Eval {
 	createBindGroups(level = 0){
 		// Create texture for quadtree bindGroupQuad
 		level = level / 2;
+		console.log(level % 2)
 		let currentMipLevel = (this.mipLevel - 1) - level % this.mipLevel;
 		const bindGroupQuadTreeTexture = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.texture,
@@ -219,9 +217,9 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.uniforms[level % this.mipLevel],
+						buffer: this.buffers.threadIterations,
 						offset: 0,
-						size: this.buffers.uniforms[level % this.mipLevel].size,
+						size: this.buffers.threadIterations.size,
 					}
 				},
 			],
