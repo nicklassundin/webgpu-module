@@ -18,7 +18,7 @@ fn main(input: FragInput) -> @location(0) vec4f {
 	let fragCoord = input.position;
 	let pos = fragCoord.xy; 
 	let texDim = textureDimensions(texture);
-	let uv = pos / vec2<f32>(texDim);
+	let uv = pos;
 	return textureSample(texture, textureSampler, uv);
 	//return fragCoord;
 }

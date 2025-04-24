@@ -94,11 +94,7 @@ class Eval {
 		});
 		// Mipmap texture
 		const mipmapTexture = device.createTexture({
-			size: {
-				width: textureSize,
-				height: textureSize,
-				depthOrArrayLayers: 1,
-			},
+			size: textureSize,
 			format: 'rgba8unorm',
 			usage: GPUTextureUsage.STORAGE | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
 			mipLevelCount: mipLevelCount,
@@ -172,6 +168,7 @@ class Eval {
 	createBindGroups(level = 0){
 		// Create texture for quadtree bindGroupQuad
 		level = level / 2;
+		let currentMipLevel = (this.mipLevel - 1) - level % this.mipLevel;
 		const bindGroupQuadTreeTexture = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.texture,
 			entries: [
@@ -202,7 +199,7 @@ class Eval {
 				{
 					binding: 3,
 					resource: this.buffers.texture.createView({
-						baseMipLevel: level % this.mipLevel,
+						baseMipLevel: currentMipLevel, 
 						mipLevelCount: 1,
 					}),
 				}

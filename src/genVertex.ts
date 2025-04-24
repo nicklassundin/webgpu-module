@@ -45,9 +45,17 @@ const READ_BGL = {
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: {}
 				},
+				// sampler
+				{
+					binding: 3,
+					visibility: GPUShaderStage.COMPUTE,
+					sampler: {
+						type: 'filtering',
+					}
+				},
 				{
 					// texture binding
-					binding: 3,
+					binding: 4,
 					visibility: GPUShaderStage.COMPUTE,
 					texture: {
 						viewDimension: '2d',
@@ -117,9 +125,15 @@ class VertexGen {
 		});
 		// Texture
 		const texture = device.createTexture({
-			size: { width: textureSize, height: textureSize, depthOrArrayLayers: 1 },
+			size: textureSize, 
 			format: 'rgba8unorm',
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST,
+		});
+		// Sampler
+		this.sampler = device.createSampler({
+			minFilter: 'nearest',
+			magFilter: 'nearest',
+			mipmapFilter: 'nearest',
 		});
 		this.buffers = {
 			vertice,
@@ -164,9 +178,12 @@ class VertexGen {
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
 		// round up to next
-		const workgroupSize = Math.ceil(this.textureSize / 64); 
-		console.log(workgroupSize);
-		computePass.dispatchWorkgroups(workgroupSize, workgroupSize);
+		const xWorkGroupSize = Math.ceil(this.textureSize.width / 8);
+		const yWorkGroupSize = Math.ceil(this.textureSize.height / 8);
+		console.log(xWorkGroupSize, yWorkGroupSize) 
+		console.log(xWorkGroupSize*8, yWorkGroupSize*8)
+		console.log(this.textureSize.width, this.textureSize.height)
+		computePass.dispatchWorkgroups(xWorkGroupSize, yWorkGroupSize);
 		// computePass.dispatchWorkgroups(1)
 		computePass.end();
 		await device.queue.submit([commandEncoder.finish()]);
@@ -219,8 +236,13 @@ class VertexGen {
 						size: this.buffers.uniform.size,
 					},
 				},
+				// sampler
 				{
 					binding: 3,
+					resource: this.sampler,
+				},
+				{
+					binding: 4,
 					resource: this.eval.buffers.texture.createView(),
 				}
 			],

@@ -74,12 +74,13 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 	return nCoord;
 }
 
-@compute @workgroup_size(4,4)
+//@compute @workgroup_size(4,4)
+@compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 // TODO have problem with extra first one spawning siblings each itera tion should be 4x4-1 in size
-	//let index = local_id.x + local_id.y * 4;
-	let index = local_id.x + local_id.y * 4 + global_id.z * 16u;
+	let index = local_id.x + local_id.y * 4;
+	//let index = local_id.x + local_id.y * 4 + global_id.z * 16u;
 	let boundBox = traversal[index].boundBox;
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
@@ -123,6 +124,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 
 
 	let textureDimensions = textureDimensions(texture);
-	let uv = vec2<f32>(coord.x / f32(textureDimensions.x), coord.y / f32(textureDimensions.y));
-	textureStore(texture, vec2<i32>(i32(global_id.x), i32(global_id.y)), vec4<f32>(uv, 0.0, 1.0));
+	let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
+	textureStore(texture, texCoord, vec4<f32>(0.5, 0.0, 0.0, 1.0));
 }

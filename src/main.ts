@@ -52,6 +52,14 @@ const context = canvas.getContext('webgpu') as GPUCanvasContext;
 const devicePixelRatio = window.devicePixelRatio || 1;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
+
+const textureSize = {
+	width: canvas.width,
+	height: canvas.height,
+	depthOrArrayLayers: 1
+};
+console.log(textureSize.width, textureSize.height)
+
 usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 context.configure({
@@ -85,27 +93,13 @@ const image = await loadImageBitmap(textureList[0]);
 
 // TODO fix so mipLevel trasfers into structure
 const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
-// const mipLevel = 3;
-const textureSize = image.width; // Assume square texture 
-// Create texture with mipmap levels
-const textureMipmap = device.createTexture({
-	size: [ textureSize, textureSize, 1 ],
-	format: 'rgba8unorm',
-	usage: 	GPUTextureUsage.TEXTURE_BINDING |
-		GPUTextureUsage.COPY_DST |
-		GPUTextureUsage.RENDER_ATTACHMENT |
-		GPUTextureUsage.COPY_SRC |
-		GPUTextureUsage.STORAGE |
-		GPUTextureUsage.STORAGE_BINDING,
-	mipLevelCount: mipLevel
-});
 // print byte size of image
 // Upload image data to texture level 0
 const imageBitmap = image;
 // const imageCanvas = document.createElement('canvas');
 const imageCanvas = document.createElement('canvas');
-imageCanvas.width = textureSize; 
-imageCanvas.height = textureSize;
+imageCanvas.width = textureSize.width;
+imageCanvas.height = textureSize.height;
 const ctx = imageCanvas.getContext('2d');
 
 // Read 
@@ -116,14 +110,6 @@ if (!ctx) {
 }
 
 ctx.drawImage(imageBitmap, 0, 0);
-
-const imageData = ctx.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
-device.queue.writeTexture(
-	{ texture: textureMipmap, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-	imageData.data,
-	{ bytesPerRow: textureSize * 4 },
-	[textureSize, textureSize, 1]
-);
 // depth Sampler
 const depthSampler = device.createSampler({
 	compare: undefined,
@@ -355,9 +341,8 @@ async function frame() {
 }
 
 function resizeCanvas() {
-	const devicePixelRatio = window.devicePixelRatio || 1;
-	const newWidth = Math.floor(canvas.clientWidth * devicePixelRatio);
-	const newHeight = Math.floor(canvas.clientHeight * devicePixelRatio);
+	const newWidth = Math.floor(canvas.clientWidth / devicePixelRatio);
+	const newHeight = Math.floor(canvas.clientHeight / devicePixelRatio);
 
 	if (canvas.width !== newWidth || canvas.height !== newHeight) {
 		canvas.width = newWidth;
