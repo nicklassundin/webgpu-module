@@ -129,6 +129,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 		result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
 		//result[threadIndex][index] = abs(result[threadIndex][index] - levelValues[0][index]);
 	}
-	
+	// TODO should only be changed if for paths that are changed size last pass	
 	traversal[index+1].done = 1i;
 }
