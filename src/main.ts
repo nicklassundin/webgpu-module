@@ -264,12 +264,12 @@ async function frame() {
 	// console.log('current mip level', current_mipLevel)
 	// console.log(frameCount)
 	// console.log('mip level', mipLevel)
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffers[0], 0, 32);
-	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 	// if (lastFrameTime < Date.now()){
 	if (frameCount % mipLevel > 7){ 
 		reference = false;

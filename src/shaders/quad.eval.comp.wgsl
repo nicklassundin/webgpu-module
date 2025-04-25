@@ -81,58 +81,51 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 // TODO have problem with extra first one spawning siblings each itera tion should be 4x4-1 in size
-	let threadIndex = local_id.x % 16u;
-	let iter = (threadIterations.iterations[threadIndex] / 2u) % 16u;
-	let index = iter % 16u;
+	let threadIndex = local_id.x;
+	let iter = threadIterations.iterations[threadIndex] / 2u;
+	let index: u32 = iter % 16u; 
 	let boundBox = traversal[index].boundBox;
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
-	let depth = threadIterations.iterations[global_id.x / 16u];
-	traversal[index].depth = f32(depth);
+	let depth = f32(index);
+	traversal[index].depth = depth;
 	
 	var quad = quadFromeCoord(coord, boundBox);
 	var q0 = getNodeIndex(f32(depth), f32(quad));
 	var q1 = getNodeIndex(f32(depth), f32((quad + 1u) % 4u));
 	var q2 = getNodeIndex(f32(depth), f32((quad + 2u) % 4u));
 	var q3 = getNodeIndex(f32(depth), f32((quad + 3u) % 4u));
+	
+	let odd = threadIterations.iterations[threadIndex] % 2u;
 	if (quadMap[q0] == 0u){
-		quadMap[q0] = 1u;
+		quadMap[q0] = odd;
 	} else if (quadMap[q1] == 0u){
 		quad = (quad + 1u) % 4u;
-		quadMap[q1] = 1u;
+		quadMap[q1] = odd;
 	} else if (quadMap[q2] == 0u){
 		quad = (quad + 2u) % 4u;
-		quadMap[q2] += 1u;
+		quadMap[q2] = odd;
 	} else if (quadMap[q3] == 0u){
 		quad = (quad + 3u) % 4u;
-		quadMap[q3] = 1u; 
+		quadMap[q3] = odd;
 	}
 
-	if ((index+1u) % 16u == 0u){
-		return;
-	}
 	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
-	let nIndex = index + 1;
-
-	traversal[nIndex].depth = f32(depth+1);
-	traversal[nIndex].coord = coord;
-	traversal[nIndex].boundBox = nBoundBox;
-	//coord = turnCoord(1u, coord);
-	//traversal[index].coord = coord;
-	/*
-	traversal[index].quad = i32(quad);
-	traversal[index].boundBox = boundBox;
-	traversal[index].depth = f32(depth);
-*/
+	
+	traversal[index+1].depth = f32(depth+1);
+	traversal[index+1].coord = coord;
+	traversal[index+1].boundBox = nBoundBox;
+	
+	threadIterations.iterations[global_id.x / 16u] += 1u;
 
 	let textureDimensions = textureDimensions(texture);
 	let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
 	textureStore(texture, texCoord, vec4<f32>(coord, 0.0, 1.0));
 	
-	threadIterations.iterations[global_id.x / 16u] = 66u; 
-	if(threadIterations.iterations[global_id.x / 16] < 16u) {
-		threadIterations.reference[iter % 16u] = levelValues[0][index];
+	if(iter < 16u) {
+		threadIterations.reference[index] = levelValues[threadIndex][index];
 	}else{
-		result[iter % 16u][index] = threadIterations.reference[iter % 16u]; 
+		result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
+		//result[threadIndex][index] = abs(result[threadIndex][index] - levelValues[0][index]);
 	}
 }

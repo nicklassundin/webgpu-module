@@ -31,29 +31,28 @@ struct Traversal {
 @group(0) @binding(3) var<storage, read_write> result: array<f32>;
 
 
-@compute @workgroup_size(1)
+@compute @workgroup_size(4,4)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
-	//let id = local_id.x + local_id.y * 4u + global_id.z * 16u;
-	//let id = local_id.x + local_id.y * 4u;
-	// TODO 2u work for adjusting the delay in swapchains
-	let id = global_id.x-2u; 
 	
+	let id = global_id.x + global_id.y * 4u;
 	let pTrav = traversal[id];
+	if (id == 0u){
+		result[0] = 1.0;
+		return;
+	}else if (u32(pTrav.depth) != id){
+		return;
+	}
+
 	var trav = traversal[id+1];
 	let quad = trav.quad;
 
-
 	var child = getNode(u32(pTrav.address)).children[quad];
 
-	trav.address = f32(child); 
-	trav.quad = i32(getNode(u32(child)).quad);
-	trav.depth = pTrav.depth + 1.0;
+	traversal[id+1].address = f32(child); 
 	if(child < 0.0) {
-		traversal[id+1].address = 0.0;
 		return;
 	}
-	traversal[id+1] = trav;
-
-	result[u32(pTrav.depth)+1] = values[u32(child)] / values[0];
+	result[u32(pTrav.depth)] = values[u32(child)] / values[0];
+	//result[u32(pTrav.depth)+1] = values[u32(child)];
 }
