@@ -11,7 +11,8 @@ struct Traversal {
 	coord: vec2<f32>,
 	boundBox: vec4<f32>,
 	quad: i32,
-	pad: vec3<i32>,
+	done: i32,
+	_pad: vec2<f32>,
 };
 
 @group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
@@ -128,4 +129,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 		result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
 		//result[threadIndex][index] = abs(result[threadIndex][index] - levelValues[0][index]);
 	}
+	
+	traversal[index+1].done = 1i;
 }

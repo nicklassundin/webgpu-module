@@ -49,6 +49,17 @@ const QUADTREE_BGL_CONFIG = {
 		}
 	],
 }
+const ITERATIONS_BGL = {
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage' 
+			}
+		},
+	]
+}
 
 class QuadTreeTraversal {
 	pipeline: GPUComputePipeline;
@@ -85,14 +96,22 @@ class QuadTreeTraversal {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 
+		// Iterations buffer
+		const iterationsBuffer = device.createBuffer({
+			size: Float32Array.BYTES_PER_ELEMENT * Math.pow(4, this.mipLevel),
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		});
+
 		this.buffers = {
 			travBuffers,
 			valuesBuffer: quadTree.buffers.values,
 			nodesBuffer: quadTree.buffers.nodes,
+			iter: iterationsBuffer,
 		};
-		
+
 		this.bindGroupLayouts = {
 			quadTree: device.createBindGroupLayout(QUADTREE_BGL_CONFIG), 
+			iter: device.createBindGroupLayout(ITERATIONS_BGL),
 		};
 		// Quad Tree bindGroupLayout
 		// console.log(travValues.byteLength)
@@ -103,7 +122,7 @@ class QuadTreeTraversal {
 		const bindGroupQuadTree = this.createBindGroup();
 		// Create pipeline layout for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({
-			bindGroupLayouts: [this.bindGroupLayouts.quadTree],
+			bindGroupLayouts: [this.bindGroupLayouts.quadTree, this.bindGroupLayouts.iter],
 		});
 		// create compute pipeline for quad traversal
 		const pipeline = device.createComputePipeline({
@@ -134,6 +153,7 @@ class QuadTreeTraversal {
 
 		computePass.setPipeline(this.pipeline);
 		computePass.setBindGroup(0, this.bindGroup.quadTree);
+		computePass.setBindGroup(1, this.bindGroup.iter);
 		computePass.dispatchWorkgroups(1)
 		computePass.end();
 		device.queue.submit([commandEncoderQuad.finish()]);
@@ -142,45 +162,58 @@ class QuadTreeTraversal {
 		level = level / 2;
 		this.bindGroup = {
 			quadTree: this.device.createBindGroup({
-			layout: this.bindGroupLayouts.quadTree,
-			entries: [
-				{
-					binding: 0,
-					resource: {
-						buffer: this.buffers.travBuffers[(level+1) % 2],
-						offset: 0,
-						size: this.buffers.travBuffers[(level+1) % 2].size, 
+				layout: this.bindGroupLayouts.quadTree,
+				entries: [
+					{
+						binding: 0,
+						resource: {
+							buffer: this.buffers.travBuffers[(level+1) % 2],
+							offset: 0,
+							size: this.buffers.travBuffers[(level+1) % 2].size, 
+						},
 					},
-				},
-				{
-					binding: 1,
-					resource: {
-						buffer: this.buffers.valuesBuffer,
-						offset: 0,
-						size: this.buffers.valuesBuffer.size,
+					{
+						binding: 1,
+						resource: {
+							buffer: this.buffers.valuesBuffer,
+							offset: 0,
+							size: this.buffers.valuesBuffer.size,
+						},
 					},
-				},
-				{
-					binding: 2,
-					resource: {
-						buffer: this.buffers.nodesBuffer,
-						offset: 0,
-						size: this.buffers.nodesBuffer.size,
+					{
+						binding: 2,
+						resource: {
+							buffer: this.buffers.nodesBuffer,
+							offset: 0,
+							size: this.buffers.nodesBuffer.size,
+						},
 					},
-				},
-				{
-					binding: 3,
-					resource: {
-						buffer: this.result,
-						offset: 0,
-						// TODO chould only access the current call
-						// offset: level * Float32Array.BYTES_PER_ELEMENT,
-						size: this.mipLevel * Float32Array.BYTES_PER_ELEMENT,
+					{
+						binding: 3,
+						resource: {
+							buffer: this.result,
+							offset: 0,
+							// TODO chould only access the current call
+							// offset: level * Float32Array.BYTES_PER_ELEMENT,
+							size: this.mipLevel * Float32Array.BYTES_PER_ELEMENT,
+						},
 					},
-				},
-			],
+				],
 			}),
-		}
+			iter: this.device.createBindGroup({
+				layout: this.bindGroupLayouts.iter,
+				entries: [
+					{
+						binding: 0,
+						resource: {
+							buffer: this.buffers.iter,
+							offset: 0,
+							size: this.buffers.iter.size,
+						},
+					},
+				],
+			}),
+		};
 	}
 	unmap(){
 		this.buffers.travBuffers.forEach((buffer: GPUBuffer) => {
