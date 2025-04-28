@@ -81,17 +81,19 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 @compute @workgroup_size(1)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
-		// TODO have problem with extra first one spawning siblings each itera tion should be 4x4-1 in size
 		let threadIndex = local_id.x;
 		let iter = threadIterations.iterations[threadIndex];
 
 
-		let index: u32 = (iter) % 15u; 
+		let index: u32 = (iter) % 16u; 
 		let boundBox = traversal[index].boundBox;
 		let center = (boundBox.xy + boundBox.zw) * 0.5;
+		var quad = 0u;
 		var coord = traversal[index].coord;
+		if (iter < 16u) {
+			quad = quadFromeCoord(coord, boundBox);
+		}
 
-		var quad = quadFromeCoord(coord, boundBox);
 		var q0 = getNodeIndex(f32(index), f32(quad));
 		var q1 = getNodeIndex(f32(index), f32((quad + 1u) % 4u));
 		var q2 = getNodeIndex(f32(index), f32((quad + 2u) % 4u));
@@ -127,14 +129,14 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 		if(iter < 32u) {
 			threadIterations.reference[index] = levelValues[threadIndex][index];
 		}
-		//result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
 
-		result[threadIndex][index] = levelValues[0][index];
+		result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
+
 
 		let textureDimensions = textureDimensions(texture);
 		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-		//let color = vec4<f32>(0.0,result[threadIndex][index], 0.0, 1.0);
-		let color = vec4<f32>(f32(index)/15.0, result[threadIndex][index], 0.0, 1.0);
+		let color = vec4<f32>(0.0,result[threadIndex][index], 0.0, 1.0);
+		//let color = vec4<f32>(f32(index)/15.0, result[threadIndex][index], 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 
 
