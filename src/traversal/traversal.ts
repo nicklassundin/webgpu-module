@@ -75,17 +75,12 @@ class QuadTreeTraversal {
 		this.device = device;
 		this.mipLevel = mipLevel;
 		this.quadTree = quadTree;
-		let travBuffers: GPUBuffer[] = [];
-		for (let i = 0; i < 2; i++) {
-			const travVal = new Float32Array([i, 0, uv[0], uv[1], 0, 0, 1, 1]);
-			const buffer = device.createBuffer({
+			const travVal = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
+			const travBuffer = device.createBuffer({
 				size: travVal.byteLength*Math.pow(4, mipLevel),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			});
-			device.queue.writeBuffer(buffer, 0, travVal, 0);
-			travBuffers.push(buffer);
-		}
-		device.queue.onSubmittedWorkDone();
+			device.queue.writeBuffer(travBuffer, 0, travVal, 0);
 
 		// Create empty buffer for quadtree
 		// Create array length of depth
@@ -103,7 +98,7 @@ class QuadTreeTraversal {
 		});
 
 		this.buffers = {
-			travBuffers,
+			travBuffer,
 			valuesBuffer: quadTree.buffers.values,
 			nodesBuffer: quadTree.buffers.nodes,
 			iter: iterationsBuffer,
@@ -167,9 +162,9 @@ class QuadTreeTraversal {
 					{
 						binding: 0,
 						resource: {
-							buffer: this.buffers.travBuffers[(level+1) % 2],
+							buffer: this.buffers.travBuffer,
 							offset: 0,
-							size: this.buffers.travBuffers[(level+1) % 2].size, 
+							size: this.buffers.travBuffer.size, 
 						},
 					},
 					{
@@ -216,9 +211,7 @@ class QuadTreeTraversal {
 		};
 	}
 	unmap(){
-		this.buffers.travBuffers.forEach((buffer: GPUBuffer) => {
-			buffer.unmap();
-		})
+		this.buffers.travBuffer.unmap();
 		// this.buffers.valuesBuffer.unmap();
 		// this.buffers.nodesBuffer.unmap();
 	}

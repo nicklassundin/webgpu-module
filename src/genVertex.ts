@@ -36,18 +36,11 @@ const READ_BGL = {
 				{
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
-					buffer: {
-						type: 'read-only-storage',
-					}
-				},
-				{
-					binding: 2,
-					visibility: GPUShaderStage.COMPUTE,
 					buffer: {}
 				},
 				// sampler
 				{
-					binding: 3,
+					binding: 2,
 					visibility: GPUShaderStage.COMPUTE,
 					sampler: {
 						type: 'filtering',
@@ -55,7 +48,7 @@ const READ_BGL = {
 				},
 				{
 					// texture binding
-					binding: 4,
+					binding: 3,
 					visibility: GPUShaderStage.COMPUTE,
 					texture: {
 						viewDimension: '2d',
@@ -220,14 +213,6 @@ class VertexGen {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.eval.buffers.travBuffers[(frame+this.mipLevel) % this.eval.buffers.travBuffers.length],
-						offset: 0,
-						size: this.eval.buffers.travBuffers[0].size,
-					},
-				},
-				{
-					binding: 2,
-					resource: {
 						buffer: this.buffers.uniform,
 						offset: 0,
 						size: this.buffers.uniform.size,
@@ -235,11 +220,11 @@ class VertexGen {
 				},
 				// sampler
 				{
-					binding: 3,
+					binding: 2,
 					resource: this.sampler,
 				},
 				{
-					binding: 4,
+					binding: 3,
 					resource: this.eval.buffers.texture.createView(),
 				}
 			],

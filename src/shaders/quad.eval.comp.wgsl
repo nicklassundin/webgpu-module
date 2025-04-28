@@ -83,39 +83,39 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 // TODO have problem with extra first one spawning siblings each itera tion should be 4x4-1 in size
 	let threadIndex = local_id.x;
-	let iter = threadIterations.iterations[threadIndex] / 2u;
-	let index: u32 = iter % 16u; 
+	let iter = threadIterations.iterations[threadIndex]+1;
+
+	
+	let index: u32 = (iter +1u) % 16u; 
+	let pIndex: u32 = iter % 16u;
 	let boundBox = traversal[index].boundBox;
 	let center = (boundBox.xy + boundBox.zw) * 0.5;
 	var coord = traversal[index].coord;
-	let depth = f32(index);
-	traversal[index].depth = depth;
 	
 	var quad = quadFromeCoord(coord, boundBox);
-	var q0 = getNodeIndex(f32(depth), f32(quad));
-	var q1 = getNodeIndex(f32(depth), f32((quad + 1u) % 4u));
-	var q2 = getNodeIndex(f32(depth), f32((quad + 2u) % 4u));
-	var q3 = getNodeIndex(f32(depth), f32((quad + 3u) % 4u));
+	var q0 = getNodeIndex(f32(index), f32(quad));
+	var q1 = getNodeIndex(f32(index), f32((quad + 1u) % 4u));
+	var q2 = getNodeIndex(f32(index), f32((quad + 2u) % 4u));
+	var q3 = getNodeIndex(f32(index), f32((quad + 3u) % 4u));
 	
-	let odd = threadIterations.iterations[threadIndex] % 2u;
 	if (quadMap[q0] == 0u){
-		quadMap[q0] = odd;
+		quadMap[q0] = 1u; 
 	} else if (quadMap[q1] == 0u){
 		quad = (quad + 1u) % 4u;
-		quadMap[q1] = odd;
+		quadMap[q1] = 1u;
 	} else if (quadMap[q2] == 0u){
 		quad = (quad + 2u) % 4u;
-		quadMap[q2] = odd;
+		quadMap[q2] = 1u;
 	} else if (quadMap[q3] == 0u){
 		quad = (quad + 3u) % 4u;
-		quadMap[q3] = odd;
+		quadMap[q3] = 1u;
 	}
 
 	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
 	
-	traversal[index+1].depth = f32(depth+1);
 	traversal[index+1].coord = coord;
 	traversal[index+1].boundBox = nBoundBox;
+	traversal[index+1].quad = i32(quad);
 	
 	threadIterations.iterations[global_id.x / 16u] += 1u;
 
@@ -123,11 +123,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
 	textureStore(texture, texCoord, vec4<f32>(coord, 0.0, 1.0));
 	
-	if(iter < 16u) {
-		threadIterations.reference[index] = levelValues[threadIndex][index];
+	if(iter < 32u) {
+		threadIterations.reference[pIndex] = levelValues[0u][pIndex];
+		//threadIterations.reference[index] = f32(quad); 
 	}else{
-		result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
-		//result[threadIndex][index] = abs(result[threadIndex][index] - levelValues[0][index]);
+		//result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
+		result[threadIndex][index] = levelValues[0][index];
+		//result[threadIndex][index] = f32(quad);
 	}
 	// TODO should only be changed if for paths that are changed size last pass	
 	traversal[index+1].done = 1i;

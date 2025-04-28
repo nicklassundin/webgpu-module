@@ -42,19 +42,18 @@ struct addrInfo {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	let threadIndex = local_id.x;
-	let iter = addr.iter[threadIndex] / 2u;
+	let iter = addr.iter[threadIndex];
 	let id: u32 = iter % 16u;
-	let trav = traversal[id];
 	if (id == 0u){
-		result[0] = 1.0;
-		addr.iter[threadIndex] = addr.iter[threadIndex] + 1u;	
-		addr.address[0] = trav.address;
-		return;
-	}else if (u32(trav.depth) != id){
+		addr.iter[threadIndex] = addr.iter[threadIndex] + 1u;
+	}
+	let trav = traversal[id];
+	if (trav.done == 0u){
 		return;
 	}
-	if (trav.done == 0u){
-		result[u32(trav.depth)] = 0.0;
+	if (id == 0u){
+		addr.iter[threadIndex] = addr.iter[threadIndex] + 1u;	
+		addr.address[0] = trav.address;
 		return;
 	}
 
@@ -66,16 +65,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	if(child < 0.0 || ((child == 0.0) && (id == 0u))) {
 		return;
 	}
-	result[u32(trav.depth)] = f32(id);
-	//result[u32(trav.depth)] = pTrav.depth;
-	//result[u32(trav.depth)] = f32(addr.iter[threadIndex] / 2u);
-	//result[u32(trav.depth)] = pTrav.address;
-	//result[u32(trav.depth)] = child; 
-	//result[id] = values[u32(child)] / values[0];
-	//result[u32(trav.depth)] = f32(quad); 
-	//result[id] = f32(trav.depth);
-	//result[u32(pTrav.depth)] = f32(pTrav.address);
-	//result[u32(pTrav.depth)+1] = values[u32(child)];
+	result[id] = values[u32(child)] / values[0];
 	
 	traversal[id].address = child;
 	traversal[id].done = 0u;

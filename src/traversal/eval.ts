@@ -109,7 +109,7 @@ class Eval {
 
 		this.buffers = {
 			path: quadTreeTrav.result,
-			travBuffers: quadTreeTrav.buffers.travBuffers,
+			travBuffer: quadTreeTrav.buffers.travBuffer,
 			values: quadTreeTrav.buffers.valuesBuffer,
 			result,
 			nodes: quadTreeTrav.buffers.nodesBuffer,
@@ -180,9 +180,9 @@ class Eval {
 				{
 					binding: 1,
 					resource: {
-						buffer: this.buffers.travBuffers[level % 2],
+						buffer: this.buffers.travBuffer,
 						offset: 0,
-						size: this.buffers.travBuffers[level % 2].size,
+						size: this.buffers.travBuffer.size,
 					}
 				},
 				{
@@ -232,9 +232,7 @@ class Eval {
 		this.buffers.result.forEach(buffer => {
 			buffer.unmap();
 		});
-		this.buffers.travBuffers.forEach(buffer => {
-			buffer.unmap();
-		});
+		this.buffers.travBuffer.unmap()
 		this.device.queue.onSubmittedWorkDone();
 	}
 }
