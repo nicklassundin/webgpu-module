@@ -226,8 +226,11 @@ async function frame() {
 		console.clear();
 		return;
 	}else{
-		quadManager.eval.pass(current_mipLevel);
-		quadManager.quadTree.pass(current_mipLevel);
+		if (frameCount % 2 == 0){
+			quadManager.eval.pass(current_mipLevel);
+		}else{
+			quadManager.quadTree.pass(current_mipLevel);
+		}
 		quadManager.genVertex.pass(current_mipLevel);
 		current_mipLevel++;
 	}
@@ -251,8 +254,8 @@ async function frame() {
 	// console.log('mip level', mipLevel)
 	console.log("QuadTree result (", frameCount, "):")
 	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-	// console.log("Eval Result")
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
+	console.log("Eval Result (", frameCount, "):")
+	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
 	console.log("Eval iterations (", frameCount, "):")
 	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);

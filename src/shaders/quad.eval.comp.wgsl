@@ -1,18 +1,18 @@
 
 struct Node {
-	valueAddress: f32,
-	children: vec4<f32>,	
-	quad: f32,
+valueAddress: f32,
+		      children: vec4<f32>,	
+		      quad: f32,
 };
 
 struct Traversal {
-	depth: f32,
-	address: f32,
-	coord: vec2<f32>,
-	boundBox: vec4<f32>,
-	quad: i32,
-	done: i32,
-	_pad: vec2<f32>,
+depth: f32,
+	       address: f32,
+	       coord: vec2<f32>,
+	       boundBox: vec4<f32>,
+	       quad: i32,
+	       done: i32,
+	       _pad: vec2<f32>,
 };
 
 @group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
@@ -27,8 +27,8 @@ struct Traversal {
 
 
 struct ThreadInfo {
-	reference: array<f32, 16>,
-	iterations: array<u32>,
+reference: array<f32, 16>,
+		   iterations: array<u32>,
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
@@ -72,65 +72,71 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 	let q = f32(quad);
 	var nCoord = coord*2.0 - 1.0;
 	// rotate matrix
-	
+
 	nCoord = nCoord*rotateMatrix;
 	nCoord = nCoord * 0.5 + 0.5;
 	return nCoord;
 }
 
 @compute @workgroup_size(1)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
-@builtin(local_invocation_id) local_id: vec3<u32>) {
-// TODO have problem with extra first one spawning siblings each itera tion should be 4x4-1 in size
-	let threadIndex = local_id.x;
-	let iter = threadIterations.iterations[threadIndex]+1;
+	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
+			@builtin(local_invocation_id) local_id: vec3<u32>) {
+		// TODO have problem with extra first one spawning siblings each itera tion should be 4x4-1 in size
+		let threadIndex = local_id.x;
+		let iter = threadIterations.iterations[threadIndex];
 
-	
-	let index: u32 = (iter +1u) % 16u; 
-	let pIndex: u32 = iter % 16u;
-	let boundBox = traversal[index].boundBox;
-	let center = (boundBox.xy + boundBox.zw) * 0.5;
-	var coord = traversal[index].coord;
-	
-	var quad = quadFromeCoord(coord, boundBox);
-	var q0 = getNodeIndex(f32(index), f32(quad));
-	var q1 = getNodeIndex(f32(index), f32((quad + 1u) % 4u));
-	var q2 = getNodeIndex(f32(index), f32((quad + 2u) % 4u));
-	var q3 = getNodeIndex(f32(index), f32((quad + 3u) % 4u));
-	
-	if (quadMap[q0] == 0u){
-		quadMap[q0] = 1u; 
-	} else if (quadMap[q1] == 0u){
-		quad = (quad + 1u) % 4u;
-		quadMap[q1] = 1u;
-	} else if (quadMap[q2] == 0u){
-		quad = (quad + 2u) % 4u;
-		quadMap[q2] = 1u;
-	} else if (quadMap[q3] == 0u){
-		quad = (quad + 3u) % 4u;
-		quadMap[q3] = 1u;
-	}
 
-	let nBoundBox = boundBoxFromeCoord(quad, boundBox);
-	
-	traversal[index+1].coord = coord;
-	traversal[index+1].boundBox = nBoundBox;
-	traversal[index+1].quad = i32(quad);
-	
-	threadIterations.iterations[global_id.x / 16u] += 1u;
+		let index: u32 = (iter) % 15u; 
+		let boundBox = traversal[index].boundBox;
+		let center = (boundBox.xy + boundBox.zw) * 0.5;
+		var coord = traversal[index].coord;
 
-	let textureDimensions = textureDimensions(texture);
-	let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-	textureStore(texture, texCoord, vec4<f32>(coord, 0.0, 1.0));
+		var quad = quadFromeCoord(coord, boundBox);
+		var q0 = getNodeIndex(f32(index), f32(quad));
+		var q1 = getNodeIndex(f32(index), f32((quad + 1u) % 4u));
+		var q2 = getNodeIndex(f32(index), f32((quad + 2u) % 4u));
+		var q3 = getNodeIndex(f32(index), f32((quad + 3u) % 4u));
 	
-	if(iter < 32u) {
-		threadIterations.reference[pIndex] = levelValues[0u][pIndex];
-		//threadIterations.reference[index] = f32(quad); 
-	}else{
+		var nBoundBox = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+		if (quadMap[q0] == 0u){
+			quadMap[q0] = 1u; 
+			nBoundBox = boundBoxFromeCoord(quad, boundBox);
+		}else{
+			if (quadMap[q1] == 0u){
+				quad = (quad + 1u) % 4u;
+				quadMap[q1] = 1u;
+			} else if (quadMap[q2] == 0u){
+				quad = (quad + 2u) % 4u;
+				quadMap[q2] = 1u;
+			} else if (quadMap[q3] == 0u){
+				quad = (quad + 3u) % 4u;
+				quadMap[q3] = 1u;
+			}
+			nBoundBox = boundBoxFromeCoord(quad, boundBox);
+			// coord center of boundBox
+			coord = vec2<f32>(nBoundBox.x + nBoundBox.z, nBoundBox.y + nBoundBox.w) * 0.5;
+		}
+
+		traversal[index+1].coord = coord;
+		traversal[index+1].boundBox = nBoundBox;
+		traversal[index+1].quad = i32(quad);
+
+		threadIterations.iterations[threadIndex] += 1u;
+
+
+		if(iter < 32u) {
+			threadIterations.reference[index] = levelValues[threadIndex][index];
+		}
 		//result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
+
 		result[threadIndex][index] = levelValues[0][index];
-		//result[threadIndex][index] = f32(quad);
+
+		let textureDimensions = textureDimensions(texture);
+		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
+		//let color = vec4<f32>(0.0,result[threadIndex][index], 0.0, 1.0);
+		let color = vec4<f32>(f32(index)/15.0, result[threadIndex][index], 0.0, 1.0);
+		textureStore(texture, texCoord, color); 
+
+
+		traversal[index+1].done = 1i;
 	}
-	// TODO should only be changed if for paths that are changed size last pass	
-	traversal[index+1].done = 1i;
-}
