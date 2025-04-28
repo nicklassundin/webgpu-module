@@ -63,6 +63,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	var child = getNode(u32(pTrav.address)).children[quad];
 
 	if(child < 0.0 || ((child == 0.0) && (id == 0u))) {
+		result[id] = 0.0;
 		return;
 	}
 	result[id] = values[u32(child)] / values[0];

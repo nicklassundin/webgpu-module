@@ -27,8 +27,8 @@ depth: f32,
 
 
 struct ThreadInfo {
-reference: array<f32, 16>,
-		   iterations: array<u32>,
+		reference: array<f32, 16>,
+		iterations: array<u32>,
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
@@ -67,19 +67,9 @@ const PI: f32 = 3.14159265358979323846;
 fn getNodeIndex(level: f32, pos: f32) -> u32 {
 	return u32((pow(4, level)) / 3 + pos);
 }
-const rotateMatrix = mat2x2<f32>(cos(PI / 2.0), -sin(PI / 2.0), sin(PI / 2.0), cos(PI / 2.0));
-fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
-	let q = f32(quad);
-	var nCoord = coord*2.0 - 1.0;
-	// rotate matrix
-
-	nCoord = nCoord*rotateMatrix;
-	nCoord = nCoord * 0.5 + 0.5;
-	return nCoord;
-}
 
 @compute @workgroup_size(1)
-	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
 		let threadIndex = local_id.x;
 		let iter = threadIterations.iterations[threadIndex];
@@ -123,7 +113,6 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 		traversal[index+1].boundBox = nBoundBox;
 		traversal[index+1].quad = i32(quad);
 
-		threadIterations.iterations[threadIndex] += 1u;
 
 
 		if(iter < 32u) {
@@ -131,14 +120,17 @@ fn turnCoord(quad: u32, coord: vec2<f32>) -> vec2<f32> {
 		}
 
 		result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
+		//result[threadIndex][index] = f32(iter); 
 
 
 		let textureDimensions = textureDimensions(texture);
 		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-		let color = vec4<f32>(0.0,result[threadIndex][index], 0.0, 1.0);
-		//let color = vec4<f32>(f32(index)/15.0, result[threadIndex][index], 0.0, 1.0);
+		//let color = vec4<f32>(0.0,result[threadIndex][index], 0.0, 1.0);
+		//let color = vec4<f32>(f32(index)/16.0, result[threadIndex][index], 0.0, 1.0);
+		let color = vec4<f32>(f32(iter)/16.0, result[threadIndex][index], 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 
 
+		threadIterations.iterations[threadIndex] += 1u;
 		traversal[index+1].done = 1i;
 	}

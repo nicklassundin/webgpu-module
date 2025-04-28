@@ -212,8 +212,11 @@ class QuadTreeTraversal {
 	}
 	unmap(){
 		this.buffers.travBuffer.unmap();
-		// this.buffers.valuesBuffer.unmap();
-		// this.buffers.nodesBuffer.unmap();
+		this.buffers.valuesBuffer.unmap();
+		this.buffers.nodesBuffer.unmap();
+		this.buffers.iter.unmap();
+		this.result.unmap();
+
 	}
 }
 export default QuadTreeTraversal;

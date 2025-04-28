@@ -35,13 +35,12 @@ offset: u32,
 // storage texture
 @group(0) @binding(1) var outTexture: texture_storage_2d<rgba8unorm, write>;
 
-@group(1) @binding(0) var<storage, read> levelValues: array<f32>;
-@group(1) @binding(1) var<uniform> uniforms: Uniforms; 
+@group(1) @binding(0) var<uniform> uniforms: Uniforms; 
 
 // Sampler
-@group(1) @binding(2) var mipSampler: sampler;
+@group(1) @binding(1) var mipSampler: sampler;
 // texture
-@group(1) @binding(3) var texture: texture_2d<f32>;
+@group(1) @binding(2) var texture: texture_2d<f32>;
 
 fn getNodeIndex(level: f32, pos: f32) -> u32 {
 	return u32((pow(4, level)) / 3 + pos);
