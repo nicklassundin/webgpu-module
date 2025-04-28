@@ -227,11 +227,11 @@ async function frame() {
 		return;
 	}else{
 		if (frameCount % 2 == 0){
-			quadManager.quadTree.pass(current_mipLevel);
+			await quadManager.eval.pass(current_mipLevel);
 		}else{
-			quadManager.eval.pass(current_mipLevel);
+			await quadManager.quadTree.pass(current_mipLevel);
 		}
-		quadManager.genVertex.pass(current_mipLevel);
+		await quadManager.genVertex.pass(current_mipLevel);
 		current_mipLevel++;
 	}
 
@@ -252,12 +252,12 @@ async function frame() {
 	// console.log('current mip level', current_mipLevel)
 	// console.log(frameCount)
 	// console.log('mip level', mipLevel)
-	console.log("QuadTree result (", frameCount, "):")
-	await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32*2);
-	console.log("Eval Result (", frameCount, "):")
-	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result, 0, 32*2);
+	// console.log("QuadTree result (", frameCount, "):")
+	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32*2);
+	// console.log("Eval Result (", frameCount, "):")
+	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result, 0, 64);
 	console.log("Eval iterations (", frameCount, "):")
-	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32*2);
+	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 32);
 	// await dbug_mngr.u32fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 64, 32);
@@ -265,9 +265,7 @@ async function frame() {
 	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 0, 32);
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 	// if (lastFrameTime < Date.now()){
-	if (frameCount % mipLevel > 7){ 
-		reference = false;
-		// console.log(frameCount, current_mipLevel)
+	if (frameCount % 3 == 0){
 		render.pass(frameCount)
 	}
 	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
@@ -283,7 +281,8 @@ async function frame() {
 	// await new Promise((resolve) => setTimeout(resolve, 200));
 	// await new Promise((resolve) => setTimeout(resolve, 300));
 	// await new Promise((resolve) => setTimeout(resolve, 1/(frameCount+1) * 1000));
-	// if( frameCount >= 19){
+	// if( frameCount >= 32){
+	// if( frameCount >= 12){
 	// 	frameCount = 0;
 	// 	return;
 	// }
