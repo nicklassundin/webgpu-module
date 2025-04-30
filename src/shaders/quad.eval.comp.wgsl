@@ -70,6 +70,7 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 @compute @workgroup_size(1)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
+		let textureDimensions = textureDimensions(texture);
 		let threadIndex = local_id.x;
 		let iter = threadIterations.iterations[threadIndex];
 		
@@ -81,12 +82,12 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		var quad = 0u;
 		var coord = traversal[index].coord;
 	
-		if (iter < 16u) {
+		if (iter < 32u) {
 			if (index != 0u){
-				threadIterations.reference[index-1u] = levelValues[threadIndex][index];
+				threadIterations.reference[index] = levelValues[threadIndex][index];
+				//threadIterations.reference[index] = f32(index);
 			}
 			threadIterations.iterations[threadIndex] += 1u;
-
 
 			quad = quadFromeCoord(coord, boundBox);
 			let q_i = getNodeIndex(f32(index), f32(quad));
@@ -96,6 +97,11 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 			traversal[index+1].coord = coord;
 			traversal[index+1].quad = i32(quad);
 			traversal[index+1].done = 1i;
+			
+			let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
+			let value = 1.0;
+			let color = vec4<f32>(value, 1.0 - f32(index)/16.0, 0.0, 1.0);
+			textureStore(texture, texCoord, color); 
 			return;
 		}
 
@@ -132,15 +138,9 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		//result[threadIndex][index] = f32(quad); 
 
 
-		let textureDimensions = textureDimensions(texture);
 		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-		//let color = vec4<f32>(0.0,result[threadIndex][index], 0.0, 1.0);
-		//let color = vec4<f32>(f32(index)/16.0, result[threadIndex][index], 0.0, 1.0);
-		let color = vec4<f32>(1.0 - f32(iter%16)/16.0, value, 0.0, 1.0);
-		//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
-		//let color = vec4<f32>(1.0 - f32(iter%16)/16.0, 0.0, 0.0, 1.0);
+		let color = vec4<f32>(value, f32(index)/16.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
-
 
 		threadIterations.iterations[threadIndex] += 1u;
 		traversal[index+1].done = 1i;

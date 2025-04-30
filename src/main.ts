@@ -233,13 +233,13 @@ async function frame() {
 	}else{
 		if (frameCount % 2 == 0){
 			await quadManager.eval.pass(current_mipLevel, commandEncoder);
-			// console.log("Eval iterations (", frameCount, "):")
-			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
+			console.log("Eval iterations (", frameCount, "):")
+			await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 		}else{
 			// mesure time 
 			await quadManager.quadTree.pass(current_mipLevel, commandEncoder);
 			// console.log("QuadTree result (", frameCount, "):")
-			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32*2);
+			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 		}
 		// TODO Optimization
 		quadManager.genVertex.pass(current_mipLevel, commandEncoder);

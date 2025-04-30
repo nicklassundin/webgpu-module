@@ -22,9 +22,7 @@ fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
 	let uv = vec2<f32>(vec2<f32>(coord) / vec2<f32>(f32(res), f32(res)));
 	for (var i: i32 = 0; i < 16; i = i + 1) {
 		let textureValue = textureSampleLevel(texture, mipSampler, uv, f32(i));
-		if (textureValue.x != 0.0) {
-			//return vec4<f32>(textureValue.x, textureValue.y, f32(i)/16, textureValue.w);
-			//return vec4<f32>(f32(i)/16, 0.0, 0.0, 1.0);
+		if (textureValue.w != 0.0) {
 			return textureValue;
 		}
 	}
