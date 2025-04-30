@@ -53,6 +53,10 @@ const READ_BGL = {
 
 const travValues = new Float32Array(64);
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
+// const WORKGROUPSIZE = 32;
+// const WORKGROUPSIZE = 2;
+// const WORKGROUPSIZE = 10;
+const WORKGROUPSIZE = 16;
 class VertexGen {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
@@ -89,9 +93,8 @@ class VertexGen {
 		});
 		device.queue.writeBuffer(vertice, 0, verticeValues.buffer);
 		const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
-		// const indicesValues = new Uint32Array([0, 1, 2, 0, 0, 0]);
 		const indices = device.createBuffer({
-			size: 6*Math.pow(4, mipLevelCount)*4,
+			size: 6*4*4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
 		});
 		device.queue.writeBuffer(indices, 0, indicesValues.buffer);
@@ -101,12 +104,14 @@ class VertexGen {
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 		const resolution = new Float32Array([canvas.width,
-						    	canvas.height,
-							this.mipLevel]);
+						    	canvas.height]);
+		const workgroupSize = new Uint32Array([WORKGROUPSIZE, WORKGROUPSIZE]);
 		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
+		device.queue.writeBuffer(uniformBuffer, 4*4, workgroupSize.buffer);
 		// State buffer
 		const stateBuffer = device.createBuffer({
-			size: 4 * 4 * 4,
+			size: 4* WORKGROUPSIZE*WORKGROUPSIZE*WORKGROUPSIZE + 8*8,
+			// size: 4* WORKGROUPSIZE*WORKGROUPSIZE*WORKGROUPSIZE,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 		// Texture
@@ -153,26 +158,20 @@ class VertexGen {
 
 		this.layout = pipelineLayout;
 
+		this.createBindGroups();
 	}
-	async pass(frame: number = 0){
+	async pass(frame: number = 0, commandEncoder: GPUCommandEncoder){
+		// console.log('Dispatching VertexGen pass', frame, 'with workgroup size', WORKGROUPSIZE, 'and grid size', this.grid, 'and mip level', this.mipLevel);
 		const device = this.device;
-		this.createBindGroups(frame);
 		// generate vertex buffer
-		const commandEncoder = device.createCommandEncoder();
 		const computePass = commandEncoder.beginComputePass();
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
-		// round up to next
-		const xWorkGroupSize = Math.ceil(this.textureSize.width / 16);
-		const yWorkGroupSize = Math.ceil(this.textureSize.height / 16);
-		computePass.dispatchWorkgroups(xWorkGroupSize, yWorkGroupSize);
-		// computePass.dispatchWorkgroups(1)
+		computePass.dispatchWorkgroups(WORKGROUPSIZE, WORKGROUPSIZE);
 		computePass.end();
-		await device.queue.submit([commandEncoder.finish()]);
 	}
-	createBindGroups(frame: number = 0){
-		frame = frame / 2;
+	createBindGroups(){
 		// Create texture for quadtree bindGroupQuad
 		const bindGroupWrite = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.write,

@@ -202,8 +202,13 @@ await device.queue.onSubmittedWorkDone();
 
 let current_mipLevel = 0;
 var reference = true;
+
+
 async function frame() {
 	stats.begin();
+	const currentTime = Date.now();
+	const commandEncoder = device.createCommandEncoder();
+	// console.log(frameCount)
 	// Update the stats panel
 	if (params.change) {
 		console.log('click')
@@ -219,75 +224,40 @@ async function frame() {
 		const commandEncoderArg = device.createCommandEncoder();
 		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffer);
 		const commandBufferArg = commandEncoderArg.finish();
-		await device.queue.submit([commandBufferArg]);
-		await device.queue.onSubmittedWorkDone();
-		await requestAnimationFrame(frame);
+		// await device.queue.submit([commandBufferArg]);
+		// await device.queue.onSubmittedWorkDone();
+		requestAnimationFrame(frame);
 		// clear browser console
 		console.clear();
 		return;
 	}else{
 		if (frameCount % 2 == 0){
-			await quadManager.eval.pass(current_mipLevel);
+			await quadManager.eval.pass(current_mipLevel, commandEncoder);
+			// console.log("Eval iterations (", frameCount, "):")
+			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 		}else{
-			await quadManager.quadTree.pass(current_mipLevel);
+			// mesure time 
+			await quadManager.quadTree.pass(current_mipLevel, commandEncoder);
+			// console.log("QuadTree result (", frameCount, "):")
+			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32*2);
 		}
-		await quadManager.genVertex.pass(current_mipLevel);
+		// TODO Optimization
+		quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 		current_mipLevel++;
 	}
 
-	if ( frameCount == mipLevel){
-	// if ( frameCount > mipLevel){
-		// console.log('Vertices')
-		// console.log('index', 0);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 0, 4*4)
-		// console.log('index', 128/(4*8))
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 64*16, 4*4);
-		// console.log('index', 128/(4*8)*2)
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 64*(16+15), 4*4);
-		// await dbug_mngr.u32fromBufferToLog(quadManager.eval.buffers.quadTreeMap, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 128);
-		// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 128);
-	}
-	// console.log('current mip level', current_mipLevel)
-	// console.log(frameCount)
-	// console.log('mip level', mipLevel)
-	// console.log("QuadTree result (", frameCount, "):")
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32*2);
-	// console.log("Eval Result (", frameCount, "):")
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result, 0, 64);
-	console.log("Eval iterations (", frameCount, "):")
-	await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[0], 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result[1], 0, 32);
-	// await dbug_mngr.u32fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 64, 32);
-	// await dbug_mngr.u32fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 64*2, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
-	// if (lastFrameTime < Date.now()){
-	if (frameCount % 3 == 0){
-		render.pass(frameCount)
-	}
-	// await dbug_mngr.fromBufferToLog(quadManager.eval.result[0], 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-	// await dbug_mngr.fromBufferToLog(quadTree.buffers.nodes, 0, 32);
-	
-	// await new Promise((resolve) => setTimeout(resolve, 300));
-	//render.pass(frameCount, current_mipLevel);
+	const renderCommandEncoder = device.createCommandEncoder();
+	render.pass(frameCount, renderCommandEncoder)
+	device.queue.submit([commandEncoder.finish(), renderCommandEncoder.finish()]);
 	current_mipLevel++;
 	frameCount++;
-
-	// wait for 0.5 second
-	// await new Promise((resolve) => setTimeout(resolve, 200));
-	// await new Promise((resolve) => setTimeout(resolve, 300));
-	// await new Promise((resolve) => setTimeout(resolve, 1/(frameCount+1) * 1000));
-	// if( frameCount >= 32){
-	// if( frameCount >= 12){
-	// 	frameCount = 0;
-	// 	return;
-	// }
 	stats.end();
-	await requestAnimationFrame(frame);
+	// console.log('Frame: ', frameCount, 'Time: ', currentTime - lastFrameTime, 'ms');
+		// return;
+	// wait 500 ms
+	await new Promise(resolve => setTimeout(resolve, 200));
+	lastFrameTime = currentTime;
+	requestAnimationFrame(frame);
 
 }
 
@@ -326,7 +296,7 @@ canvas.addEventListener('click', async (event) => {
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
 	params.updateTravelValues([uv[0], uv[1]]);
 	// await updateTravBufferCoord(uv);
-});
+})
 
 // On close unbind buffers
 window.addEventListener('beforeunload', async () => {

@@ -35,6 +35,7 @@ class Render {
 		this.quadTree = manager.quadTree; 
 		this.eval = manager.eval; 
 		this.mipLevel = mipLevel;
+		this.frameBuffer = [];
 		// Uniform Buffer
 		// containing the resolution of the canvas
 		// Resolution 4 * 2; Mipmap level 4 * 1
@@ -65,6 +66,7 @@ class Render {
 			sampler: sampler,
 		}
 		this.frames = 2;
+		this.frameViews = [];
 		this.frameBuffer = []
 		for (let i = 0; i < this.frames; i++) {
 			this.frameBuffer.push(device.createTexture({
@@ -72,6 +74,7 @@ class Render {
 				format: presentationFormat,
 				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
 			}));
+			this.frameViews.push(this.frameBuffer[i].createView());
 		}
 
 
@@ -141,9 +144,8 @@ class Render {
 		});
 
 	}
-	pass(calls) {
+	pass(calls, commandEncoder) {
 
-		const commandEncoder = this.device.createCommandEncoder();
 		const currentTexture = this.context.getCurrentTexture();
 		if (!currentTexture) {
 			console.error("Failed to retrieve current texture.");
@@ -166,19 +168,8 @@ class Render {
 		const maxLevel = this.mipLevel;
 		// passEncoder.drawIndexed(6*Math.pow(4,this.mipLevel), 1, 0);
 		passEncoder.drawIndexed(6, 1, 0);
-		// passEncoder.drawIndexed(6, 1, 0);
-		// passEncoder.drawIndexed(6, 1, 6);
-		// passEncoder.drawIndexed(6, 1, 6*5);
-		// passEncoder.drawIndexed(6, 1, 6*21);
 
-		passEncoder.drawIndexed(6, 1, 6*2);
-
-
-
-		// passEncoder.drawIndexed(6*Math.pow(4, this.mipLevel), 1, 0);
 		passEncoder.end();
-
-		this.device.queue.submit([commandEncoder.finish()]);
 	}
 	createBindGroups(call = 0) {
 		this.bindGroups = {

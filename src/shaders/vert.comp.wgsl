@@ -1,37 +1,11 @@
-
-struct Traversal {
-	depth: f32,
-	address: f32,
-	coord: vec2<f32>,
-	boundBox: vec4<f32>,
-	quad: i32,
-	_pad: vec3<i32>,
-};
-
-struct Vertex {
-	position: vec4<f32>,
-	values: vec4<f32>,
-};
-struct Quad {
-	vertices: array<Vertex, 4>,
-};
-
-struct Indices {
-	indices: array<u32, 6>,
-};
-
-struct State {
-	iter: array<u32, 16>,
-};
-
-
 struct Uniforms {
 resolution: vec2<f32>,
-mipLevel: f32,
-offset: u32,
+_pad: vec2<f32>,
+workgroupSize: vec2<u32>,
 };
 
-@group(0) @binding(0) var<storage, read_write> state: State;
+
+@group(0) @binding(0) var<storage, read_write> state: array<u32>;
 // storage texture
 @group(0) @binding(1) var outTexture: texture_storage_2d<rgba8unorm, write>;
 
@@ -42,20 +16,12 @@ offset: u32,
 // texture
 @group(1) @binding(2) var texture: texture_2d<f32>;
 
-fn getNodeIndex(level: f32, pos: f32) -> u32 {
-	return u32((pow(4, level)) / 3 + pos);
-}
-fn modf(a: f32, b: f32) -> f32 {
-    return a - b * floor(a / b);
-}
-
-fn searchMipMapTexture(text: texture_2d<f32>, coord: vec2<u32>) -> vec4<f32> {
-	let fullTextDim = textureDimensions(text);
-	let uv = vec2<f32>(vec2<f32>(coord) / vec2<f32>(fullTextDim));
-	
+fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
+	let fullTextDim = textureDimensions(outTexture);
+	let res = max(fullTextDim.x, fullTextDim.y);
+	let uv = vec2<f32>(vec2<f32>(coord) / vec2<f32>(f32(res), f32(res)));
 	for (var i: i32 = 0; i < 16; i = i + 1) {
-		// text dim at level i
-		let textureValue = textureSampleLevel(text, mipSampler, uv, f32(i));
+		let textureValue = textureSampleLevel(texture, mipSampler, uv, f32(i));
 		if (textureValue.x != 0.0) {
 			//return vec4<f32>(textureValue.x, textureValue.y, f32(i)/16, textureValue.w);
 			//return vec4<f32>(f32(i)/16, 0.0, 0.0, 1.0);
@@ -65,15 +31,45 @@ fn searchMipMapTexture(text: texture_2d<f32>, coord: vec2<u32>) -> vec4<f32> {
 	return vec4<f32>(0.0, 0.0, 0.0, 0.0);
 }
 
+// Local variable
+var<workgroup> id: u32;
 
+
+const W_S: u32 = 16;
 @compute @workgroup_size(16,16)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
-@builtin(local_invocation_id) local_id: vec3<u32>) {
-	let outTexDim = textureDimensions(outTexture);
-	if (global_id.x >= outTexDim.x || global_id.y >= outTexDim.y) {
-		return;
+fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
+@builtin(workgroup_id) workgroup_id: vec3<u32>) {
+	let index = workgroup_id.x + workgroup_id.y * (uniforms.workgroupSize.x);
+	id = state[index];
+	
+	let u_d: vec2<u32> = workgroup_id.xy;
+	let u_l: vec2<u32> = local_id.xy;
+
+	let ud_size = uniforms.workgroupSize.x;
+	let ul_size = W_S;
+	
+	let texDim = max(textureDimensions(outTexture).x, textureDimensions(outTexture).y); 
+	// get resolution even divided by ud_size*ud_size
+	let res = (texDim / (ud_size * ud_size) +1u) * (ud_size * ud_size);
+	let g_t = vec2<u32>(res / (ul_size), res / ul_size);
+	let i = id; 
+
+	let g_c = vec2<u32>((i* ud_size) % g_t.x, ((i* ud_size) / g_t.y));
+	let coord = g_c * ul_size + u_l + u_d * ul_size;
+	
+
+	let workgroupSize = uniforms.workgroupSize.x;
+
+	let color = searchMipMapTexture(coord);
+	//textureStore(outTexture, vec2<i32>(coord), color);
+	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(vec2<f32>(global_id.xy)/vec2<f32>(vec2<u32>(workgroupSize, workgroupSize)), 0.0, 1.0));
+	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(1.0 - f32(index)/f32(ud_size*ud_size), 0.0, 0.0, 1.0));
+	// color textureStore every odd i red 
+	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(i % 2), f32((i+1) % 2), 0.0, 1.0));
+	textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(id % 2), f32((id+1) % 2), 0.0, 1.0));
+	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(index % 2), f32((index+1) % 2), f32(i % 2), 1.0));
+	workgroupBarrier();
+	if (local_id.x == 0u && local_id.y == 0u) {
+		state[index] = id + 1u;
 	}
-	let color = searchMipMapTexture(texture, global_id.xy);
-		
-	textureStore(outTexture, vec2<i32>(global_id.xy), color);
 }

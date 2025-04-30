@@ -142,14 +142,13 @@ class Eval {
 			    this.layout = pipelineLayoutQuadTree;
 		    }
 
-		    async pass(mipLevel){
+		    async pass(mipLevel, commandEncoder: GPUCommandEncoder){
 			    // calculate workgroup based on mipmap
 			    // const workgroupSize = Math.pow(2, this.mipLevel - mipLevel);
 			    const device = this.device;
 			    // update bindGroup
 			    this.createBindGroups(mipLevel);
-			    const commandEncoderQuad = device.createCommandEncoder();
-			    const computePass = commandEncoderQuad.beginComputePass();
+			    const computePass = commandEncoder.beginComputePass();
 			    computePass.setPipeline(this.pipeline);
 			    computePass.setBindGroup(0, this.bindGroups.texture);
 			    computePass.setBindGroup(1, this.bindGroups.quadTree);
@@ -157,11 +156,9 @@ class Eval {
 			    // computePass.dispatchWorkgroups(1,1,4)
 			    computePass.dispatchWorkgroups(1)
 			    computePass.end();
-			    await device.queue.submit([commandEncoderQuad.finish()]);
 		    }
 		    createBindGroups(level = 0){
 			    // Create texture for quadtree bindGroupQuad
-			    level = level / 2;
 			    let currentMipLevel = (this.mipLevel - 1) - level % this.mipLevel;
 			    const bindGroupQuadTreeTexture = this.device.createBindGroup({
 				    layout: this.bindGroupLayouts.texture,

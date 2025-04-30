@@ -29,7 +29,7 @@ struct Traversal {
 @group(0) @binding(1) var<storage, read_write> values: array<f32>;
 @group(0) @binding(2) var<storage, read_write> nodes: array<f32>;
 
-@group(0) @binding(3) var<storage, read_write> result: array<f32>;
+@group(0) @binding(3) var<storage, read_write> result: array<array<f32, 16>>;
 
 // Parent addresses
 struct addrInfo {
@@ -48,8 +48,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	if (trav.done == 0u){
 		addr.iter[threadIndex] = addr.iter[threadIndex] + 1i;	
 		addr.address[0] = trav.address;
+		return;
 	}
-	
 
 	var pTrav = traversal[id-1];
 	let quad = trav.quad;
@@ -57,13 +57,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 	var child = getNode(u32(pTrav.address)).children[quad];
 
 	if(child < 0.0 || ((child == 0.0) && (id == 0u))) {
-		result[id] = 0.0;
-		// TODO jump to end of iteration
-		//addr.iter[threadIndex] -= addr.iter[threadIndex] % 16i;
+		result[threadIndex][id] = 0.0;
 		addr.iter[threadIndex] += 1i; 
 		return;
 	}
-	result[id] = values[u32(child)] / values[0];
+	result[threadIndex][id] = values[u32(child)] / values[0];
 	
 	traversal[id].address = child;
 	traversal[id].done = 0u;

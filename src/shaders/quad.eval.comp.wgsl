@@ -72,20 +72,22 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
 		let threadIndex = local_id.x;
 		let iter = threadIterations.iterations[threadIndex];
-
+		
 
 		let index: u32 = (iter) % 16u; 
+		
 		let boundBox = traversal[index].boundBox;
 		let center = (boundBox.xy + boundBox.zw) * 0.5;
 		var quad = 0u;
 		var coord = traversal[index].coord;
 	
-		if (iter == 0u) {
-			traversal[index].done = 1i;
-			threadIterations.iterations[threadIndex] += 1u;
-			return;
-		}
 		if (iter < 16u) {
+			if (index != 0u){
+				threadIterations.reference[index-1u] = levelValues[threadIndex][index];
+			}
+			threadIterations.iterations[threadIndex] += 1u;
+
+
 			quad = quadFromeCoord(coord, boundBox);
 			let q_i = getNodeIndex(f32(index), f32(quad));
 			quadMap[q_i] = 1u;
@@ -93,9 +95,6 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 			traversal[index+1].boundBox = bBox;
 			traversal[index+1].coord = coord;
 			traversal[index+1].quad = i32(quad);
-			//threadIterations.reference[index] = f32(iter); 
-			threadIterations.reference[index] = levelValues[threadIndex][index-1];
-			threadIterations.iterations[threadIndex] += 1u;
 			traversal[index+1].done = 1i;
 			return;
 		}
@@ -127,12 +126,9 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 
 
 
-		if(iter < 16u) {
-			threadIterations.reference[index] = levelValues[threadIndex][index];
-		}
-		let value = abs(threadIterations.reference[index] - levelValues[threadIndex][index]);
-		//result[threadIndex][index] = abs(threadIterations.reference[index] - levelValues[0][index]);
-		result[threadIndex][index] = f32(iter); 
+		let value = abs(threadIterations.reference[index] - levelValues[threadIndex][index-1]);
+		result[threadIndex][index] = value; 
+		//result[threadIndex][index] = f32(iter); 
 		//result[threadIndex][index] = f32(quad); 
 
 
@@ -141,7 +137,8 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		//let color = vec4<f32>(0.0,result[threadIndex][index], 0.0, 1.0);
 		//let color = vec4<f32>(f32(index)/16.0, result[threadIndex][index], 0.0, 1.0);
 		//let color = vec4<f32>(1.0 - f32(iter%16)/16.0, value, 0.0, 1.0);
-		let color = vec4<f32>(1.0 - f32(iter%16)/16.0, 0.0, 0.0, 1.0);
+		let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+		//let color = vec4<f32>(1.0 - f32(iter%16)/16.0, 0.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 
 
