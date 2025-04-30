@@ -168,6 +168,7 @@ class VertexGen {
 		computePass.setPipeline(this.vertexPipeline);
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
+		// TODO optimize with x,y,z ??
 		computePass.dispatchWorkgroups(WORKGROUPSIZE, WORKGROUPSIZE);
 		computePass.end();
 	}

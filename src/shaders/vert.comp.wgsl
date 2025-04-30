@@ -65,6 +65,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 	// color textureStore every odd i red 
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(i % 2), f32((i+1) % 2), 0.0, 1.0));
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(id % 2), f32((id+1) % 2), 0.0, 1.0));
+	textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(local_id.x + workgroup_id.x) / (16), f32(local_id.y + workgroup_id.y) / (16), 0.0, 1.0));
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(index % 2), f32((index+1) % 2), f32(i % 2), 1.0));
 	workgroupBarrier();
 	if (local_id.x == 0u && local_id.y == 0u) {
