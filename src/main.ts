@@ -245,18 +245,23 @@ async function frame() {
 		quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 		current_mipLevel++;
 	}
-
-	const renderCommandEncoder = device.createCommandEncoder();
-	render.pass(frameCount, renderCommandEncoder)
-	device.queue.submit([commandEncoder.finish(), renderCommandEncoder.finish()]);
+	device.queue.submit([commandEncoder.finish()]);
+	
+	// renderpass locked 30 fps
+	if (currentTime - lastFrameTime > 1000 / 30) {
+		const renderCommandEncoder = device.createCommandEncoder();
+		render.pass(frameCount, renderCommandEncoder)
+		device.queue.submit([renderCommandEncoder.finish()]);
+		lastFrameTime = currentTime;
+	}
 	current_mipLevel++;
 	frameCount++;
 	stats.end();
+
 	// console.log('Frame: ', frameCount, 'Time: ', currentTime - lastFrameTime, 'ms');
 		// return;
 	// wait 500 ms
-	await new Promise(resolve => setTimeout(resolve, 200));
-	lastFrameTime = currentTime;
+	// await new Promise(resolve => setTimeout(resolve, 200));
 	requestAnimationFrame(frame);
 
 }

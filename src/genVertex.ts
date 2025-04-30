@@ -53,10 +53,10 @@ const READ_BGL = {
 
 const travValues = new Float32Array(64);
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
+// const WORKGROUPSIZE = 64;
 // const WORKGROUPSIZE = 32;
-// const WORKGROUPSIZE = 2;
-// const WORKGROUPSIZE = 10;
-const WORKGROUPSIZE = 16;
+// const WORKGROUPSIZE = 16;
+const WORKGROUPSIZE = 8;
 class VertexGen {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;

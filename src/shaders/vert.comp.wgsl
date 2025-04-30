@@ -50,26 +50,30 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 	
 	let texDim = max(textureDimensions(outTexture).x, textureDimensions(outTexture).y); 
 	// get resolution even divided by ud_size*ud_size
-	let res = (texDim / (ud_size * ud_size) +1u) * (ud_size * ud_size);
+	let res = (texDim / (ul_size * ud_size)) * (ul_size * ud_size) + ud_size;
 	let g_t = vec2<u32>(res / (ul_size), res / ul_size);
 	let i = id; 
 
-	let g_c = vec2<u32>((i* ud_size) % g_t.x, ((i* ud_size) / g_t.y));
+	let g_c = vec2<u32>((i* ud_size) % g_t.x, ((i* ud_size) / g_t.y)*ud_size);
 	let coord = g_c * ul_size + u_l + u_d * ul_size;
 	
 
 	let workgroupSize = uniforms.workgroupSize.x;
 
 	let color = searchMipMapTexture(coord);
-	//textureStore(outTexture, vec2<i32>(coord), color);
+	textureStore(outTexture, vec2<i32>(coord), color);
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(vec2<f32>(global_id.xy)/vec2<f32>(vec2<u32>(workgroupSize, workgroupSize)), 0.0, 1.0));
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(1.0 - f32(index)/f32(ud_size*ud_size), 0.0, 0.0, 1.0));
 	// color textureStore every odd i red 
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(i % 2), f32((i+1) % 2), 0.0, 1.0));
-	textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(id % 2), f32((id+1) % 2), 0.0, 1.0));
+	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(id % 2), f32((id+1) % 2), 0.0, 1.0));
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(index % 2), f32((index+1) % 2), f32(i % 2), 1.0));
 	workgroupBarrier();
 	if (local_id.x == 0u && local_id.y == 0u) {
 		state[index] = id + 1u;
+		if (f32(state[index]) > pow(f32(texDim / (ul_size * ud_size)),2)) {
+			state[index] = 0u;
+		}
+
 	}
 }
