@@ -43,7 +43,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 @builtin(local_invocation_id) local_id: vec3<u32>) {
 	let threadIndex = local_id.x;
 	let iter = addr.iter[threadIndex];
-	let id: u32 = u32(iter % 16i);
+	let id: u32 = u32(iter % 15i);
 	let trav = traversal[id];
 	if (trav.done == 0u){
 		addr.iter[threadIndex] = addr.iter[threadIndex] + 1i;	
@@ -53,10 +53,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 
 	var pTrav = traversal[id-1];
 	let quad = trav.quad;
-
-	var child = getNode(u32(pTrav.address)).children[quad];
-
-	if(child < 0.0 || ((child == 0.0) && (id == 0u))) {
+	
+	let node = getNode(u32(pTrav.address));
+	var child = node.children[quad];
+		
+	if(child < 0.0 || ((pTrav.address == 0.0) && (id > 1u))) {
 		result[threadIndex][id] = 0.0;
 		addr.iter[threadIndex] += 1i; 
 		return;

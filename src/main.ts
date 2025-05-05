@@ -231,7 +231,7 @@ async function frame() {
 	}else{
 		if (frameCount % 2 == 0){
 			await quadManager.eval.pass(frameCount / 2, commandEncoder);
-			// console.log("Eval iterations (", frameCount, "):")
+			console.log("Eval iterations (", frameCount, "):")
 			await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result, 0, 32);
 		}else{
