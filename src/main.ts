@@ -304,10 +304,10 @@ canvas.addEventListener('click', async (event) => {
 	console.log(`Mouse coordinates: (${x}, ${y})`);
 	console.log(canvas.width, canvas.height)
 	const pixRat = {
-		x: HEIGHT / canvas.height / devicePixelRatio,
-		y: WIDTH / canvas.width / devicePixelRatio
+		x: canvas.width / HEIGHT * devicePixelRatio,
+		y: canvas.height / WIDTH * devicePixelRatio 
 	}
-	const uv = [x / canvas.width / pixRat.x, y / canvas.height / pixRat.y];
+	const uv = [x / canvas.width * pixRat.x, y / canvas.height * pixRat.y];
 	console.log(`UV coordinates: (${uv[0]}, ${uv[1]})`);
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
