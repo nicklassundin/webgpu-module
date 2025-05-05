@@ -50,8 +50,14 @@ const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
 
 const devicePixelRatio = window.devicePixelRatio || 1;
+const divisibleBy = 32 * 16;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+canvas.width = Math.floor(canvas.width / divisibleBy) * divisibleBy;
+canvas.height = Math.floor(canvas.height / divisibleBy) * divisibleBy;
+
 
 const textureSize = {
 	width: canvas.width,
@@ -211,7 +217,6 @@ async function frame() {
 	// console.log(frameCount)
 	// Update the stats panel
 	if (params.change) {
-		console.log('click')
 		frameCount = 0;
 		current_mipLevel = 0;
 		params.change = false;
@@ -228,16 +233,15 @@ async function frame() {
 		// await device.queue.onSubmittedWorkDone();
 		requestAnimationFrame(frame);
 		// clear browser console
-		console.clear();
 		return;
 	}else{
 		if (frameCount % 2 == 0){
-			// await quadManager.eval.pass(current_mipLevel, commandEncoder);
+			await quadManager.eval.pass(current_mipLevel, commandEncoder);
 			// console.log("Eval iterations (", frameCount, "):")
 			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 		}else{
 			// mesure time 
-			// await quadManager.quadTree.pass(current_mipLevel, commandEncoder);
+			await quadManager.quadTree.pass(current_mipLevel, commandEncoder);
 			// console.log("QuadTree result (", frameCount, "):")
 			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 		}
@@ -292,10 +296,19 @@ async function loadImageBitmap(url: string) {
 }
 // listen and find uv coordinates of mouse on click
 canvas.addEventListener('click', async (event) => {
-	const rect = canvas.getBoundingClientRect();
+	console.clear();
+	let rect = canvas.getBoundingClientRect();
 	const x = (event.clientX - rect.left);
 	const y = (event.clientY - rect.top);
-	const uv = [x / canvas.width, y / canvas.height];
+	console.log(`Mouse click at (${event.clientX}, ${event.clientY})`);
+	console.log(`Mouse coordinates: (${x}, ${y})`);
+	console.log(canvas.width, canvas.height)
+	const pixRat = {
+		x: HEIGHT / canvas.height / devicePixelRatio,
+		y: WIDTH / canvas.width / devicePixelRatio
+	}
+	const uv = [x / canvas.width / pixRat.x, y / canvas.height / pixRat.y];
+	console.log(`UV coordinates: (${uv[0]}, ${uv[1]})`);
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);

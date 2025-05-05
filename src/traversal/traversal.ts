@@ -136,6 +136,7 @@ class QuadTreeTraversal {
 		// this.texture = frameTexture;
 	}
 	async pass(frame, commandEncoder: GPUCommandEncoder){
+		console.log('pass');
 		// calculate workgroup based on mipmap
 		const device = this.device;
 		const computePass = commandEncoder.beginComputePass();
