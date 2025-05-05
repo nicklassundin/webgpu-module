@@ -99,8 +99,6 @@ class QuadTreeTraversal {
 
 		this.buffers = {
 			travBuffer,
-			valuesBuffer: quadTree.buffers.values,
-			nodesBuffer: quadTree.buffers.nodes,
 			iter: iterationsBuffer,
 		};
 
@@ -167,17 +165,17 @@ class QuadTreeTraversal {
 					{
 						binding: 1,
 						resource: {
-							buffer: this.buffers.valuesBuffer,
+							buffer: this.quadTree.buffers.values,
 							offset: 0,
-							size: this.buffers.valuesBuffer.size,
+							size: this.quadTree.buffers.values.size,
 						},
 					},
 					{
 						binding: 2,
 						resource: {
-							buffer: this.buffers.nodesBuffer,
+							buffer: this.quadTree.buffers.nodes,
 							offset: 0,
-							size: this.buffers.nodesBuffer.size,
+							size: this.quadTree.buffers.nodes.size,
 						},
 					},
 					{
@@ -207,8 +205,6 @@ class QuadTreeTraversal {
 	}
 	unmap(){
 		this.buffers.travBuffer.unmap();
-		this.buffers.valuesBuffer.unmap();
-		this.buffers.nodesBuffer.unmap();
 		this.buffers.iter.unmap();
 		this.result.unmap();
 

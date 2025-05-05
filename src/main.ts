@@ -90,7 +90,6 @@ vertexBuffer.unmap();
 // Load Textures
 const image = await loadImageBitmap(textureList[0]);
 
-
 // TODO fix so mipLevel trasfers into structure
 const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
 // print byte size of image
@@ -228,14 +227,16 @@ async function frame() {
 		requestAnimationFrame(frame);
 		// clear browser console
 		return;
+	// }else if(16*2 > frameCount){
 	}else{
 		if (frameCount % 2 == 0){
-			await quadManager.eval.pass(current_mipLevel, commandEncoder);
+			await quadManager.eval.pass(frameCount / 2, commandEncoder);
 			// console.log("Eval iterations (", frameCount, "):")
-			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
+			await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
+			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result, 0, 32);
 		}else{
 			// mesure time 
-			await quadManager.quadTree.pass(current_mipLevel, commandEncoder);
+			await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
 			// console.log("QuadTree result (", frameCount, "):")
 			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 		}

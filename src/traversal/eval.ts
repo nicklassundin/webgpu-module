@@ -76,6 +76,7 @@ class Eval {
 		    mipLevelCount: number = 11) {
 			    this.device = device;
 			    this.mipLevel = mipLevelCount;
+			    this.quadTreeTrav = quadTreeTrav;
 			    let frames = 2;
 
 			    // 
@@ -106,10 +107,7 @@ class Eval {
 
 			    this.buffers = {
 				    path: quadTreeTrav.result,
-				    travBuffer: quadTreeTrav.buffers.travBuffer,
-				    values: quadTreeTrav.buffers.valuesBuffer,
 				    result,
-				    nodes: quadTreeTrav.buffers.nodesBuffer,
 				    quadTreeMap: quadTreeBuffer,
 				    texture: mipmapTexture,
 				    threadIterations: threadIterationsBuffer,
@@ -174,9 +172,9 @@ class Eval {
 					    {
 						    binding: 1,
 						    resource: {
-							    buffer: this.buffers.travBuffer,
+							    buffer: this.quadTreeTrav.buffers.travBuffer,
 							    offset: 0,
-							    size: this.buffers.travBuffer.size,
+							    size: this.quadTreeTrav.buffers.travBuffer.size,
 						    }
 					    },
 					    {
@@ -223,12 +221,10 @@ class Eval {
 			    }
 		    }
 		    unmap(){
+			    this.buffers.path.unmap();
 			    this.buffers.result.unmap();
-			    this.buffers.travBuffer.unmap()
-			    this.buffers.values.unmap();
-			    this.buffers.nodes.unmap();
-			    this.buffers.threadIterations.unmap();
 			    this.buffers.quadTreeMap.unmap();
+			    this.buffers.threadIterations.unmap();
 			    this.device.queue.onSubmittedWorkDone();
 		    }
 }

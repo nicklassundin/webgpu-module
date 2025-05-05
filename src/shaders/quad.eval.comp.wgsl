@@ -81,12 +81,16 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		let center = (boundBox.xy + boundBox.zw) * 0.5;
 		var quad = 0u;
 		var coord = traversal[index].coord;
-	
+		
+		if (traversal[index].done == 1i){
+			return;
+		}
+
 		if (iter < 32u) {
 			if (index != 0u){
 				threadIterations.reference[index] = levelValues[threadIndex][index];
 				//threadIterations.reference[index] = f32(index);
-			}
+			} 
 			threadIterations.iterations[threadIndex] += 1u;
 
 			quad = quadFromeCoord(coord, boundBox);
@@ -99,7 +103,7 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 			traversal[index+1].done = 1i;
 			
 			let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-			let value = 1.0;
+			let value = 0.0;
 			let color = vec4<f32>(value, 1.0 - f32(index)/16.0, 0.0, 1.0);
 			textureStore(texture, texCoord, color); 
 			return;
@@ -139,8 +143,8 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 
 
 		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-		//let color = vec4<f32>(value, f32(index)/16.0, 1.0, 1.0);
-		let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+		let color = vec4<f32>(value, 1.0 - f32(index)/16.0, 0.0, 1.0);
+		//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 
 		threadIterations.iterations[threadIndex] += 1u;
