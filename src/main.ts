@@ -50,22 +50,16 @@ const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
 
 const devicePixelRatio = window.devicePixelRatio || 1;
-const divisibleBy = 32 * 16;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
-canvas.width = Math.floor(canvas.width / divisibleBy) * divisibleBy;
-canvas.height = Math.floor(canvas.height / divisibleBy) * divisibleBy;
 
 
+const divisibleBy = 32 * 16;
 const textureSize = {
-	width: canvas.width,
-	height: canvas.height,
+	width: Math.floor(canvas.width / divisibleBy) * divisibleBy,
+	height: Math.floor(canvas.height / divisibleBy) * divisibleBy,
 	depthOrArrayLayers: 1
 };
-console.log(textureSize.width, textureSize.height)
-
 usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 context.configure({
@@ -104,9 +98,9 @@ const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
 const imageBitmap = image;
 // const imageCanvas = document.createElement('canvas');
 const imageCanvas = document.createElement('canvas');
+const ctx = imageCanvas.getContext('2d');
 imageCanvas.width = textureSize.width;
 imageCanvas.height = textureSize.height;
-const ctx = imageCanvas.getContext('2d');
 
 // Read 
 // ensure ctx is not null
@@ -300,15 +294,11 @@ canvas.addEventListener('click', async (event) => {
 	let rect = canvas.getBoundingClientRect();
 	const x = (event.clientX - rect.left);
 	const y = (event.clientY - rect.top);
-	console.log(`Mouse click at (${event.clientX}, ${event.clientY})`);
-	console.log(`Mouse coordinates: (${x}, ${y})`);
-	console.log(canvas.width, canvas.height)
-	const pixRat = {
-		x: canvas.width / HEIGHT * devicePixelRatio,
-		y: canvas.height / WIDTH * devicePixelRatio 
-	}
-	const uv = [x / canvas.width * pixRat.x, y / canvas.height * pixRat.y];
-	console.log(`UV coordinates: (${uv[0]}, ${uv[1]})`);
+	// const pixRat = {
+	// 	x: canvas.width / HEIGHT * devicePixelRatio,
+	// 	y: canvas.height / WIDTH * devicePixelRatio 
+	// }
+	const uv = [x / canvas.width, y / canvas.height];
 	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
