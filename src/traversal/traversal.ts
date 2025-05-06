@@ -106,12 +106,6 @@ class QuadTreeTraversal {
 			quadTree: device.createBindGroupLayout(QUADTREE_BGL_CONFIG), 
 			iter: device.createBindGroupLayout(ITERATIONS_BGL),
 		};
-		// Quad Tree bindGroupLayout
-		// console.log(travValues.byteLength)
-		// console.log(values.byteLength)
-		// console.log(nodes.byteLength)
-		// console.log(resultArray.byteLength)
-		// create bindGroup for quadTree
 		const bindGroupQuadTree = this.createBindGroup();
 		// Create pipeline layout for quadTree
 		const pipelineLayoutQuadTree = device.createPipelineLayout({

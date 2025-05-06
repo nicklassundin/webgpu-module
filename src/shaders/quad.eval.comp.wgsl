@@ -88,10 +88,10 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 			//threadIterations.iterations[threadIndex] += 1u;
 			return;
 		}
-	*/	
 		result[0u][0u] = f32(iter);
 		result[0u][1u] = f32(index);
 		result[0u][2u] = f32(threadIndex);
+	*/	
 		if (iter < 32u) {
 			threadIterations.iterations[threadIndex] += 1u;
 			if (index != 0u){
@@ -114,7 +114,10 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 			textureStore(texture, texCoord, color); 
 			return;
 		}
-
+		
+		// for loop traversing quadMap
+		/*
+		*/
 		var q0 = getNodeIndex(f32(index), 0.0);
 		var q1 = getNodeIndex(f32(index), 1.0); 
 		var q2 = getNodeIndex(f32(index), 2.0);
@@ -131,6 +134,8 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		} else if (quadMap[q3] == 0u){
 			quad = (quad + 3u) % 4u;
 			quadMap[q3] = 1u;
+		}else{
+
 		}
 		let nBoundBox = boundBoxFromeCoord(quad, boundBox);
 		// coord center of boundBox
@@ -148,8 +153,8 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 
 
 		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-		let color = vec4<f32>(value, 1.0 - f32(index)/16.0, 0.0, 1.0);
-		//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+		//let color = vec4<f32>(value, 1.0 - f32(index)/16.0, 0.0, 1.0);
+		let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 
 		threadIterations.iterations[threadIndex] += 1u;
