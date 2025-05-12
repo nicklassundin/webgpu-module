@@ -74,7 +74,6 @@ class Eval {
 		    bufferMux: BufferMux) {
 			    this.device = device;
 			    this.bufferMux = bufferMux;
-			    let frames = 2;
 
 			    this.bindGroupLayouts = {
 				    quadTree: device.createBindGroupLayout(READ_BGL),

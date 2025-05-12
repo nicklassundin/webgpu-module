@@ -53,10 +53,6 @@ const READ_BGL = {
 
 const travValues = new Float32Array(64);
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
-// const WORKGROUPSIZE = 64;
-// const WORKGROUPSIZE = 32;
-// const WORKGROUPSIZE = 16;
-const WORKGROUPSIZE = 8;
 class VertexGen {
 	pipeline: GPUComputePipeline;
 	bindGroup: GPUBindGroup;
@@ -71,20 +67,7 @@ class VertexGen {
 	constructor(device: GPUDevice,
 		    bufferMux: BufferMux) {
 		this.device = device;
-		this.mipLevel = bufferMux.config.mipLevel;
-		const grid = Math.pow(2, this.mipLevel) +1 ;
-		this.grid = grid;
-		this.textureSize = bufferMux.config.textureSize;
-		// this.eval= targetEval;
 		this.bufferMux = bufferMux;
-		const texture = device.createTexture({
-			size: this.bufferMux.config.textureSize,
-			format: 'rgba8unorm',
-			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST,
-		});
-		this.buffers = {
-			texture
-		}
 		
 		// create bindgrouopLayout for quadtree
 		// Texture Storage Layout
@@ -121,7 +104,8 @@ class VertexGen {
 		computePass.setBindGroup(0, this.bindGroups.write);
 		computePass.setBindGroup(1, this.bindGroups.read);
 		// TODO optimize with x,y,z ??
-		computePass.dispatchWorkgroups(WORKGROUPSIZE, WORKGROUPSIZE);
+		const workgroupSize = this.bufferMux.config.workgroupSize;
+		computePass.dispatchWorkgroups(workgroupSize, workgroupSize)
 		computePass.end();
 	}
 	createBindGroups(){

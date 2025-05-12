@@ -84,7 +84,8 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		
 		let value = abs(threadIterations.reference[index] - levelValues[threadIndex][index-1]);
 		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-		let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+		let color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+		//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 	
 		if (iter < 32u) {
