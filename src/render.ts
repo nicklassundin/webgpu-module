@@ -25,28 +25,18 @@ const BGL_UNIFORM = {
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
 // Create bind group for uniform buffer
 class Render {
-	constructor(device: GPUDevice, context: GPUCanvasContext, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat, depthSampler, manager, mipLevel: number) { 
+	constructor(device: GPUDevice, context: GPUCanvasContext, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat, depthSampler, bufferMux: BUfferMux) { 
 		// Create binding group layout Used for mipmap and normal rendering
 		this.device = device;
 		this.context = context
 		this.canvas = canvas;
 		this.depthSampler = depthSampler;
-		this.manager = manager;
-		this.quadTree = manager.quadTree; 
-		this.eval = manager.eval; 
-		this.mipLevel = mipLevel;
+		this.bufferMux = bufferMux;
 		this.frameBuffer = [];
+		const mipLevel = bufferMux.config.mipLevel;
 		// Uniform Buffer
 		// containing the resolution of the canvas
 		// Resolution 4 * 2; Mipmap level 4 * 1
-		const uniformBuffer = device.createBuffer({
-			size: uniformBufferSize,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-		});
-		const resolution = new Float32Array([canvas.width,
-						    canvas.height,
-		mipLevel]);
-		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
 		// Sampler
 		const sampler = device.createSampler({ 
 			minFilter: 'linear',
@@ -62,7 +52,6 @@ class Render {
 			// maxAnisotropy: 16,
 		});
 		this.buffers = {
-			uniform: uniformBuffer,
 			sampler: sampler,
 		}
 		this.frames = 2;
@@ -163,10 +152,9 @@ class Render {
 		// passEncoder.setVertexBuffer(0, vertexBuffer);
 		passEncoder.setBindGroup(0, this.bindGroups.uniform);
 		passEncoder.setBindGroup(1, this.bindGroups.nav);
-		passEncoder.setVertexBuffer(0, this.manager.genVertex.buffers.vertice);
-		passEncoder.setIndexBuffer(this.manager.genVertex.buffers.indices, 'uint32');
+		passEncoder.setVertexBuffer(0, this.bufferMux.vertices);
+		passEncoder.setIndexBuffer(this.bufferMux.indices, 'uint32');
 		const maxLevel = this.mipLevel;
-		// passEncoder.drawIndexed(6*Math.pow(4,this.mipLevel), 1, 0);
 		passEncoder.drawIndexed(6, 1, 0);
 
 		passEncoder.end();
@@ -179,9 +167,9 @@ class Render {
 					{
 						binding: 0,
 						resource: {
-							buffer: this.buffers.uniform, 
+							buffer: this.bufferMux.uniform,
 							offset: 0,
-							size: uniformBufferSize,
+							size: this.bufferMux.uniformSize
 						},
 					},
 					// Sampler from buffers.sampler
@@ -189,20 +177,13 @@ class Render {
 						binding: 1,
 						resource: this.buffers.sampler,
 					},
-					// Texture from genVertex.buffers.texture
 					{
 						binding: 2,
-						resource: this.manager.genVertex.buffers.texture.createView(),
+						resource: this.bufferMux.texture.createView(),
 					},
 				],
 			}),
 		}
-	}
-	unmap() {
-		this.manager.quadTree.unmap();
-		this.manager.eval.unmap();
-		this.manager.genVertex.unmap();
-		this.device.queue.writeBuffer(this.buffers.uniform, 0, new Float32Array([this.canvas.width, this.canvas.height, this.mipLevel]).buffer);
 	}
 }
 export default Render;

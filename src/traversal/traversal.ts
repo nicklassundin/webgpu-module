@@ -71,37 +71,9 @@ class QuadTreeTraversal {
 	bindGroupLayouts: {};
 	buffers: {};
 	results: GPUBuffer[];
-	constructor(device: GPUDevice, quadTree: QuadTree, mipLevel, uv: number[] = [0, 0]) {
+	constructor(device: GPUDevice, buffers: BufferMux) {
 		this.device = device;
-		this.mipLevel = mipLevel;
-		this.quadTree = quadTree;
-			const travVal = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
-			const travBuffer = device.createBuffer({
-				size: travVal.byteLength*Math.pow(4, mipLevel),
-				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-			});
-			device.queue.writeBuffer(travBuffer, 0, travVal, 0);
-
-		// Create empty buffer for quadtree
-		// Create array length of depth
-		// create mipLevelCount from textureSize as int
-		const resultArray = new Float32Array(mipLevel);
-		this.result = device.createBuffer({
-			size: Float32Array.BYTES_PER_ELEMENT * Math.pow(4, this.mipLevel),
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		});
-
-		// Iterations buffer
-		const iterationsBuffer = device.createBuffer({
-			size: Float32Array.BYTES_PER_ELEMENT * Math.pow(4, this.mipLevel),
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		});
-
-		this.buffers = {
-			travBuffer,
-			iter: iterationsBuffer,
-		};
-
+		this.bufferMux = buffers;
 		this.bindGroupLayouts = {
 			quadTree: device.createBindGroupLayout(QUADTREE_BGL_CONFIG), 
 			iter: device.createBindGroupLayout(ITERATIONS_BGL),
@@ -128,7 +100,6 @@ class QuadTreeTraversal {
 		// this.texture = frameTexture;
 	}
 	async pass(frame, commandEncoder: GPUCommandEncoder){
-		console.log('pass');
 		// calculate workgroup based on mipmap
 		const device = this.device;
 		const computePass = commandEncoder.beginComputePass();
@@ -142,7 +113,7 @@ class QuadTreeTraversal {
 		computePass.dispatchWorkgroups(1)
 		computePass.end();
 	}
-	createBindGroup(level = this.mipLevel){
+	createBindGroup(level = this.bufferMux.config.mipLevel){
 		level = level / 2;
 		this.bindGroup = {
 			quadTree: this.device.createBindGroup({
@@ -151,33 +122,33 @@ class QuadTreeTraversal {
 					{
 						binding: 0,
 						resource: {
-							buffer: this.buffers.travBuffer,
+							buffer: this.bufferMux.traversal,
 							offset: 0,
-							size: this.buffers.travBuffer.size, 
+							size: this.bufferMux.traversal.size,
 						},
 					},
 					{
 						binding: 1,
 						resource: {
-							buffer: this.quadTree.buffers.values,
+							buffer: this.bufferMux.quadTrees[0].values,
 							offset: 0,
-							size: this.quadTree.buffers.values.size,
+							size: this.bufferMux.quadTrees[0].values.size,
 						},
 					},
 					{
 						binding: 2,
 						resource: {
-							buffer: this.quadTree.buffers.nodes,
+							buffer: this.bufferMux.quadTrees[0].nodes,
 							offset: 0,
-							size: this.quadTree.buffers.nodes.size,
+							size: this.bufferMux.quadTrees[0].nodes.size,
 						},
 					},
 					{
 						binding: 3,
 						resource: {
-							buffer: this.result,
+							buffer: this.bufferMux.features[0],
 							offset: 0,
-							size: this.result.size,
+							size: this.bufferMux.features[0].size,
 						},
 					},
 				],
@@ -188,20 +159,14 @@ class QuadTreeTraversal {
 					{
 						binding: 0,
 						resource: {
-							buffer: this.buffers.iter,
+							buffer: this.bufferMux.travThreadIter,
 							offset: 0,
-							size: this.buffers.iter.size,
+							size: this.bufferMux.travThreadIter.size,
 						},
 					},
 				],
 			}),
 		};
-	}
-	unmap(){
-		this.buffers.travBuffer.unmap();
-		this.buffers.iter.unmap();
-		this.result.unmap();
-
 	}
 }
 export default QuadTreeTraversal;

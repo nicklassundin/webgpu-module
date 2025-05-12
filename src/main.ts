@@ -117,18 +117,18 @@ const depthSampler = device.createSampler({
 import QuadTree from './data'
 const quadTreeData = await fetch(quadTreeList[0]);
 const quadTreeJsonString = await quadTreeData.json();
-const quadTreeJson = JSON.parse(quadTreeJsonString);
+let quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson)
-
+quadTreeJson = [quadTreeJson];
 
 import QuadManager from "./quadManager";
-let quadManager = new QuadManager(device, textureSize, mipLevel, DEFAULT_COORD);
-quadManager.init(quadTree, DEFAULT_COORD);
+let quadManager = new QuadManager(device, textureSize, mipLevel);
+quadManager.init(quadTree, DEFAULT_COORD, quadTreeJson);
 
 import Eval from "./eval";
 
 import Render from "./render";
-let render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
+let render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager.bufferMux);
 
 await device.queue.onSubmittedWorkDone();
 
@@ -217,10 +217,10 @@ async function frame() {
 
 		await quadManager.unmap();
 		quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
-		quadManager.init(quadTree, params.travelValues);
+		quadManager.init(quadTree, params.travelValues, quadTreeJson);
 		render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
 		const commandEncoderArg = device.createCommandEncoder();
-		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.quadTree.buffers.travBuffer);
+		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.bufferMux.traversal);
 		const commandBufferArg = commandEncoderArg.finish();
 		// await device.queue.submit([commandBufferArg]);
 		// await device.queue.onSubmittedWorkDone();
@@ -229,16 +229,17 @@ async function frame() {
 		return;
 	// }else if(16*2 > frameCount){
 	}else{
+
 		if (frameCount % 2 == 0){
 			await quadManager.eval.pass(frameCount / 2, commandEncoder);
-			console.log("Eval iterations (", frameCount, "):")
+			// console.log("Eval iterations (", frameCount, "):")
 			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result, 0, 32);
 		}else{
 			// mesure time 
 			await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
-			console.log("QuadTree result (", frameCount, "):")
-			await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
+			// console.log("QuadTree result (", frameCount, "):")
+			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 32, 32);
 		}
 		// TODO Optimization

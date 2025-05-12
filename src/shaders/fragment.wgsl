@@ -2,7 +2,6 @@
 
 struct Uniforms {
 resolution: vec2<f32>,
-mipLevel: f32,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms; 
 // texture

@@ -68,60 +68,18 @@ class Eval {
 		texture: GPUBindGroupLayout,
 	};
 	get result() {
-		return this.buffers.result;
+		return this.bufferMux.result;
 	}
 	constructor(device: GPUDevice,
-		    textureSize,
-		    quadTreeTrav: QuadTreeTraversal, 
-		    mipLevelCount: number = 11) {
+		    bufferMux: BufferMux) {
 			    this.device = device;
-			    this.mipLevel = mipLevelCount;
-			    this.quadTreeTrav = quadTreeTrav;
+			    this.bufferMux = bufferMux;
 			    let frames = 2;
-
-			    // 
-			    const result = device.createBuffer({
-				    size: quadTreeTrav.result.size*4*4,
-				    offset: 0,
-				    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-			    })
-
-			    // quad tree traversal buffer
-			    const quadTreeBuffer = device.createBuffer({
-				    size: Math.pow(2, 2 * mipLevelCount) * 4 * 4, 
-				    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-			    });
-			    // Mipmap texture
-			    const mipmapTexture = device.createTexture({
-				    size: textureSize,
-				    format: 'rgba8unorm',
-				    usage: GPUTextureUsage.STORAGE | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
-				    mipLevelCount: mipLevelCount,
-			    });
-			    // Uniform buffer storing current mipmap level u32 bit
-			    const threadIterationsBuffer = device.createBuffer({
-				    // 16 is fixed max mipmap level
-				    size: 4*16 +  NUM_THREADS * 4,
-				    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC, 
-			    });
-
-			    this.buffers = {
-				    path: quadTreeTrav.result,
-				    result,
-				    quadTreeMap: quadTreeBuffer,
-				    texture: mipmapTexture,
-				    threadIterations: threadIterationsBuffer,
-			    }
-
-			    // create bindgrouopLayout for quadtree
-			    // Texture Storage Layout
 
 			    this.bindGroupLayouts = {
 				    quadTree: device.createBindGroupLayout(READ_BGL),
 				    texture: device.createBindGroupLayout(WRITE_BGL),
 			    }
-			    // Initialize bindGroups 
-			    // this.createBindGroups();
 			    // create bindGroup for quadTree
 			    const pipelineLayoutQuadTree = device.createPipelineLayout({
 				    bindGroupLayouts: [this.bindGroupLayouts.texture, this.bindGroupLayouts.quadTree],
@@ -141,8 +99,6 @@ class Eval {
 		    }
 
 		    async pass(mipLevel, commandEncoder: GPUCommandEncoder){
-			    // calculate workgroup based on mipmap
-			    // const workgroupSize = Math.pow(2, this.mipLevel - mipLevel);
 			    const device = this.device;
 			    // update bindGroup
 			    this.createBindGroups(mipLevel);
@@ -150,44 +106,44 @@ class Eval {
 			    computePass.setPipeline(this.pipeline);
 			    computePass.setBindGroup(0, this.bindGroups.texture);
 			    computePass.setBindGroup(1, this.bindGroups.quadTree);
-			    // computePass.dispatchWorkgroups(this.mipLevel)
-			    // computePass.dispatchWorkgroups(1,1,4)
 			    computePass.dispatchWorkgroups(1)
 			    computePass.end();
 		    }
 		    createBindGroups(level = 0){
 			    // Create texture for quadtree bindGroupQuad
-			    let currentMipLevel = (this.mipLevel - 1) - level % this.mipLevel;
+			    const mipLevel = this.bufferMux.config.mipLevel;
+
+			    let currentMipLevel = (mipLevel - 1) - level % mipLevel;
 			    const bindGroupQuadTreeTexture = this.device.createBindGroup({
 				    layout: this.bindGroupLayouts.texture,
 				    entries: [
 					    {
 						    binding: 0,
 						    resource: {
-							    buffer: this.result,
+							    buffer: this.bufferMux.result,
 							    offset: 0,
-							    size: this.result.size,
+							    size: this.bufferMux.result.size,
 						    }
 					    },
 					    {
 						    binding: 1,
 						    resource: {
-							    buffer: this.quadTreeTrav.buffers.travBuffer,
+							    buffer: this.bufferMux.traversal,
 							    offset: 0,
-							    size: this.quadTreeTrav.buffers.travBuffer.size,
+							    size: this.bufferMux.traversal.size,
 						    }
 					    },
 					    {
 						    binding: 2,
 						    resource: {
-							    buffer: this.buffers.quadTreeMap,
+							    buffer: this.bufferMux.quadTreeMap,
 							    offset: 0,
-							    size: this.buffers.quadTreeMap.size,
+							    size: this.bufferMux.quadTreeMap.size,
 						    }
 					    },
 					    {
 						    binding: 3,
-						    resource: this.buffers.texture.createView({
+						    resource: this.bufferMux.mipTexture.createView({
 							    baseMipLevel: currentMipLevel, 
 							    mipLevelCount: 1,
 						    }),
@@ -200,17 +156,17 @@ class Eval {
 					    {
 						    binding: 0,	
 						    resource: {
-							    buffer: this.buffers.path,
+							    buffer: this.bufferMux.features[0],
 							    offset: 0,
-							    size: this.buffers.path.size
+							    size: this.bufferMux.features[0].size,
 						    },
 					    },
 					    {
 						    binding: 1,
 						    resource: {
-							    buffer: this.buffers.threadIterations,
+							    buffer: this.bufferMux.evalThreadIter,
 							    offset: 0,
-							    size: this.buffers.threadIterations.size,
+							    size: this.bufferMux.evalThreadIter.size,
 						    }
 					    },
 				    ],
@@ -219,13 +175,6 @@ class Eval {
 				    texture: bindGroupQuadTreeTexture,
 				    quadTree: bindGroupQuadTree,
 			    }
-		    }
-		    unmap(){
-			    this.buffers.path.unmap();
-			    this.buffers.result.unmap();
-			    this.buffers.quadTreeMap.unmap();
-			    this.buffers.threadIterations.unmap();
-			    this.device.queue.onSubmittedWorkDone();
 		    }
 }
 export default Eval;

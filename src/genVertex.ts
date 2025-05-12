@@ -69,69 +69,21 @@ class VertexGen {
 		texture: GPUBindGroupLayout,
 	};
 	constructor(device: GPUDevice,
-		    textureSize,
-		    targetEval: Eval,
-		    quadTreeTrav: QuadTreeTraversal, 
-		    mipLevelCount: number) {
+		    bufferMux: BufferMux) {
 		this.device = device;
-		this.mipLevel = mipLevelCount;
+		this.mipLevel = bufferMux.config.mipLevel;
 		const grid = Math.pow(2, this.mipLevel) +1 ;
 		this.grid = grid;
-		this.textureSize = textureSize;
-		this.eval= targetEval;
-		// 
-		const verticeValues = new Float32Array([
-			0, 0, 0, 1, 0, 0, 0, 1,
-			1, 0, 0, 1, 0, 0, 0, 1,
-			0, 1, 0, 1, 0, 0, 0, 1,
-			1, 1, 0, 1, 0, 0, 0, 1,
-		]);
-		const vertice = device.createBuffer({
-			// size: Math.pow(4, 8),
-			size: verticeValues.byteLength, 
-			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX,
-		});
-		device.queue.writeBuffer(vertice, 0, verticeValues.buffer);
-		const indicesValues = new Uint32Array([0, 1, 2, 1, 3, 2]);
-		const indices = device.createBuffer({
-			size: 6*4*4,
-			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.INDEX,
-		});
-		device.queue.writeBuffer(indices, 0, indicesValues.buffer);
-		// create index buffer
-		const uniformBuffer = device.createBuffer({
-			size: uniformBufferSize,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-		});
-		const resolution = new Float32Array([canvas.width,
-						    	canvas.height]);
-		const workgroupSize = new Uint32Array([WORKGROUPSIZE, WORKGROUPSIZE]);
-		device.queue.writeBuffer(uniformBuffer, 0, resolution.buffer);
-		device.queue.writeBuffer(uniformBuffer, 4*4, workgroupSize.buffer);
-		// State buffer
-		const stateBuffer = device.createBuffer({
-			size: 4* WORKGROUPSIZE*WORKGROUPSIZE*WORKGROUPSIZE + 8*8,
-			// size: 4* WORKGROUPSIZE*WORKGROUPSIZE*WORKGROUPSIZE,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		});
-		// Texture
+		this.textureSize = bufferMux.config.textureSize;
+		// this.eval= targetEval;
+		this.bufferMux = bufferMux;
 		const texture = device.createTexture({
-			size: textureSize, 
+			size: this.bufferMux.config.textureSize,
 			format: 'rgba8unorm',
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST,
 		});
-		// Sampler
-		this.sampler = device.createSampler({
-			minFilter: 'nearest',
-			magFilter: 'nearest',
-			mipmapFilter: 'nearest',
-		});
 		this.buffers = {
-			vertice,
-			indices,
-			uniform: uniformBuffer,
-			state: stateBuffer,
-			texture,
+			texture
 		}
 		
 		// create bindgrouopLayout for quadtree
@@ -174,21 +126,22 @@ class VertexGen {
 	}
 	createBindGroups(){
 		// Create texture for quadtree bindGroupQuad
+		console.log(this.bufferMux)
 		const bindGroupWrite = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.write,
 			entries: [
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.state,
+						buffer: this.bufferMux.state,
 						offset: 0,
-						size: this.buffers.state.size,
+						size: this.bufferMux.state.size,
 					}
 				},
 				// write texture
 				{
 					binding: 1,
-					resource: this.buffers.texture.createView(),
+					resource: this.bufferMux.texture.createView()
 				},
 			],
 		});
@@ -198,19 +151,19 @@ class VertexGen {
 				{
 					binding: 0,
 					resource: {
-						buffer: this.buffers.uniform,
+						buffer: this.bufferMux.uniform,
 						offset: 0,
-						size: this.buffers.uniform.size,
+						size: this.bufferMux.uniform.size,
 					},
 				},
 				// sampler
 				{
 					binding: 1,
-					resource: this.sampler,
+					resource: this.bufferMux.sampler,
 				},
 				{
 					binding: 2,
-					resource: this.eval.buffers.texture.createView(),
+					resource: this.bufferMux.mipTexture.createView()
 				}
 			],
 		});
