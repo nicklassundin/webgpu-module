@@ -54,11 +54,19 @@ class BufferMux {
 	state: GPUBuffer;
 		
 	constructor(device: GPUDevice, 
-		    textureSize: number, 
+		    canvasSize: number, 
 		    mipLevel: number,
 		   number_threads: number,
 		   uv: number[],
 		   data: array[]) {
+		
+		const divisibleBy = 16 * WORKGROUPSIZE;
+		console.log(canvasSize)
+		const textureSize = { 
+			width: Math.floor(canvasSize.width / divisibleBy) * divisibleBy,
+			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
+		};
+		console.log(textureSize)
 		this.config = {
 			textureSize: textureSize,
 			mipLevel: mipLevel,
@@ -158,7 +166,7 @@ class BufferMux {
 		device.queue.writeBuffer(this.uniform, 4*4, workgroupSize.buffer);
 		this.uniformSize = resolution.byteLength + workgroupSize.byteLength;
 	};
-	unbind() {
+	unmap() {
 		this.quadTreeMap.destroy();
 		this.mipTexture.destroy();
 		this.evalThreadIter.destroy();

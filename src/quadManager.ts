@@ -6,18 +6,18 @@ import BufferMux from './traversal/BufferMux';
 const NUM_THREADS = 1;
 class QuadManager {
 	device: GPUDevice;
-	textureSize: number;
+	originalCanvasSize: number;
 	quadTree: QuadTreeTraversal;
 	eval: Eval;
 	bufferMux: BufferMux;
-	constructor(device: GPUDevice, textureSize: number, mipLevel: number) {
+	constructor(device: GPUDevice, originalCanvasSize: number, mipLevel: number) {
 		this.device = device;
 
-		this.textureSize = textureSize;
+		this.originalCanvasSize = originalCanvasSize;
 		this.mipLevel = mipLevel;	
 	}
 	init(quadTree: QuadTree, uv: number[], data: array[]) {
-		this.bufferMux = new BufferMux(this.device, this.textureSize, this.mipLevel, NUM_THREADS, 4, data);
+		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, this.mipLevel, NUM_THREADS, uv, data);
 
 		this.quadTree = new QuadTreeTraversal(this.device, this.bufferMux)
 		this.eval = new Eval(this.device, this.bufferMux);
@@ -35,6 +35,9 @@ class QuadManager {
 	}
 	async unmap(){
 		this.bufferMux.unmap();
+	}
+	get updatedCanvasSize() {
+		return this.bufferMux.updatedCanvasSize;
 	}
 }
 export default QuadManager;

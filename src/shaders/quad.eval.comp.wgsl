@@ -70,7 +70,7 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 @compute @workgroup_size(1)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
-		let textureDimensions = textureDimensions(texture);
+		let texDim = textureDimensions(texture);
 		let threadIndex = local_id.x;
 		let iter = threadIterations.iterations[threadIndex];
 		
@@ -83,9 +83,8 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		var coord = traversal[index].coord;
 		
 		let value = abs(threadIterations.reference[index] - levelValues[threadIndex][index-1]);
-		let texCoord = vec2<u32>(vec2<f32>(textureDimensions) * vec2<f32>(coord.x, coord.y));
-		let color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-		//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+		let texCoord = vec2<u32>(vec2<f32>(texDim) * vec2<f32>(coord.x, coord.y));
+		let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 	
 		if (iter < 32u) {
@@ -122,9 +121,8 @@ fn getNodeIndex(level: f32, pos: f32) -> u32 {
 		traversal[index+1].quad = i32(quad);
 		}
 
-		
-
-		result[threadIndex][index] = f32(quad); 
+		result[threadIndex][index*2] = f32(texDim.x);
+		result[threadIndex][index*2+1] = f32(texDim.y);
 		threadIterations.iterations[threadIndex] += 1u;
 		traversal[index].done = 1;
 	}

@@ -41,12 +41,13 @@ const W_S: u32 = 16;
 fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 @builtin(workgroup_id) workgroup_id: vec3<u32>) {
 	let index = workgroup_id.x + workgroup_id.y * (uniforms.workgroupSize.x);
+	let workgroupSize = uniforms.workgroupSize.x;
 	id = state[index];
 	
 	let u_d: vec2<u32> = workgroup_id.xy;
 	let u_l: vec2<u32> = local_id.xy;
 
-	let ud_size = uniforms.workgroupSize.x;
+	let ud_size = workgroupSize;
 	let ul_size = W_S;
 	
 	let texDim = max(textureDimensions(outTexture).x, textureDimensions(outTexture).y); 
@@ -59,17 +60,24 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 	let coord = g_c * ul_size + u_l + u_d * ul_size;
 	
 
-	let workgroupSize = uniforms.workgroupSize.x;
 
-	let color = searchMipMapTexture(coord);
+	//let color = searchMipMapTexture(coord);
+	var color = searchMipMapTexture(coord);
+	if (local_id.x == 0u || local_id.y == 0u) {
+		color = vec4<f32>(0.0, 0.0, 1.0, 0.5);
+		// if workgroup_id.x == 0u || workgroup_id.y == 0u color red
+		if (workgroup_id.x == 0u && local_id.x == 0u) {
+			color.y = 1.0;
+		}
+		if (workgroup_id.y == 0u && local_id.y == 0u) {
+			color.x = 1.0;
+		}
+	}
+	//let color = vec4<f32>(uniforms.resolution.x / f32(texDim), uniforms.resolution.y / 1536, 0.0, 1.0);
 	textureStore(outTexture, vec2<i32>(coord), color);
 	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(local_id.x + workgroup_id.x) / (16), f32(local_id.y + workgroup_id.y) / (16), color.x, 1.0));
-	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(vec2<f32>(global_id.xy)/vec2<f32>(vec2<u32>(workgroupSize, workgroupSize)), 0.0, 1.0));
-	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(1.0 - f32(index)/f32(ud_size*ud_size), 0.0, 0.0, 1.0));
-	// color textureStore every odd i red 
-	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(i % 2), f32((i+1) % 2), 0.0, 1.0));
-	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(id % 2), f32((id+1) % 2), 0.0, 1.0));
-	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(index % 2), f32((index+1) % 2), f32(i % 2), 1.0));
+	//textureStore(outTexture, vec2<i32>(coord), vec4<f32>(f32(local_id.x + workgroup_id.x) / (16), f32(local_id.y + workgroup_id.y) / (16), color.x, 1.0));
+	
 	workgroupBarrier();
 	if (local_id.x == 0u && local_id.y == 0u) {
 		state[index] = id + 1u;

@@ -110,7 +110,6 @@ class VertexGen {
 	}
 	createBindGroups(){
 		// Create texture for quadtree bindGroupQuad
-		console.log(this.bufferMux)
 		const bindGroupWrite = this.device.createBindGroup({
 			layout: this.bindGroupLayouts.write,
 			entries: [

@@ -54,12 +54,10 @@ canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 
 
-const divisibleBy = 32 * 16;
-const textureSize = {
-	width: Math.floor(canvas.width / divisibleBy) * divisibleBy,
-	height: Math.floor(canvas.height / divisibleBy) * divisibleBy,
-	depthOrArrayLayers: 1
-};
+const canvasOrigSize = {
+	width: canvas.width,
+	height: canvas.height,
+}
 usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 context.configure({
@@ -98,8 +96,8 @@ const imageBitmap = image;
 // const imageCanvas = document.createElement('canvas');
 const imageCanvas = document.createElement('canvas');
 const ctx = imageCanvas.getContext('2d');
-imageCanvas.width = textureSize.width;
-imageCanvas.height = textureSize.height;
+// imageCanvas.width = textureSize.width;
+// imageCanvas.height = textureSize.height;
 
 // Read 
 // ensure ctx is not null
@@ -122,8 +120,11 @@ const quadTree = new QuadTree(device, quadTreeJson)
 quadTreeJson = [quadTreeJson];
 
 import QuadManager from "./quadManager";
-let quadManager = new QuadManager(device, textureSize, mipLevel);
+let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
 quadManager.init(quadTree, DEFAULT_COORD, quadTreeJson);
+
+const textureSize = quadManager.bufferMux.config.textureSize;
+
 
 import Eval from "./eval";
 
@@ -165,7 +166,7 @@ function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder,
 
 async function updateUniformBuffer(values: number[]) {
 	const floatArray = new Float32Array(values);
-	device.queue.writeBuffer(render.buffers.uniform, 0, floatArray);
+	device.queue.writeBuffer(quadManager.bufferMux.uniform, 0, floatArray);
 	await device.queue.onSubmittedWorkDone();
 }
 // TODO GUe
@@ -218,7 +219,7 @@ async function frame() {
 		await quadManager.unmap();
 		quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
 		quadManager.init(quadTree, params.travelValues, quadTreeJson);
-		render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager, mipLevel);
+		render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager.bufferMux);
 		const commandEncoderArg = device.createCommandEncoder();
 		updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.bufferMux.traversal);
 		const commandBufferArg = commandEncoderArg.finish();
@@ -232,9 +233,9 @@ async function frame() {
 
 		if (frameCount % 2 == 0){
 			await quadManager.eval.pass(frameCount / 2, commandEncoder);
-			// console.log("Eval iterations (", frameCount, "):")
-			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.threadIterations, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.eval.buffers.result, 0, 32);
+			// console.log(textureSize.width, textureSize.height)
+			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
+			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 		}else{
 			// mesure time 
 			await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
@@ -262,7 +263,7 @@ async function frame() {
 	// console.log('Frame: ', frameCount, 'Time: ', currentTime - lastFrameTime, 'ms');
 		// return;
 	// wait 500 ms
-	// await new Promise(resolve => setTimeout(resolve, 200));
+	// await new Promise(resolve => setTimeout(resolve, 1000));
 	requestAnimationFrame(frame);
 
 }

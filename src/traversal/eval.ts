@@ -112,7 +112,7 @@ class Eval {
 			    // Create texture for quadtree bindGroupQuad
 			    const mipLevel = this.bufferMux.config.mipLevel;
 
-			    let currentMipLevel = (mipLevel - 1) - level % mipLevel;
+			    let currentMipLevel = (mipLevel-1) - level % mipLevel;
 			    const bindGroupQuadTreeTexture = this.device.createBindGroup({
 				    layout: this.bindGroupLayouts.texture,
 				    entries: [
