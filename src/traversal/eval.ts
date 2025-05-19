@@ -42,7 +42,7 @@ const READ_BGL = {
 			binding: 0,
 			visibility: GPUShaderStage.COMPUTE,
 			buffer: {
-				type: 'read-only-storage'
+				type: 'storage'
 			}
 		},
 		{
@@ -52,6 +52,20 @@ const READ_BGL = {
 				type: 'storage'
 			}
 		},
+		{
+			binding: 2,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			}
+		},
+		{
+			binding: 3,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage',
+			}
+		}
 	],
 }
 
@@ -166,6 +180,22 @@ class Eval {
 							    buffer: this.bufferMux.evalThreadIter,
 							    offset: 0,
 							    size: this.bufferMux.evalThreadIter.size,
+						    }
+					    },
+					    {
+						    binding: 2,
+						    resource: {
+							    buffer: this.bufferMux.quadTrees[0].values,
+							    offset: 0,
+							    size: this.bufferMux.quadTrees[0].values.size,
+						    }
+					    },
+					    {
+						    binding: 3,
+						    resource: {
+							    buffer: this.bufferMux.quadTrees[0].nodes,
+							    offset: 0,
+							    size: this.bufferMux.quadTrees[0].nodes.size,
 						    }
 					    },
 				    ],

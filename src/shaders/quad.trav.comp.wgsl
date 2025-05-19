@@ -1,19 +1,4 @@
 
-struct Node {
-	valueAddress: f32,
-	children: vec4<f32>,	
-	quad: f32,
-};
-
-
-fn getNode(index: u32) -> Node {
-	let node: Node = Node(nodes[index * 6u],
-		vec4<f32>(nodes[index * 6u + 1u], nodes[index * 6u + 2u], nodes[index * 6u + 3u], nodes[index * 6u + 4u]),
-		nodes[index * 6u + 5u]
-	);
-	return node;
-}
-
 struct Traversal {
 	depth: f32,
 	address: f32,
@@ -23,7 +8,19 @@ struct Traversal {
 	done: u32,
 	_pad: vec2<i32>,
 };
+struct Node {
+	valueAddress: f32,
+	children: vec4<f32>,	
+	quad: f32,
+};
 
+fn getNode(index: u32) -> Node {
+	let node: Node = Node(nodes[index * 6u],
+		vec4<f32>(nodes[index * 6u + 1u], nodes[index * 6u + 2u], nodes[index * 6u + 3u], nodes[index * 6u + 4u]),
+		nodes[index * 6u + 5u]
+	);
+	return node;
+}
 
 @group(0) @binding(0) var<storage, read_write> traversal: array<Traversal>;
 @group(0) @binding(1) var<storage, read_write> values: array<f32>;

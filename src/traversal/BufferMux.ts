@@ -52,6 +52,11 @@ class BufferMux {
 	indices: GPUBuffer;
 	uniform: GPUBuffer;
 	state: GPUBuffer;
+	uniformSize: {
+		resolution: number;
+		workgroupSize: number;
+		input: number;
+	}
 		
 	constructor(device: GPUDevice, 
 		    canvasSize: number, 
@@ -59,7 +64,7 @@ class BufferMux {
 		   number_threads: number,
 		   uv: number[],
 		   data: array[]) {
-		
+		this.device = device;
 		const divisibleBy = 16 * WORKGROUPSIZE;
 		console.log(canvasSize)
 		const textureSize = { 
@@ -158,14 +163,23 @@ class BufferMux {
 		// TODO check if textureSize works
 		const resolution = new Float32Array([textureSize.width, textureSize.height]);
 		const workgroupSize = new Uint32Array([WORKGROUPSIZE, WORKGROUPSIZE]); 
+		const input = new Float32Array([0, 0, 0, 0]);
 		this.uniform = device.createBuffer({
-			size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8,
+			size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8 + 4*4*4,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
 		device.queue.writeBuffer(this.uniform, 0, resolution.buffer);
 		device.queue.writeBuffer(this.uniform, 4*4, workgroupSize.buffer);
-		this.uniformSize = resolution.byteLength + workgroupSize.byteLength;
-	};
+		device.queue.writeBuffer(this.uniform, 4*4 + 4*8, input.buffer);
+		this.uniformSize = {
+			resolution: 4*4,
+			workgroupSize: 4*4 + 4*8,
+			input: 4*4 + 4*8 + 4*4,
+		}
+	}
+	updateInput(input: Float32Array) {
+		this.device.queue.writeBuffer(this.uniform, this.uniformSize.resolution + this.uniformSize.workgroupSize, input.buffer);
+	}
 	unmap() {
 		this.quadTreeMap.destroy();
 		this.mipTexture.destroy();

@@ -169,7 +169,7 @@ class Render {
 						resource: {
 							buffer: this.bufferMux.uniform,
 							offset: 0,
-							size: this.bufferMux.uniformSize
+							size: this.bufferMux.uniform.size
 						},
 					},
 					// Sampler from buffers.sampler
