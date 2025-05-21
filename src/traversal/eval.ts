@@ -112,6 +112,7 @@ class Eval {
 		    }
 
 		    async pass(mipLevel, commandEncoder: GPUCommandEncoder){
+			    await this.device.queue.onSubmittedWorkDone();
 			    const device = this.device;
 			    // update bindGroup
 			    this.createBindGroups(mipLevel);
@@ -126,7 +127,8 @@ class Eval {
 			    // Create texture for quadtree bindGroupQuad
 			    const mipLevel = this.bufferMux.config.mipLevel;
 
-			    let currentMipLevel = (mipLevel-1) - level % mipLevel;
+			    let currentMipLevel = (mipLevel) - level % mipLevel - 1;
+			    // console.log(currentMipLevel, level, mipLevel)
 			    const bindGroupQuadTreeTexture = this.device.createBindGroup({
 				    layout: this.bindGroupLayouts.texture,
 				    entries: [

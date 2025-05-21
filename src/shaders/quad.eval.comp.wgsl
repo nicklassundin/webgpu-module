@@ -6,13 +6,9 @@ struct Node {
 };
 
 struct Traversal {
-depth: f32,
+	       depth: f32,
 	       address: f32,
 	       coord: vec2<f32>,
-	       boundBox: vec4<f32>,
-	       quad: i32,
-	       done: i32,
-	       _pad: vec2<f32>,
 };
 
 struct ThreadInfo {
@@ -33,8 +29,7 @@ fn getNode(index: u32) -> Node {
 
 // END TEST
 
-fn quadFromeCoord(uv: vec2<f32>, boundBox: vec4<f32>) -> u32 {
-	let textDim = textureDimensions(texture);
+fn quadFromeCoord(uv: vec2<f32>, textDim: vec2<u32>) -> u32 {
 	let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(uv.x, uv.y));
 	let quadCoord = pixCoord % 2u;
 	let quad = quadCoord.x + quadCoord.y * 2u;
@@ -42,33 +37,17 @@ fn quadFromeCoord(uv: vec2<f32>, boundBox: vec4<f32>) -> u32 {
 }
 
 
-fn boundBoxFromeCoord(quad: u32, boundBox: vec4<f32>) -> vec4<f32> {
-	// new boundbox
-	var nBoundBox = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-	let center = (boundBox.xy + boundBox.zw) * 0.5;
-	if (quad == 0u){
-		nBoundBox = vec4<f32>(boundBox.x, boundBox.y, center.x, center.y);
-	} else if (quad == 1u){
-		nBoundBox = vec4<f32>(center.x, boundBox.y, boundBox.z, center.y);
-	} else if (quad == 2u){
-		nBoundBox = vec4<f32>(boundBox.x, center.y, center.x, boundBox.w);
-	} else if (quad == 3u){
-		nBoundBox = vec4<f32>(center.x, center.y, boundBox.z, boundBox.w);
-	}
-	return nBoundBox;
-}
-
 fn getNodeIndex(level: u32, pos: u32) -> u32 {
 	
 	return u32((pow(4, f32(level))) / 3 + f32(pos));
 }
 
 fn travers(threadIndex: u32, iter: u32){
-	let id: u32 = iter % 15u;
+	let id: u32 = iter % 10u;
 	let trav = traversal[id];
 
 	var pTrav = traversal[id-1];
-	let quad = trav.quad;
+	let quad = quadFromeCoord(trav.coord, textureDimensions(texture)); 
 
 	let node = getNode(u32(pTrav.address));
 	var child = node.children[quad];
@@ -80,20 +59,20 @@ fn travers(threadIndex: u32, iter: u32){
 	levelValues[threadIndex][id] = values[u32(child)] / values[0];
 
 	traversal[id].address = child;
-	traversal[id].done = 0i;
 }
 fn getValue(node: Node) -> f32 {
 	return values[u32(node.valueAddress)];
 }
 
-fn newCoordQuad(coord: vec2<f32>, tQuad: u32) -> vec2<f32> {		
-	let textDim = textureDimensions(texture);
+fn newCoordQuad(coord: vec2<f32>, tQuad: u32, textDim: vec2<u32>) -> vec2<f32> {		
 	var pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
-	pixCoord.x = pixCoord.x / 2u * 2u;
-	pixCoord.y = pixCoord.y / 2u * 2u;
+	//return vec2<f32>(textDim);
+	//return vec2<f32>(pixCoord);
+	pixCoord.x = pixCoord.x * 2u / 2u;
+	pixCoord.y = pixCoord.y * 2u / 2u;
 	for (var x = 0u; x < 2u; x = x + 1u) {
 		for (var y = 0u; y < 2u; y = y + 1u) {
-			if (quadFromeCoord(vec2<f32>(f32(x), f32(y)), vec4<f32>(0.0, 0.0, 1.0, 1.0)) == tQuad) {
+			if (quadFromeCoord(vec2<f32>(f32(x), f32(y)), textDim) == tQuad) {
 				pixCoord.x = pixCoord.x + x;
 				pixCoord.y = pixCoord.y + y;
 				let newCoord = vec2<f32>(f32(pixCoord.x) / f32(textDim.x), f32(pixCoord.y) / f32(textDim.y));
@@ -134,32 +113,85 @@ fn checkQuadMapLevelDone(index: u32) -> bool {
 		let threadIndex = local_id.x;
 		let iter = threadIterations.iterations[threadIndex];
 		
-		let index: u32 = (iter) % 16u; 
+		let index: u32 = (iter) % 10u;
 		var coord = traversal[index].coord;
-		let boundBox = traversal[index].boundBox;
+		
 		// Check if path is done
-		var quad = quadFromeCoord(coord, boundBox);
+		var quad = quadFromeCoord(coord, texDim);
 		let nodeIndex = getNodeIndex(index, quad);
 
-
 		let trav = traversal[index];
-		threadIterations.iterations[threadIndex] = iter + 1u;
 		let node = getNode(u32(trav.address));
 		let value = getValue(node) / values[0];
-
+		
+		// Write to texture
 		let texCoord = vec2<u32>(vec2<f32>(texDim) * vec2<f32>(coord.x, coord.y));
 		let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
+	
+		// Check if path is done
+		if (checkQuadMapLevelDone(nodeIndex) || value == 0.0) {
+			result[threadIndex][0u] = 666.0;
+			quadMap[nodeIndex] = 1u;
+			threadIterations.iterations[threadIndex] = 0u; 
+			return;
+		}
 		
+		
+		// Next iteration Setup
+		let children = node.children;
+		let nextQuad = quadFromeCoord(coord, texDim*2u);
+		var child = children[nextQuad];
+		var childNodeIndex: u32 = getNodeIndex(index, nextQuad);
+		if (child < 0.0 && quadMap[childNodeIndex] == 0u) {
+			threadIterations.iterations[threadIndex] = 0u;
+			quadMap[childNodeIndex] = 1u;
+			return;
+		}
+		for (var i = 1u; i < 4u; i = i + 1u) {
+			let q = (i + nextQuad) % 4u - 1u;
+			child = children[q];
+			childNodeIndex = getNodeIndex(index, q);
+			if (child < 0.0) {
+				quadMap[childNodeIndex] = 1u;
+				continue;
+			}
+			if (quadMap[childNodeIndex] == 0u) {
+				if (nextQuad != q) {
+					coord = newCoordQuad(coord, q, texDim*2u);
+				}
+				break;
+			}
+		}
+		threadIterations.iterations[threadIndex] = iter + 1u;
+		traversal[index+1u].address = child;
+		traversal[index+1u].coord = coord;
+		traversal[0u].coord = coord;
+		
+		result[threadIndex][0u] = f32(texCoord.x);
+		result[threadIndex][1u] = f32(texCoord.y);
+		result[threadIndex][2u] = f32(texDim.x);
+		result[threadIndex][3u] = f32(texDim.y);
+		result[threadIndex][4u] = f32(coord.x);
+		result[threadIndex][5u] = f32(coord.y);
+		result[threadIndex][6u] = f32(nextQuad);
+		/*
+		result[threadIndex][index] = value;
+		result[threadIndex][index] = f32(quad);
+		*/
+
+
+
+	  			
+		/*
 		// What is next node	
 		if (checkQuadMapLevelDone(index)) {
 			// TODO doesn't enter here
 			quadMap[nodeIndex] = 1u;
-			threadIterations.iterations[threadIndex] = iter + iter / 16u;
+			threadIterations.iterations[threadIndex] = iter + iter / 10u;
 			return;
 		}
-		let nextBoundBox = boundBoxFromeCoord(quad, boundBox);
-		let nextQuad = quadFromeCoord(coord, nextBoundBox);
+		let nextQuad = quadFromeCoord(coord, texDim*2u);
 		let children = node.children;
 		let child = children[nextQuad];
 		let childNodeIndex = getNodeIndex(index+1u, nextQuad);
@@ -169,17 +201,25 @@ fn checkQuadMapLevelDone(index: u32) -> bool {
 		result[threadIndex][index] = f32(child);
 		result[threadIndex][index] = value;
 		*/
+		result[0u][0u] = coord.x;
+		result[0u][1u] = coord.y;
+
 
 		if (child < 0.0) {
 			quadMap[childNodeIndex] = 1u;
-			threadIterations.iterations[threadIndex] = iter + iter / 16u;
+			threadIterations.iterations[threadIndex] = iter + iter / 10u;
 			let newQuad = (quad + 1u) % 4u;
-			let newCoord = newCoordQuad(coord, newQuad);
-			traversal[0u].coord = newCoord;
+			let coord = newCoordQuad(coord, newQuad, texDim*2u);
+
+			traversal[index + index / 10u].coord = coord;
+			result[0u][2u] = coord.x;
+			result[0u][3u] = coord.y;
+			result[0u][4u] = f32(texDim.x);
+			result[0u][5u] = f32(texDim.y);
 			return;
 		}
-		traversal[index+1u].done = 1;
+		threadIterations.iterations[threadIndex] = iter + 1u;
 		traversal[index+1u].address = child;
 		traversal[index+1u].coord = coord;
-		
+		*/
 	}

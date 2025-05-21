@@ -93,7 +93,7 @@ class BufferMux {
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			})
 		}
-		const traversal_values = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
+		const traversal_values = new Float32Array([0, 0, uv[0], uv[1]]);
 		this.traversal = device.createBuffer({
 			size: traversal_values.byteLength * Math.pow(4, mipLevel),
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
