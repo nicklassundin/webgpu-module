@@ -63,8 +63,9 @@ fn boundBoxFromeCoord(quad: u32, boundBox: vec4<f32>) -> vec4<f32> {
 	return nBoundBox;
 }
 
-fn getNodeIndex(level: f32, pos: f32) -> u32 {
-	return u32((pow(4, level)) / 3 + pos);
+fn getNodeIndex(level: u32, pos: u32) -> u32 {
+	
+	return u32((pow(4, f32(level))) / 3 + f32(pos));
 }
 
 fn travers(threadIndex: u32, iter: u32){
@@ -90,6 +91,21 @@ fn getValue(node: Node) -> f32 {
 	return values[u32(node.valueAddress)];
 }
 
+fn getCoordOfQuadFromBoundbox(quad: u32, boundBox: vec4<f32>) -> vec2<f32> {
+	var coord = vec2<f32>(0.0, 0.0);
+	if (quad == 0u){
+		coord = vec2<f32>(boundBox.x, boundBox.y);
+	} else if (quad == 1u){
+		coord = vec2<f32>(boundBox.z, boundBox.y);
+	} else if (quad == 2u){
+		coord = vec2<f32>(boundBox.x, boundBox.w);
+	} else if (quad == 3u){
+		coord = vec2<f32>(boundBox.z, boundBox.w);
+	}
+	return coord;
+}
+
+
 @group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
 @group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
 @group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
@@ -109,34 +125,37 @@ fn getValue(node: Node) -> f32 {
 		let iter = threadIterations.iterations[threadIndex];
 		
 		let index: u32 = (iter) % 16u; 
-		
-		let trav = traversal[index];
-		if (trav.done == 0 && index != 0u) {
-			return;
-		}
-		let node = getNode(u32(trav.address));
-		
 		var coord = traversal[index].coord;
-
+		let boundBox = traversal[index].boundBox;
+		// Check if path is done
+		var quad = quadFromeCoord(coord, boundBox);
+		let nodeIndex = getNodeIndex(index, quad);
+		// 
+		let trav = traversal[index];
+		threadIterations.iterations[threadIndex] = iter + 1u;
+		let node = getNode(u32(trav.address));
 		let value = getValue(node) / values[0];
+
 		let texCoord = vec2<u32>(vec2<f32>(texDim) * vec2<f32>(coord.x, coord.y));
 		let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 		textureStore(texture, texCoord, color); 
 		result[threadIndex][index] = value;
 		
-		let boundBox = traversal[index].boundBox;
-		var quad = quadFromeCoord(coord, boundBox);
 		
 		let nextBoundBox = boundBoxFromeCoord(quad, boundBox);
 		let nextQuad = quadFromeCoord(coord, nextBoundBox);
 		let children = node.children;
 		let child = children[nextQuad];
+
+		result[threadIndex][index] = f32(trav.address);
 		if (child < 0.0) {
 			traversal[index+1u].done = 0;
+
+			threadIterations.iterations[threadIndex] = iter + iter / 16u;
 			return;
 		}
 		traversal[index+1u].done = 1;
 		traversal[index+1u].address = child;
 		traversal[index+1u].coord = coord;
-		threadIterations.iterations[threadIndex] = iter + 1u;
+		
 	}
