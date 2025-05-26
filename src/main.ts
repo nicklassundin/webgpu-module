@@ -265,10 +265,10 @@ async function frame() {
 	// console.log('Frame: ', frameCount, 'Time: ', currentTime - lastFrameTime, 'ms');
 		// return;
 	// wait 500 ms
-	// await new Promise(resolve => setTimeout(resolve, 1000));
+	// await new Promise(resolve => setTimeout(resolve, 200));
 	//
 	// stop after 10 frames
-	// if (frameCount > 10) {
+	// if (frameCount > 100) {
 	// 	console.log("Stopping after 10 frames");
 	// 	return;
 	// }
