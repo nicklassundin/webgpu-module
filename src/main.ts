@@ -151,7 +151,7 @@ let calls = 0;
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffer) {
 	const mipLevel = travBuffer.length; 
 
-	const values = new Float32Array([0, 0, uv[0], uv[1], 0, 0, 1, 1]);
+	const values = new Float32Array([uv[0], uv[1]]);
 		const stagingBuffer = device.createBuffer({
 			size: values.byteLength,
 			usage: GPUBufferUsage.COPY_SRC,
@@ -236,7 +236,8 @@ async function frame() {
 			// console.log(textureSize.width, textureSize.height)
 			await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
+			//await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
+			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
 		}else{
 			// mesure time 
 			// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
@@ -265,8 +266,13 @@ async function frame() {
 		// return;
 	// wait 500 ms
 	// await new Promise(resolve => setTimeout(resolve, 1000));
+	//
+	// stop after 10 frames
+	// if (frameCount > 10) {
+	// 	console.log("Stopping after 10 frames");
+	// 	return;
+	// }
 	requestAnimationFrame(frame);
-
 }
 
 function resizeCanvas() {

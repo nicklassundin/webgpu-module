@@ -65,13 +65,14 @@ class BufferMux {
 		   uv: number[],
 		   data: array[]) {
 		this.device = device;
-		const divisibleBy = 16 * WORKGROUPSIZE;
+		const divisibleBy = 2*32 * WORKGROUPSIZE;
 		console.log(canvasSize)
 		const textureSize = { 
 			width: Math.floor(canvasSize.width / divisibleBy) * divisibleBy,
 			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
 		};
 		console.log(textureSize)
+
 		this.config = {
 			textureSize: textureSize,
 			mipLevel: mipLevel,
@@ -93,7 +94,7 @@ class BufferMux {
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			})
 		}
-		const traversal_values = new Float32Array([0, 0, uv[0], uv[1]]);
+		const traversal_values = new Float32Array([uv[0], uv[1], 0, 0]);
 		this.traversal = device.createBuffer({
 			size: traversal_values.byteLength * Math.pow(4, mipLevel),
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
@@ -185,6 +186,7 @@ class BufferMux {
 		this.mipTexture.destroy();
 		this.evalThreadIter.destroy();
 		this.result.destroy();
+		this.texture.destroy();
 		for (let i = 0; i < this.features.length; i++) {
 			this.features[i].destroy();
 			this.quadTrees[i].nodes.destroy();
