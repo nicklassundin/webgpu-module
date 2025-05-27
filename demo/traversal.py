@@ -48,7 +48,7 @@ for i in range(maxMipMapLevel + 1):
 
 
 traversal: [Trav] = []
-initTrav = Trav([0.5, 0.6], 0, 1, maxMipMapLevel)
+initTrav = Trav([0.751, 0.6], 0, 1, maxMipMapLevel)
 traversal.append(initTrav)
 # append 10 empty traversal
 for i in range(maxMipMapLevel):
@@ -124,6 +124,8 @@ for i, image in enumerate(images):
     rgba_image = plt.cm.gray(norm_image)
     # set alpha
     rgba_image[..., -1] = 0.8 
+    #inverse flip rgba_image vertically
+    rgba_image = np.flipud(rgba_image)
 
     # z = [i] * (dim * dim)
     # c = [image[j][k] for j in range(dim) for k in range(dim)]
