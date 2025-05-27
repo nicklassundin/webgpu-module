@@ -65,6 +65,7 @@ def quadFromCoord(coord: [float, float], textDim: [int, int]) -> int:
     pixCoord = [int(coord[0] * textDim[0]), int(coord[1] * textDim[1])]
     quadCoord = [pixCoord[0] / 2, pixCoord[1] / 2]
     quad = quadCoord[0] * 2 + quadCoord[1]
+    print(quad)
     return quad
 
 def colorImage(uv: [float, float], mipLevel: int):
@@ -141,8 +142,8 @@ for i, image in enumerate(images):
     # print max and min x/y
     print("MipMap Level:", i, "Max X/Y:", max(x), max(y), "Min X/Y:", min(x), min(y))
 
-p0 = [traversal[0].coord[0], traversal[0].coord[1], 0]
-p1 = [traversal[0].coord[0], traversal[0].coord[1], maxMipMapLevel]
+p0 = np.array([traversal[0].coord[0], traversal[0].coord[1], 0])*2 - [1, 1, 0]
+p1 = np.array([traversal[0].coord[0], traversal[0].coord[1], maxMipMapLevel])*2 - [1, 1, 0]
 # plot as line between the points
 ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]], color='red', linewidth=2, label='Traversal Path')
 
