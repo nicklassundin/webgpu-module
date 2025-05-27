@@ -63,24 +63,20 @@ def quadFromCoord(coord: [float, float], textDim: [int, int]) -> int:
     if(textDim[0] == 1 and textDim[1] == 1):
         return 0
     pixCoord = [int(coord[0] * textDim[0]), int(coord[1] * textDim[1])]
-    quadCoord = [pixCoord[0] / 2, pixCoord[1] / 2]
+    quadCoord = [pixCoord[0] % 2, pixCoord[1] % 2]
     quad = quadCoord[0] * 2 + quadCoord[1]
-    print(quad)
     return quad
 
 def colorImage(uv: [float, float], mipLevel: int):
     # print("Coloring")
     image = images[mipLevel] 
     dim = len(image)
-    # print(mipLevel)
-    # print(uv)
-    # print(len(image))
-    x = int(uv[0] * dim)
-    y = int(uv[1] * dim)
-    # print(x, y)
+    print(uv)
+    x = int(uv[0] * dim - 1)
+    y = int(uv[1] * dim - 1)
+    print(x, y)
     image[y][x] = 1;
-    images[mipLevel] = image
-    return images
+    print(image)
 
 # size of each mipmap level for quadtree
 quadTreeSize = math.pow(4, maxMipMapLevel + 1);
@@ -115,13 +111,10 @@ fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
 for i, image in enumerate(images):
     dim = len(image)
-    r = MAX_DIMENSION / dim
-    print(MAX_DIMENSION, dim, r)
-    # normalize x, y between -1 and 1
-    # x = [j / dim + 0.5/dim for j in range(dim) for _ in range(dim)]
-    # y = [j / dim + 0.5/dim for _ in range(dim) for j in range(dim)]
-    x = np.linspace(-1, 1, dim)
-    y = np.linspace(-1, 1, dim)
+    x = np.linspace(-1, 1, dim+1)
+    # x = [j / (dim) for j in range(dim+1)]
+    y = np.linspace(-1, 1, dim+1)
+    # y = [j / (dim) for j in range(dim+1)]
     X, Y = np.meshgrid(x, y)
     Z = np.ones_like(X) * i  # Mipmap level as Z value
     
@@ -129,7 +122,6 @@ for i, image in enumerate(images):
     
     # Convert to RGBA format
     rgba_image = plt.cm.gray(norm_image)
-    print(norm_image.shape)
     # set alpha
     rgba_image[..., -1] = 0.8 
 
@@ -140,10 +132,11 @@ for i, image in enumerate(images):
 
 
     # print max and min x/y
-    print("MipMap Level:", i, "Max X/Y:", max(x), max(y), "Min X/Y:", min(x), min(y))
 
-p0 = np.array([traversal[0].coord[0], traversal[0].coord[1], 0])*2 - [1, 1, 0]
-p1 = np.array([traversal[0].coord[0], traversal[0].coord[1], maxMipMapLevel])*2 - [1, 1, 0]
+pn = np.array([traversal[0].coord[0], traversal[0].coord[1]])
+pn = pn * 2 - 1  # Normalize to [-1, 1]
+p0 = np.array([pn[0], pn[1], 0])  # Start point at mipmap level 0
+p1 = np.array([pn[0], pn[1], maxMipMapLevel])  # End point at max mipmap level
 # plot as line between the points
 ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]], color='red', linewidth=2, label='Traversal Path')
 
