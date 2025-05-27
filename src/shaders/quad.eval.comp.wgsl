@@ -17,7 +17,6 @@ reference: array<f32, 16>,
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
-// TEST
 fn getNode(index: u32) -> Node {
 	let node: Node = Node(nodes[index * 6u],
 			vec4<f32>(nodes[index * 6u + 1u], nodes[index * 6u + 2u], nodes[index * 6u + 3u], nodes[index * 6u + 4u]),
@@ -26,26 +25,37 @@ fn getNode(index: u32) -> Node {
 	return node;
 }
 
-
-// END TEST
-
 fn quadFromeCoord(uv: vec2<f32>, textDim: vec2<u32>) -> u32 {
+	if(textDim.x == 1u && textDim.y == 1u) {
+		return 0u;
+	}
 	let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(uv.x, uv.y));
-	let quadCoord = pixCoord % 2u;
+	let quadCoord = pixCoord / 2u;
 	let quad = quadCoord.x *2u + quadCoord.y;
 	return u32(quad);
 }
-fn coordFromQuad(uv: vec2<f32>, textDim: vec2<u32>, quad: u32) -> vec2<f32> {
-	let quadCoord = vec2<u32>(quad % 2u, quad / 2u);
-	let pixCoord = vec2<u32>(vec2<f32>(textDim*2u) * vec2<f32>(uv.x, uv.y)) + quadCoord;
+fn coordFromQuad(uv_s: vec2<f32>, textDim: vec2<u32>, quad: u32) -> vec2<f32> {
+	let uv = uv_s;
+	let quadCoord = vec2<u32>(quad % 2u, quad / 2 );
+	var pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(uv.x, uv.y));
+	pixCoord = pixCoord + quadCoord;
+	result[0u][5u] = f32(pixCoord.x);
+	result[0u][6u] = f32(pixCoord.y);
 
-	let coord = vec2<f32>(pixCoord) / vec2<f32>(textDim*2u) + vec2<f32>(1.0, 1.0)*0.5 / f32(textDim.x);
+	let coord = vec2<f32>(pixCoord) / vec2<f32>(textDim*2u);
 	/*
 	result[0u][0u] = f32(quad);
 	result[0u][1u] = uv.x;
 	result[0u][2u] = uv.y;
-	result[0u][3u] = coord.x;
-	result[0u][4u] = coord.x;
+	result[0u][3u] = f32(quadCoord.x);
+	result[0u][4u] = f32(quadCoord.y);
+
+	result[0u][3u] = f32(textDim.x);
+	result[0u][4u] = f32(textDim.y);
+
+
+	result[0u][7u] = coord.x;
+	result[0u][8u] = coord.x;
 	*/
 	return coord; 
 
@@ -87,20 +97,24 @@ fn checkQuadMapLevelDone(index: u32) -> bool {
 @compute @workgroup_size(1)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
-		let texDim = textureDimensions(texture);
+
+		let texDim = textureDimensions(texture)*2u;
 		let threadIndex = local_id.x;
 
 		let index: u32 = u32(log2(f32(texDim.x)));
 		var coord = traversal[index].coord;
-	
+
+		
 		// Check if path is done
 		var quad = quadFromeCoord(coord, texDim);
 		let nodeIndex = getNodeIndex(index, quad);
 
 		let trav = traversal[index];
-		if (index != 0u && trav.done == 0u) {
+		/* TODO
+		if(trav.done != 0u) {
 			return;
 		}
+		*/
 		// check if trav is done
 		let node = getNode(u32(trav.address));
 		let value = getValue(node) / values[0];
@@ -117,12 +131,15 @@ fn checkQuadMapLevelDone(index: u32) -> bool {
 		if (checkQuadMapLevelDone(nodeIndex) || value == 0.0) {
 			quadMap[nodeIndex] = 1u;
 			traversal[index].done = 0u;
+			traversal[index+1u].coord = coord;
 			return;
 		}
 
 		// Next iteration Setup
 		let children = node.children;
 		let nextQuad = quadFromeCoord(coord, texDim*2u);
+		
+
 		var child = children[nextQuad];
 		for (var i = 0u; i < 4u; i = i + 1u) {
 			//let q = nextQuad;
@@ -136,9 +153,13 @@ fn checkQuadMapLevelDone(index: u32) -> bool {
 			}
 
 			if (nextQuad != q) {
+				result[0u][0u] = coord.x;
+				result[0u][1u] = coord.y;
 				coord = coordFromQuad(coord, texDim, q);
-			}else{
-			
+				result[0u][2u] = coord.x; 
+				result[0u][3u] = coord.y;
+				
+				//traversal[0u].coord = coord;
 			}
 			threadIterations.reference[index] = f32(quad);
 			quadMap[childNodeIndex] = 1u;
@@ -150,6 +171,7 @@ fn checkQuadMapLevelDone(index: u32) -> bool {
 			quadMap[nodeIndex] = 1u;
 			//result[0u][8u] = f32(quadMap[nodeIndex]);
 			traversal[index].done = 0u;
+			traversal[index+1u].coord = coord;
 			return;
 		}
 
@@ -159,6 +181,6 @@ fn checkQuadMapLevelDone(index: u32) -> bool {
 		traversal[index+1u].done = 1u;
 		
 
-		traversal[0u].coord = coord;
+		traversal[index].coord = coord;
 		traversal[index].done = 0u;
 	}

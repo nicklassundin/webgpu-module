@@ -151,7 +151,7 @@ let calls = 0;
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffer) {
 	const mipLevel = travBuffer.length; 
 
-	const values = new Float32Array([uv[0], uv[1]]);
+	const values = new Float32Array([uv[0], uv[1], 0, 1]);
 		const stagingBuffer = device.createBuffer({
 			size: values.byteLength,
 			usage: GPUBufferUsage.COPY_SRC,
