@@ -130,7 +130,7 @@ for i, image in enumerate(images):
     rgba_image = plt.cm.gray(norm_image)
     print(norm_image.shape)
     # set alpha
-    rgba_image[..., -1] = 0.5 
+    rgba_image[..., -1] = 0.8 
 
     # z = [i] * (dim * dim)
     # c = [image[j][k] for j in range(dim) for k in range(dim)]
