@@ -83,9 +83,14 @@ quadTreeSize = math.pow(4, maxMipMapLevel + 1);
 quadMap: [bool] = [False] * int(quadTreeSize)
 print("Quad Map Size:", len(quadMap))
 
+def checkQuadMapLevelDone(index: int) -> bool:
+    for i in range(0, 4):
+        nodeIndex = getNodeIndex(index, i)
+        if not quadMap[nodeIndex]:
+            return False
+    return True
 
 def traversData():
-
     for i, trav in enumerate(traversal):
         # print("Node", i)
         dim = pow(2, maxMipMapLevel - trav.mipLevel)
@@ -98,7 +103,11 @@ def traversData():
         quad = quadFromCoord(coord, textDim)
         # print("quad:", quad)
         nodeIndex = getNodeIndex(index, quad)
-        # print("nodeIndex",nodeIndex)
+        # print("nodeIndex",nodeIndex)A
+        addr = trav.addr
+        value = values[addr]
+        if (checkQuadMapLevelDone(nodeIndex) || value == 0 || addr < 0):
+            quadMap[nodeIndex] = True
 
         colorImage(coord, index)
 
