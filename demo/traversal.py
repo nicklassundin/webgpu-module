@@ -40,7 +40,7 @@ class Trav:
 # calculate max mipmap level
 # MAX_DIMENSION = 256
 MAX_DIMENSION = 128;
-MAX_DIMENSION = MAX_DIMENSION / 16
+MAX_DIMENSION = MAX_DIMENSION / 32
 MAX_DIMENSION = int(MAX_DIMENSION)
 maxMipMapLevel = int(math.log2(MAX_DIMENSION));
 print("Max Mipmap Level:", maxMipMapLevel)
@@ -65,7 +65,7 @@ for i in range(maxMipMapLevel):
 
 def getNodeIndex(index: int, quad: int) -> int:
     # Calculate the node index of a flatt quadtree
-    return pow(4, index) + quad
+    return pow(4, index) - index + quad
 
 def quadFromCoord(coord: [float, float], textDim: [int, int]) -> int:
     if(textDim[0] == 1 and textDim[1] == 1):
@@ -83,6 +83,8 @@ def colorImage(uv: [float, float], mipLevel: int, value: float = 0.0):
     x = int(uv[0] * dim)
     y = int(uv[1] * dim)
     # print(mipLevel, "x, y:", x, y)
+    # print(image.shape)
+    # print("dim:",dim)
     image[y][x][0,...] = 1;
     image[y][x][1,...] = value;
 
@@ -94,9 +96,33 @@ print("Quad Map Size:", len(quadMap))
 def checkQuadMapLevelDone(index: int) -> bool:
     for i in range(0, 4):
         nodeIndex = getNodeIndex(index, i)
+        if nodeIndex >= len(quadMap)-1:
+            return True
         if not quadMap[nodeIndex]:
             return False
     return True
+
+def coordFromQuad(uv: [float, float], textDim: [int, int], quad: int) -> [float, float]:
+    # print("coordFromQuad")
+    # print("uv:", uv)
+    # print("textDim:", textDim)
+    # print("quad:", quad)
+    uv = np.array(uv)
+    
+    textDim = np.array(textDim)
+    quadCoord = np.array([quad // 2, quad % 2])
+    # print("quadCoord:", quadCoord)
+    pixCoord = textDim * uv;
+    # print("pixCoord:", pixCoord)
+    # pix rounding
+    pixCoord = np.floor(pixCoord).astype(int)
+    # print("pixCoord after floor:", pixCoord)
+    pixCoord = 2*pixCoord + quadCoord + 0.5;
+    # print("pixCoord after quadCoord:", pixCoord)
+
+    coord = pixCoord / (textDim*2)
+    # print("coord:", coord)
+    return coord;
 
 def traversData():
     for i, trav in enumerate(traversal):
@@ -104,52 +130,65 @@ def traversData():
         dim = pow(2, maxMipMapLevel - trav.mipLevel)
         # print("dim:", dim)
         index = int(math.log2(dim));
-        # print("index:", index)
-        textDim = [dim, dim]
+        print("index:", index)
+        textDim = np.array([dim, dim])
         coord = trav.coord
         # print("coord:", coord)
         quad = quadFromCoord(coord, textDim)
+        if (dim == 1):
+            quad = 0;
         # print("quad:", quad)
         nodeIndex = getNodeIndex(index, quad)
-        # print("nodeIndex",nodeIndex)A
         addr = trav.addr
-        value = values[addr]
-        if (checkQuadMapLevelDone(index) or value == 0 or addr < 0):
-            quadMap[nodeIndex] = True
-            traversal[index+1].coord = coord
-            continue;
-        
+        # value = values[addr]
+        value = values[addr]+0.1
+    
         colorImage(coord, index)
+        if (checkQuadMapLevelDone(index) or value == 0 or addr < 0 or quadMap[nodeIndex]):
+            traversal[0].coord = coord
+            print(index, nodeIndex)
+            print(quadMap[0])
+            print(quadMap[1:5])
+            print(quadMap[6:22])
+            quadMap[nodeIndex] = True
+            continue
         
+        
+        if (i == len(traversal) - 1):
+            quadMap[nodeIndex] = True
+            traversal[0].coord = coord
+            return;
+
+
         node = node_buffer[nodeIndex]
         nextQuad = quadFromCoord(coord, textDim*2)
         children = node.children
         child = children[nextQuad]
         # iterate over quad
-        # for i in range(0, 4):
-        #     q = (i + nextQuad) % 4
-        #     child = children[q]
-        #     # Note: in wgsl with call (index, q) TODO
-        #     childNodeIndex = getNodeIndex(index, q)
+        for j in range(0, 4):
+            q = (j + nextQuad) % 4
+            child = children[q]
+            # Note: in wgsl with call (index, q) TODO
+            print("q:", q)
+            childNodeIndex = getNodeIndex(index+1, q)
 
-        #     if (quadMap[childNodeIndex]):
-        #         continue
+            if (quadMap[childNodeIndex]):
+                continue
 
-        #     if ( nextQuad != q):
-        #         coord = coordFromQuad(coord, textDim, q)
-            
-        #     quadMap[childNodeIndex] = True
-        #     break;
+            if (nextQuad != q):
+                coord = coordFromQuad(coord, textDim, q)
+            break;
 
+        print(index, nodeIndex, coord)
+        traversal[i+1].addr = child
+        traversal[i+1].coord = coord;
 
-        if (i < len(traversal) - 1):
-            traversal[i+1].addr = child
-            traversal[i+1].coord = coord;
-
+        if (i == len(traversal) -1):
+            traversal[0].coord = coord
 
 traversData()
 
-def getImageData(rgba_image, rgba_image=None, i=0):
+def getImageData(rgba_image, prev_image=None, i=0):
     dim = len(rgba_image)
     x = np.linspace(0, 1, dim+pow(i, 0))
     y = np.linspace(0, 1, dim+pow(i, 0))
@@ -158,11 +197,9 @@ def getImageData(rgba_image, rgba_image=None, i=0):
     # Convert to RGBA format
     # rgba_image = plt.cm.gray(image)
     # set alpha
-    # rgba_image[..., -1] = 0.8
-
     # merge previous rgba_image with current image
-    if rgba_image is not None:
-        rgba_image = np.maximum(rgba_image, plt.cm.gray(image))
+    if prev_image is not None:
+        rgba_image = np.maximum(rgba_image, prev_image)
     return X, Y, Z, rgba_image
 
 # print all images above eachother like a mipmaplevel in 3D plot
@@ -218,3 +255,8 @@ btn = Button(ax_button, 'Update')
 
 btn.on_clicked(update)
 plt.show()
+
+
+# clean up on exit
+def on_close(event):
+    plt.close(fig)
