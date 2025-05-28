@@ -1,6 +1,9 @@
 import json
 import math
 from matplotlib.widgets import Button
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
 JSON_FILE = "../public/data/obs/quadtree_Phylloscopus_collybita.json"
 # read the JSON file
@@ -38,13 +41,18 @@ class Trav:
 # MAX_DIMENSION = 256
 MAX_DIMENSION = 128;
 MAX_DIMENSION = MAX_DIMENSION / 16
+MAX_DIMENSION = int(MAX_DIMENSION)
 maxMipMapLevel = int(math.log2(MAX_DIMENSION));
 print("Max Mipmap Level:", maxMipMapLevel)
 images: [[int]] = []
 for i in range(maxMipMapLevel + 1):
     dim = pow(2, maxMipMapLevel - i)
     image = [[0 for _ in range(dim)] for _ in range(dim)]
-    images.append(image)
+    image = np.array(image, dtype=float)
+    rgba_image = plt.cm.gray(image)
+    # set alpha
+    rgba_image[..., -1] = 0.8
+    images.append(rgba_image)
 
 
 traversal: [Trav] = []
@@ -67,7 +75,7 @@ def quadFromCoord(coord: [float, float], textDim: [int, int]) -> int:
     quad = quadCoord[0] * 2 + quadCoord[1]
     return quad
 
-def colorImage(uv: [float, float], mipLevel: int):
+def colorImage(uv: [float, float], mipLevel: int, value: float = 0.0):
     # print("Coloring")
     image = images[mipLevel] 
     dim = len(image)
@@ -75,8 +83,8 @@ def colorImage(uv: [float, float], mipLevel: int):
     x = int(uv[0] * dim)
     y = int(uv[1] * dim)
     # print(mipLevel, "x, y:", x, y)
-    image[y][x] = 1;
-    # print(image)
+    image[y][x][0,...] = 1;
+    image[y][x][1,...] = value;
 
 # size of each mipmap level for quadtree
 quadTreeSize = math.pow(4, maxMipMapLevel + 1);
@@ -106,37 +114,57 @@ def traversData():
         # print("nodeIndex",nodeIndex)A
         addr = trav.addr
         value = values[addr]
-        if (checkQuadMapLevelDone(nodeIndex) || value == 0 || addr < 0):
+        if (checkQuadMapLevelDone(index) or value == 0 or addr < 0):
             quadMap[nodeIndex] = True
-
+            traversal[index+1].coord = coord
+            continue;
+        
         colorImage(coord, index)
+        
+        node = node_buffer[nodeIndex]
+        nextQuad = quadFromCoord(coord, textDim*2)
+        children = node.children
+        child = children[nextQuad]
+        # iterate over quad
+        # for i in range(0, 4):
+        #     q = (i + nextQuad) % 4
+        #     child = children[q]
+        #     # Note: in wgsl with call (index, q) TODO
+        #     childNodeIndex = getNodeIndex(index, q)
+
+        #     if (quadMap[childNodeIndex]):
+        #         continue
+
+        #     if ( nextQuad != q):
+        #         coord = coordFromQuad(coord, textDim, q)
+            
+        #     quadMap[childNodeIndex] = True
+        #     break;
+
 
         if (i < len(traversal) - 1):
+            traversal[i+1].addr = child
             traversal[i+1].coord = coord;
 
 
 traversData()
 
-def getImageData(image, rgba_image=None, i=0):
-    image = np.array(image, dtype=float)
-    dim = len(image)
+def getImageData(rgba_image, rgba_image=None, i=0):
+    dim = len(rgba_image)
     x = np.linspace(0, 1, dim+pow(i, 0))
     y = np.linspace(0, 1, dim+pow(i, 0))
     X, Y = np.meshgrid(x, y)
     Z = np.ones_like(X) * i  # Mipmap level as Z value
     # Convert to RGBA format
-    rgba_image = plt.cm.gray(image)
+    # rgba_image = plt.cm.gray(image)
     # set alpha
-    rgba_image[..., -1] = 0.8
+    # rgba_image[..., -1] = 0.8
 
     # merge previous rgba_image with current image
     if rgba_image is not None:
         rgba_image = np.maximum(rgba_image, plt.cm.gray(image))
     return X, Y, Z, rgba_image
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
 # print all images above eachother like a mipmaplevel in 3D plot
 fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
@@ -177,7 +205,6 @@ def update(event):
             coll.remove()
     for i, image in enumerate(images):
         X, Y, Z, rgba_image = getImageData(image, rgba_images[i], i)
-        print(Z)
         rgba_images[i] = rgba_image
 
 
