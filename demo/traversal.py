@@ -63,9 +63,10 @@ for i in range(maxMipMapLevel):
     empty_traversal = Trav([0, 0], 0, 0, maxMipMapLevel - i - 1)
     traversal.append(empty_traversal)
 
-def getNodeIndex(index: int, quad: int) -> int:
-    # Calculate the node index of a flatt quadtree
-    return pow(4, index) - index + quad
+def getNodeIndex(level: int, textDim: [int, int], coord: [float, float]) -> int:
+    quad = np.floor(textDim * coord).astype(int)
+    nodesBefore = (4**level - 1) // 3 if level > 0 else 0
+    return nodesBefore + quad[0] + quad[1]*2
 
 def quadFromCoord(coord: [float, float], textDim: [int, int]) -> int:
     if(textDim[0] == 1 and textDim[1] == 1):
@@ -95,7 +96,8 @@ print("Quad Map Size:", len(quadMap))
 
 def checkQuadMapLevelDone(index: int) -> bool:
     for i in range(0, 4):
-        nodeIndex = getNodeIndex(index, i)
+        quad = np.array([i // 2, i % 2])
+        nodeIndex = index + quad[0] * 2 + quad[1]
         if nodeIndex >= len(quadMap)-1:
             return True
         if not quadMap[nodeIndex]:
@@ -130,28 +132,23 @@ def traversData():
         dim = pow(2, maxMipMapLevel - trav.mipLevel)
         # print("dim:", dim)
         index = int(math.log2(dim));
-        print("index:", index)
+        # print("index:", index)
         textDim = np.array([dim, dim])
         coord = trav.coord
         # print("coord:", coord)
         quad = quadFromCoord(coord, textDim)
-        if (dim == 1):
-            quad = 0;
-        # print("quad:", quad)
-        nodeIndex = getNodeIndex(index, quad)
+        nodeIndex = getNodeIndex(index, textDim, coord)
         addr = trav.addr
         # value = values[addr]
         value = values[addr]+0.1
     
         colorImage(coord, index)
+        print(index, quad, nodeIndex)
         if (checkQuadMapLevelDone(index) or value == 0 or addr < 0 or quadMap[nodeIndex]):
             traversal[0].coord = coord
-            print(index, nodeIndex)
             print(quadMap[0])
             print(quadMap[1:5])
             print(quadMap[6:22])
-            quadMap[nodeIndex] = True
-            continue
         
         
         if (i == len(traversal) - 1):
@@ -168,9 +165,11 @@ def traversData():
         for j in range(0, 4):
             q = (j + nextQuad) % 4
             child = children[q]
-            # Note: in wgsl with call (index, q) TODO
-            print("q:", q)
-            childNodeIndex = getNodeIndex(index+1, q)
+            # TODO FIX nodeIndexing
+            childNodeIndex = nodeIndex + q*(4**index) + 1
+            print("parentNodeIndex:", nodeIndex)
+            print("quad:", q)
+            print("childNodeIndex:", childNodeIndex)
 
             if (quadMap[childNodeIndex]):
                 continue
@@ -179,12 +178,11 @@ def traversData():
                 coord = coordFromQuad(coord, textDim, q)
             break;
 
-        print(index, nodeIndex, coord)
+        # print(index, nodeIndex, coord)
         traversal[i+1].addr = child
         traversal[i+1].coord = coord;
 
-        if (i == len(traversal) -1):
-            traversal[0].coord = coord
+        traversal[0].coord = coord
 
 traversData()
 
