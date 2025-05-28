@@ -1,5 +1,6 @@
 import json
 import math
+from matplotlib.widgets import Button
 
 JSON_FILE = "../public/data/obs/quadtree_Phylloscopus_collybita.json"
 # read the JSON file
@@ -37,7 +38,6 @@ class Trav:
 # MAX_DIMENSION = 256
 MAX_DIMENSION = 128;
 MAX_DIMENSION = MAX_DIMENSION / 16
-MAX_DIMENSION = MAX_DIMENSION / 2
 maxMipMapLevel = int(math.log2(MAX_DIMENSION));
 print("Max Mipmap Level:", maxMipMapLevel)
 images: [[int]] = []
@@ -71,37 +71,59 @@ def colorImage(uv: [float, float], mipLevel: int):
     # print("Coloring")
     image = images[mipLevel] 
     dim = len(image)
-    print("uv:", uv)
+    # print(mipLevel, "uv:", uv)
     x = int(uv[0] * dim)
     y = int(uv[1] * dim)
-    print("x, y:", x, y)
+    # print(mipLevel, "x, y:", x, y)
     image[y][x] = 1;
-    print(image)
+    # print(image)
 
 # size of each mipmap level for quadtree
 quadTreeSize = math.pow(4, maxMipMapLevel + 1);
 quadMap: [bool] = [False] * int(quadTreeSize)
 print("Quad Map Size:", len(quadMap))
 
-for i, trav in enumerate(traversal):
-    # print("Node", i)
-    dim = pow(2, maxMipMapLevel - trav.mipLevel)
-    # print("dim:", dim)
-    index = int(math.log2(dim));
-    # print("index:", index)
-    textDim = [dim, dim]
-    coord = trav.coord
-    # print("coord:", coord)
-    quad = quadFromCoord(coord, textDim)
-    # print("quad:", quad)
-    nodeIndex = getNodeIndex(index, quad)
-    # print("nodeIndex",nodeIndex)
 
-    colorImage(coord, index)
+def traversData():
 
-    if (i < len(traversal) - 1):
-        traversal[i+1].coord = coord;
+    for i, trav in enumerate(traversal):
+        # print("Node", i)
+        dim = pow(2, maxMipMapLevel - trav.mipLevel)
+        # print("dim:", dim)
+        index = int(math.log2(dim));
+        # print("index:", index)
+        textDim = [dim, dim]
+        coord = trav.coord
+        # print("coord:", coord)
+        quad = quadFromCoord(coord, textDim)
+        # print("quad:", quad)
+        nodeIndex = getNodeIndex(index, quad)
+        # print("nodeIndex",nodeIndex)
 
+        colorImage(coord, index)
+
+        if (i < len(traversal) - 1):
+            traversal[i+1].coord = coord;
+
+
+traversData()
+
+def getImageData(image, rgba_image=None, i=0):
+    image = np.array(image, dtype=float)
+    dim = len(image)
+    x = np.linspace(0, 1, dim+pow(i, 0))
+    y = np.linspace(0, 1, dim+pow(i, 0))
+    X, Y = np.meshgrid(x, y)
+    Z = np.ones_like(X) * i  # Mipmap level as Z value
+    # Convert to RGBA format
+    rgba_image = plt.cm.gray(image)
+    # set alpha
+    rgba_image[..., -1] = 0.8
+
+    # merge previous rgba_image with current image
+    if rgba_image is not None:
+        rgba_image = np.maximum(rgba_image, plt.cm.gray(image))
+    return X, Y, Z, rgba_image
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -109,27 +131,18 @@ import numpy as np
 # print all images above eachother like a mipmaplevel in 3D plot
 fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
+
+
+
+surfaces = []
+rgba_images = []
 for i, image in enumerate(images):
-    dim = len(image)
-    x = np.linspace(0, 1, dim+1)
-    # x = [j / (dim) for j in range(dim+1)]
-    y = np.linspace(0, 1, dim+1)
-    # y = [j / (dim) for j in range(dim+1)]
-    X, Y = np.meshgrid(x, y)
-    Z = np.ones_like(X) * i  # Mipmap level as Z value
-    
-    norm_image = (image - np.min(image)) / (np.max(image) - np.min(image) + 1e-8)
-    
-    # Convert to RGBA format
-    rgba_image = plt.cm.gray(norm_image)
-    # set alpha
-    rgba_image[..., -1] = 0.8 
-
-    # z = [i] * (dim * dim)
-    # c = [image[j][k] for j in range(dim) for k in range(dim)]
-
-    ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=rgba_image, shade=False)
-
+    X, Y, Z, rgba_image = getImageData(image, None, i)
+    rgba_images.append(rgba_image)
+    # Plot the surface with the RGBA image
+    # ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=rgba_image, shade=False)
+    surface = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=rgba_image, shade=False)
+    surfaces.append(surface)
 
     # print max and min x/y
 
@@ -146,5 +159,26 @@ ax.set_zlabel('MipMap Level')
 # scale the z-axis to show the mipmap levels
 ax.set_zlim(0, maxMipMapLevel)
 plt.title('3D Mipmap Levels')
-plt.show()
+# plt.show()
 
+def update(event):
+    # Update the y data
+    traversData()
+    for coll in ax.collections:
+            coll.remove()
+    for i, image in enumerate(images):
+        X, Y, Z, rgba_image = getImageData(image, rgba_images[i], i)
+        print(Z)
+        rgba_images[i] = rgba_image
+
+
+        surface = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=rgba_image, shade=False)
+        surfaces.append(surface)
+    fig.canvas.draw_idle()
+
+
+ax_button = plt.axes([0.4, 0.05, 0.2, 0.075])  # [left, bottom, width, height]
+btn = Button(ax_button, 'Update')
+
+btn.on_clicked(update)
+plt.show()
