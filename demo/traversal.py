@@ -48,7 +48,7 @@ for i in range(maxMipMapLevel + 1):
 
 
 traversal: [Trav] = []
-initTrav = Trav([0.751, 0.6], 0, 1, maxMipMapLevel)
+initTrav = Trav([0.80, 0.6], 0, 1, maxMipMapLevel)
 traversal.append(initTrav)
 # append 10 empty traversal
 for i in range(maxMipMapLevel):
@@ -71,10 +71,10 @@ def colorImage(uv: [float, float], mipLevel: int):
     # print("Coloring")
     image = images[mipLevel] 
     dim = len(image)
-    print(uv)
-    x = int(uv[0] * dim - 1)
-    y = int(uv[1] * dim - 1)
-    print(x, y)
+    print("uv:", uv)
+    x = int(uv[0] * dim)
+    y = int(uv[1] * dim)
+    print("x, y:", x, y)
     image[y][x] = 1;
     print(image)
 
@@ -111,9 +111,9 @@ fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
 for i, image in enumerate(images):
     dim = len(image)
-    x = np.linspace(-1, 1, dim+1)
+    x = np.linspace(0, 1, dim+1)
     # x = [j / (dim) for j in range(dim+1)]
-    y = np.linspace(-1, 1, dim+1)
+    y = np.linspace(0, 1, dim+1)
     # y = [j / (dim) for j in range(dim+1)]
     X, Y = np.meshgrid(x, y)
     Z = np.ones_like(X) * i  # Mipmap level as Z value
@@ -124,8 +124,6 @@ for i, image in enumerate(images):
     rgba_image = plt.cm.gray(norm_image)
     # set alpha
     rgba_image[..., -1] = 0.8 
-    #inverse flip rgba_image vertically
-    rgba_image = np.flipud(rgba_image)
 
     # z = [i] * (dim * dim)
     # c = [image[j][k] for j in range(dim) for k in range(dim)]
@@ -136,7 +134,6 @@ for i, image in enumerate(images):
     # print max and min x/y
 
 pn = np.array([traversal[0].coord[0], traversal[0].coord[1]])
-pn = pn * 2 - 1  # Normalize to [-1, 1]
 p0 = np.array([pn[0], pn[1], 0])  # Start point at mipmap level 0
 p1 = np.array([pn[0], pn[1], maxMipMapLevel])  # End point at max mipmap level
 # plot as line between the points
