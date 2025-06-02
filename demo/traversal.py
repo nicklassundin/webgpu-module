@@ -63,10 +63,48 @@ for i in range(maxMipMapLevel):
     empty_traversal = Trav([0, 0], 0, 0, maxMipMapLevel - i - 1)
     traversal.append(empty_traversal)
 
-def getNodeIndex(level: int, textDim: [int, int], coord: [float, float]) -> int:
-    quad = np.floor(textDim * coord).astype(int)
-    nodesBefore = (4**level - 1) // 3 if level > 0 else 0
-    return nodesBefore + quad[0] + quad[1]*2
+
+def getSizeOfLevel(level: int) -> int:
+    return int(math.pow(4, level))
+
+# print("Size of Levels:")
+# print(getSizeOfLevel(0))
+# print(getSizeOfLevel(1))
+# print(getSizeOfLevel(2))
+
+def getLevelIndex(level: int) -> int:
+    index = 0;
+    for i in range(level):
+        index += getSizeOfLevel(i)
+
+    return index
+
+# print("Level Index:")
+# print(getLevelIndex(0))
+# print(getLevelIndex(1))
+# print(getLevelIndex(2))
+
+
+def getNodeIndex(level: int, coord: [int, int]) -> int:
+    parentIndex = getLevelIndex(level)
+    index = coord[0] * 2 + coord[1]
+    return parentIndex+index
+
+# print("Node Index:")
+
+# print("Level 0")
+# print(getNodeIndex(0, [0, 0]))
+# print("Level 1")
+# print(getNodeIndex(1, [0, 0]))
+# print(getNodeIndex(1, [0, 1]))
+# print(getNodeIndex(1, [1, 0]))
+# print(getNodeIndex(1, [1, 1]))
+# print("Level 2")
+# print(getNodeIndex(2, [3, 2]))
+# print(getNodeIndex(2, [0, 0]))
+# print(getNodeIndex(2, [0, 0]))
+# print(getNodeIndex(2, [1, 0]))
+# exit()
 
 def quadFromCoord(coord: [float, float], textDim: [int, int]) -> int:
     if(textDim[0] == 1 and textDim[1] == 1):
@@ -94,15 +132,42 @@ quadTreeSize = math.pow(4, maxMipMapLevel + 1);
 quadMap: [bool] = [False] * int(quadTreeSize)
 print("Quad Map Size:", len(quadMap))
 
-def checkQuadMapLevelDone(index: int) -> bool:
+def checkQuadMapLevelDone(index: int, coord: [int, int]) -> bool:
     for i in range(0, 4):
         quad = np.array([i // 2, i % 2])
-        nodeIndex = index + quad[0] * 2 + quad[1]
+        # print(quad, index+1)
+        pixCoord = np.array([coord[0] * 2, coord[1] * 2]) + quad
+        nodeIndex = getNodeIndex(index+1, pixCoord) 
+        # print(nodeIndex, coord, quad)
         if nodeIndex >= len(quadMap)-1:
             return True
         if not quadMap[nodeIndex]:
             return False
     return True
+
+# test checkQUadMapLevelDone
+# quadMap[1] = True
+# quadMap[2] = True
+# quadMap[3] = True
+# quadMap[4] = True
+# print("Quad Map Level Done:", checkQuadMapLevelDone(0, [0, 0]))
+# quadMap[5] = True
+# quadMap[6] = True
+# quadMap[7] = True
+# quadMap[8] = True
+# print("Quad Map Level 1: q: 0:", checkQuadMapLevelDone(1, [0, 0]))
+# quadMap[9] = True
+# quadMap[10] = True
+# quadMap[11] = True
+# quadMap[12] = True
+# print("Quad Map Level 1: q: 1", checkQuadMapLevelDone(1, [1, 0]))
+# print("Quad Map Level 1; q: 2", checkQuadMapLevelDone(1, [0, 1]))
+# print("Quad Map Level 1; q: 3", checkQuadMapLevelDone(1, [1, 1]))
+# print(quadMap[0])
+# print(quadMap[1:5])
+# print(quadMap[5:21])
+# exit()
+
 
 def coordFromQuad(uv: [float, float], textDim: [int, int], quad: int) -> [float, float]:
     # print("coordFromQuad")
@@ -137,21 +202,25 @@ def traversData():
         coord = trav.coord
         # print("coord:", coord)
         quad = quadFromCoord(coord, textDim)
-        nodeIndex = getNodeIndex(index, textDim, coord)
+        pixCoord = np.array([int(coord[0] * textDim[0]), int(coord[1] * textDim[1])])
+        nodeIndex = getNodeIndex(index, pixCoord)
         addr = trav.addr
         # value = values[addr]
         value = values[addr]+0.1
     
         colorImage(coord, index)
-        print(index, quad, nodeIndex)
-        if (checkQuadMapLevelDone(index) or value == 0 or addr < 0 or quadMap[nodeIndex]):
+        # print(index, quad, nodeIndex)
+        if (checkQuadMapLevelDone(index, pixCoord) or value == 0 or addr < 0):
             traversal[0].coord = coord
             print(quadMap[0])
             print(quadMap[1:5])
             print(quadMap[6:22])
+            quadMap[nodeIndex] = True
+            return;
         
         
         if (i == len(traversal) - 1):
+            print(i, "==", len(traversal) - 1)
             quadMap[nodeIndex] = True
             traversal[0].coord = coord
             return;
@@ -164,18 +233,22 @@ def traversData():
         # iterate over quad
         for j in range(0, 4):
             q = (j + nextQuad) % 4
+            print(dim, q)
             child = children[q]
             # TODO FIX nodeIndexing
-            childNodeIndex = nodeIndex + q*(4**index) + 1
-            print("parentNodeIndex:", nodeIndex)
-            print("quad:", q)
-            print("childNodeIndex:", childNodeIndex)
+            quadCoord = np.array([q // 2, q % 2])
+            childPixCoord = [2*pixCoord[0],2*pixCoord[1]] + quadCoord
+            childNodeIndex = getNodeIndex(index + 1, childPixCoord) 
 
+            print("childNodeIndex:", childPixCoord)
+            print("childNodeIndex:", childNodeIndex)
             if (quadMap[childNodeIndex]):
                 continue
+            # print("parentNodeIndex:", nodeIndex)
+            # print("quad:", q)
 
             if (nextQuad != q):
-                coord = coordFromQuad(coord, textDim, q)
+                coord = pixCoord / (textDim * 2)
             break;
 
         # print(index, nodeIndex, coord)
