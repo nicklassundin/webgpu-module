@@ -39,8 +39,7 @@ class Trav:
 
 # calculate max mipmap level
 MAX_DIMENSION = 256
-# MAX_DIMENSION = 128;
-# MAX_DIMENSION = MAX_DIMENSION / 8
+MAX_DIMENSION = MAX_DIMENSION / 8
 # MAX_DIMENSION = MAX_DIMENSION / 32
 # MAX_DIMENSION = MAX_DIMENSION / 64
 MAX_DIMENSION = int(MAX_DIMENSION)
@@ -239,6 +238,11 @@ def traversData():
         # print("children:", node_buffer[nodeIndex].children)
         # value = values[addr] / values[0];
         # colorImage(coord, index, value)
+
+        if (quadMap[nodeIndex] or addr < 0.0 or addr < 0):
+            quadMap[nodeIndex] = True
+            return;
+            
         
         
         if (i == len(traversal)- 1):
@@ -250,6 +254,9 @@ def traversData():
         node = node_buffer[addr]
         nextQuad = quadFromCoord(coord, textDim*2)
         children = node.children
+
+
+        # TODO check such at nextQuad realy is right
         child = children[nextQuad]
         # iterate over quad
         
@@ -257,7 +264,7 @@ def traversData():
         for j in range(0, 4):
             q = (j + nextQuad) % 4
             child = children[q]
-            quadCoord = np.array([int(q / 2), q % 2])
+            quadCoord = np.array([q // 2, q % 2])
             # print(pixCoord)
             childPixCoord = [2*pixCoord[0],2*pixCoord[1]] + quadCoord
             # print("quadCoord", quadCoord)
@@ -276,14 +283,16 @@ def traversData():
         # print("pix:", childPixCoord)
         
         value = values[child];
-        if(values[addr] != 0):
-            value /= values[addr];
-        colorImage(childPixCoord, index+1, value)
         
         if(checkQuadMapLevelDone(index+1, childPixCoord)):
         # if(checkQuadMapLevelDone(index+1, childPixCoord) or value == 0):
             traversal[0].coord = coord
             quadMap[childNodeIndex] = True
+            return;
+        
+        if(values[addr] != 0):
+            value /= values[addr];
+        colorImage(childPixCoord, index+1, value)
 
         if(checkQuadMapLevelDone(index, pixCoord)):
             quadMap[nodeIndex] = True;
@@ -384,7 +393,7 @@ toggle_ax = plt.axes([0.65, 0.1, 0.2, 0.075])  # [left, bottom, width, height]
 toggle_button = Button(toggle_ax, 'Toggle Update')
 # slider between 0 and 100 
 slider_ax = plt.axes([0.4, 0.0, 0.3, 0.075])  # [left, bottom, width, height]
-slider = plt.Slider(slider_ax, 'Count', 0, 500, valinit=25, valfmt='%0.0f')
+slider = plt.Slider(slider_ax, 'Count', 0, 1000, valinit=100, valfmt='%0.0f')
 
 # slide for MAX_DIMENSION reset images if changed
 maxDim_slider_ax = plt.axes([0.75, 0.0, 0.2, 0.075])  # [left, bottom, width, height]
