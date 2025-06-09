@@ -257,6 +257,7 @@ def traversData():
 
 
         # TODO check such at nextQuad realy is right
+        # reorder children to 0,2,3,1 
         child = children[nextQuad]
         # iterate over quad
         
@@ -292,6 +293,13 @@ def traversData():
         
         if(values[addr] != 0):
             value /= values[addr];
+        if child < 0:
+            value = 0.0;
+
+        if value > 1.0:
+            print("child", child)
+            print("addr", addr)
+            value = 0.1;
         colorImage(childPixCoord, index+1, value)
 
         if(checkQuadMapLevelDone(index, pixCoord)):
@@ -329,7 +337,16 @@ def fillRGBA(images):
     surfaces = []
     rgba_images = []
     for i, image in enumerate(images):
+        max_value = np.max(image)
+        min_value = np.min(image)
+        # print(f"Image {i} - Max: {np.max(image)}, Min: {np.min(image)}")
+        # print(f"Image {i} - Shape: {image.shape}")
+        # stop if values is outside 0-1
+        # if max_value > 1 or min_value < 0:
+            # print(f"Image {i} has values outside 0-1 range. Skipping.")
+            # break;
         X, Y, Z, rgba_image = getImageData(image, None, i)
+        # print max and min value of rgba_image
         rgba_images.append(rgba_image)
         # Plot the surface with the RGBA image
         # ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=rgba_image, shade=False)
