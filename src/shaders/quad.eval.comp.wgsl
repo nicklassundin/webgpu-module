@@ -44,20 +44,6 @@ fn coordFromQuad(uv_s: vec2<f32>, textDim: vec2<u32>, quad: u32) -> vec2<f32> {
 	result[0u][6u] = f32(pixCoord.y);
 
 	let coord = vec2<f32>(pixCoord) / vec2<f32>(textDim*2u);
-	/*
-	   result[0u][0u] = f32(quad);
-	   result[0u][1u] = uv.x;
-	   result[0u][2u] = uv.y;
-	   result[0u][3u] = f32(quadCoord.x);
-	   result[0u][4u] = f32(quadCoord.y);
-
-	   result[0u][3u] = f32(textDim.x);
-	   result[0u][4u] = f32(textDim.y);
-
-
-	   result[0u][7u] = coord.x;
-	   result[0u][8u] = coord.x;
-	 */
 	return coord; 
 
 }
@@ -83,16 +69,15 @@ fn getValue(node: Node) -> f32 {
 }
 
 // check quadMap level of all is done
-fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>) -> bool {
+fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	for (var i = 0u; i < 4u; i = i + 1u) {
+		if(node.children[i] <= 0.0) {
+			continue;
+		}
+
 		let quad = vec2<u32>(i / 2u, i % 2u);
 		let pixCoord = 2u * vec2<u32>(coord) + quad;
 		let nodeIndex = getNodeIndex(index+1, pixCoord);
-		/* TODO not needed
-		if nodeIndex >= u32(arrayLength(quadMap)) - 1u {
-			return true;
-		}
-		*/
 		if quadMap[nodeIndex] == 0u {
 			return false;
 		}
@@ -120,23 +105,27 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>) -> bool {
 		let textDim = textureDimensions(texture)*2u;
 		let threadIndex = local_id.x;
 
-		let index: u32 = u32(log2(f32(textDim.x)));
+		let index: u32 = u32(log2(f32(textDim.x)) - 1.0);
+
+
 		var coord = traversal[index].coord;
+		result[0u][0u] = coord[0];
+		result[0u][1u] = coord[1];
 
 		let quad = quadFromCoord(coord, textDim);
 
 		let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
 		let nodeIndex = getNodeIndex(index, pixCoord);
 		let trav = traversal[index];
+		if (index != 0) {
+			if (trav.done == 0u) {
+				return; // already done
+			}
+		}else{
+		}
 		let addr = trav.address;
 
-		if (quadMap[nodeIndex] == 1u || addr < 0.0){
-			quadMap[nodeIndex] = 1u;
-			return;
-		}
-
 		// check if outside traversal bounds (not needd for gpu)
-
 		let node = getNode(u32(trav.address));
 		let nextQuad = quadFromCoord(coord, textDim*2u);
 		let children = node.children;
@@ -144,6 +133,7 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>) -> bool {
 		var child = children[nextQuad];
 		var childNodeIndex = 0u;
 		var childPixCoord = vec2<u32>(0u, 0u);
+		
 		
 		for (var j = 0u; j < 4u; j = j + 1u) {
 			let q = (j + nextQuad) % 4u;
@@ -153,24 +143,15 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>) -> bool {
 
 			childNodeIndex = getNodeIndex(index+1, childPixCoord);
 			
-			if (quadMap[childNodeIndex] == 1u) {
-				continue;
-			}
-			if ( nextQuad == q ){
-				threadIterations.reference[index] += values[u32(child)] / values[0];
-			} else{
+			if (q != nextQuad){
 				coord = vec2<f32>(childPixCoord) / vec2<f32>(textDim*2u);
 			}
-			break;
-		}
-		//result[0u][0u] = f32(nodeIndex);
-		result[0u][1u] = f32(quad);
-		//result[0u][2u] = f32(childNodeIndex); 
 
-		if(checkQuadMapLevelDone(index+1, childPixCoord)){
-			traversal[0].coord = coord;
-			quadMap[childNodeIndex] = 1u;
-			return;
+			let childNode = getNode(u32(child));
+			if (((quadMap[childNodeIndex] == 0u) && checkQuadMapLevelDone(index+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0)) {
+				continue;
+			}
+			break;
 		}
 
 		var value = getValue(node);
@@ -183,16 +164,18 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>) -> bool {
 		if (value == 0.0) {
 			quadMap[nodeIndex] = 1u;
 		}
-		result[0u][3u] = value;
+		result[0u][2u] = coord[0];
+		result[0u][3u] = coord[1];
+		result[0u][5u] = f32(index);
 
 		let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
 		let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
+
+
 		textureStore(texture, textCoord, color);
 
-		if (checkQuadMapLevelDone(index, pixCoord)){
-			quadMap[nodeIndex] = 1u;
-		}
 		traversal[index+1].address = child;
 		traversal[index+1].coord = coord;
-		traversal[0].coord = coord;
+		traversal[0u].coord = coord;
+		traversal[index+1u].done = 1u;
 	}

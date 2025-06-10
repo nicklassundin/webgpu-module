@@ -173,16 +173,10 @@ def getChildNodeIndex(index: int, coord: [int, int], q: int ) -> int:
 
 def checkQuadMapLevelDone(index: int, coord: [int, int]) -> bool:
     for i in range(0, 4):
-        # quad = np.array([i // 2, i % 2])
-        # print(quad, index+1)
-        # pixCoord = np.array([coord[0] * 2, coord[1] * 2]) + quad
-        # nodeIndex = getNodeIndex(index+1, pixCoord) 
         nodeIndex = getChildNodeIndex(index, coord, i) 
-        # print(nodeIndex, coord, quad)
         if nodeIndex >= len(quadMap)+1:
             return True
         if not quadMap[nodeIndex]:
-            # print(index, nodeIndex, quadMap[nodeIndex])
             return False
     return True
 
