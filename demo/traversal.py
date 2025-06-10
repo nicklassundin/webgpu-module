@@ -48,7 +48,7 @@ print("Max Mipmap Level:", maxMipMapLevel)
 
 def initImages(maxMipMapLevel: int) -> [[int]]:
     images: [[int]] = []
-    for i in range(maxMipMapLevel + 1):
+    for i in range(maxMipMapLevel):
         dim = pow(2, maxMipMapLevel - i)
         image = [[0 for _ in range(dim)] for _ in range(dim)]
         image = np.array(image, dtype=float)
@@ -157,11 +157,10 @@ def colorImage(coord: [int, int], depth: int, value: float = 0.0):
     # print(mipLevel, uv, image[y][x])
 
 # size of each mipmap level for quadtree
-quadTreeSize = math.pow(4, maxMipMapLevel + 1);
-quadMap: [bool] = [False] * int(quadTreeSize)
-# set last layer to True
-for i in range(getSizeOfLevel(maxMipMapLevel)):
-    quadMap[getLevelIndex(maxMipMapLevel) + i] = True
+quadTreeSize = math.pow(4, maxMipMapLevel);
+quadTreeSizeBottom = math.pow(4, maxMipMapLevel + 1) - quadTreeSize;
+quadMap: [bool] = [False] * int(quadTreeSize) + [True] * int(quadTreeSizeBottom)
+
 
 print("Quad Map Size:", len(quadMap))
 
@@ -179,8 +178,8 @@ def checkQuadMapLevelDone(index: int, coord: [int, int]) -> bool:
         # pixCoord = np.array([coord[0] * 2, coord[1] * 2]) + quad
         # nodeIndex = getNodeIndex(index+1, pixCoord) 
         nodeIndex = getChildNodeIndex(index, coord, i) 
-        print(nodeIndex, coord, quad)
-        if nodeIndex >= len(quadMap)-1:
+        # print(nodeIndex, coord, quad)
+        if nodeIndex >= len(quadMap)+1:
             return True
         if not quadMap[nodeIndex]:
             # print(index, nodeIndex, quadMap[nodeIndex])
@@ -231,7 +230,6 @@ reference: [int] = [0 for _ in range(maxMipMapLevel + 1)]
 def traversData():
     print("Traverse data")
     for i, trav in enumerate(traversal):
-
         dim = pow(2, maxMipMapLevel - trav.mipLevel)
         index = int(math.log2(dim));
         textDim = np.array([dim, dim])
@@ -240,8 +238,13 @@ def traversData():
         pixCoord = np.array([int(coord[0] * textDim[0]), int(coord[1] * textDim[1])])
         nodeIndex = getNodeIndex(index, pixCoord)
         addr = trav.addr
+        
+        quadMap[nodeIndex] = True
+        print(i+1,"/",len(traversal), coord)
         if (i == len(traversal) - 1):
-            continue;
+            traversal[0].coord = coord
+            continue
+
     
 
         
@@ -260,25 +263,18 @@ def traversData():
             q = (j + nextQuad) % 4
             child = children[q]
             quadCoord = np.array([q // 2, q % 2])
-            # print(pixCoord)
-            childPixCoord = [2*pixCoord[0],2*pixCoord[1]] + quadCoord
-            # print(q, childPixCoord)
+            childPixCoord = [2*pixCoord[0], 2*pixCoord[1]] + quadCoord
             childNodeIndex = getNodeIndex(index + 1, childPixCoord) 
-            
-            print(i, q, checkQuadMapLevelDone(index+1, childPixCoord))
 
-            nodeChild = node_buffer[child]
-            # check if nodeChild.children is all -1
-            if (checkQuadMapLevelDone(index+1, childPixCoord) or values[child] == 0):
-                quadMap[childNodeIndex] = True
+            if (q != nextQuad):
+                coord = childPixCoord / (textDim * 2)
+
+            if (quadMap[childNodeIndex] and checkQuadMapLevelDone(index+1, childPixCoord) or values[child] == 0):
+                print("Skipping child:", index+2, childPixCoord, quadMap[childNodeIndex]);
                 continue
 
-            if (nextQuad == q):
-                reference[index] += values[child] / values[0]
-            else:
-                coord = childPixCoord / (textDim*2)
             break;
-        
+
         value = values[child];
         
         if(values[addr] != 0):
@@ -296,8 +292,7 @@ def traversData():
         traversal[i+1].addr = child
         traversal[i+1].coord = coord;
         traversal[0].coord = coord
-        quadMap[nodeIndex] = True
-        quadMap[childNodeIndex] = True
+        # quadMap[childNodeIndex] = True
         # print(coord)
 
 
