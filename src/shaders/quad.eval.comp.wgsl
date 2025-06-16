@@ -40,8 +40,6 @@ fn coordFromQuad(uv_s: vec2<f32>, textDim: vec2<u32>, quad: u32) -> vec2<f32> {
 	let quadCoord = vec2<u32>(quad % 2u, quad / 2 );
 	var pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(uv.x, uv.y));
 	pixCoord = pixCoord + quadCoord;
-	result[0u][5u] = f32(pixCoord.x);
-	result[0u][6u] = f32(pixCoord.y);
 
 	let coord = vec2<f32>(pixCoord) / vec2<f32>(textDim*2u);
 	return coord; 
@@ -86,6 +84,30 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	return true;
 }
 
+fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
+	let node = getNode(address);
+	var value = getValue(node);
+	if (values[u32(address)] != 0){
+		value /= values[0u];
+	}
+	
+	let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
+	// color red
+	//let color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	
+	let textDim = textureDimensions(texture);
+	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
+	
+	result[0u][1u] = f32(textDim.x);
+	result[0u][2u] = f32(textDim.y);
+	result[0u][3u] = f32(coord.x);
+	result[0u][4u] = f32(coord.y);
+	result[0u][5u] = f32(textCoord.x);
+	result[0u][6u] = f32(textCoord.y);
+	result[0u][7u] = value;
+
+	textureStore(texture, textCoord, color);
+}
 
 @group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
 @group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
@@ -108,15 +130,16 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 		let index: u32 = u32(log2(f32(textDim.x)) - 1.0);
 
 
-		var coord = traversal[index].coord;
-		result[0u][0u] = coord[0];
-		result[0u][1u] = coord[1];
+		let coord = traversal[index].coord;
 
 		let quad = quadFromCoord(coord, textDim);
 
 		let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
 		let nodeIndex = getNodeIndex(index, pixCoord);
 		let trav = traversal[index];
+	
+		result[0u][0u] = f32(index);
+		
 		if (index != 0) {
 			if (trav.done == 0u) {
 				return; // already done
@@ -134,17 +157,29 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 		var childNodeIndex = 0u;
 		var childPixCoord = vec2<u32>(0u, 0u);
 		
-		
+		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
 			let q = (j + nextQuad) % 4u;
 			child = children[q];
 			let quadCoord = vec2<u32>(q / 2u, q % 2u);
-			childPixCoord = 2u*pixCoord + quadCoord;
+			childPixCoord = 2u*pixCoord+quadCoord;
+			/*
+			result[0u][1u] = f32(q);
+			result[0u][2u] = f32(textDim.x);
+			result[0u][3u] = f32(2u*pixCoord.x);
+			result[0u][4u] = f32(2u*pixCoord.y);
+			//result[0u][5u] = f32(quadCoord.x);
+			//result[0u][6u] = f32(quadCoord.y);
+			result[0u][5u] = f32(childPixCoord.x);
+			result[0u][6u] = f32(childPixCoord.y);
+			*/
+
 
 			childNodeIndex = getNodeIndex(index+1, childPixCoord);
+
 			
 			if (q != nextQuad){
-				coord = vec2<f32>(childPixCoord) / vec2<f32>(textDim*2u);
+				childCoord = vec2<f32>(f32(childPixCoord.x) / f32(textDim.x*2u), f32(childPixCoord.y) / f32(textDim.y*2u));
 			}
 
 			let childNode = getNode(u32(child));
@@ -154,28 +189,11 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 			break;
 		}
 
-		var value = getValue(node);
-		if (values[u32(addr)] != 0){
-			value /= values[0u];
-		}
-		if child < 0.0 {
-			value = 0.0;
-		}
-		if (value == 0.0) {
-			quadMap[nodeIndex] = 1u;
-		}
-		result[0u][2u] = coord[0];
-		result[0u][3u] = coord[1];
-		result[0u][5u] = f32(index);
-
-		let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
-		let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
-
-
-		textureStore(texture, textCoord, color);
+		writeTexture(coord, u32(addr), quad, index);
+		quadMap[nodeIndex] = 1u;
 
 		traversal[index+1].address = child;
-		traversal[index+1].coord = coord;
-		traversal[0u].coord = coord;
+		traversal[index+1].coord = childCoord;
+		traversal[0u].coord = childCoord;
 		traversal[index+1u].done = 1u;
 	}

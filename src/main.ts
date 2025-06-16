@@ -268,7 +268,7 @@ async function frame() {
 	// await new Promise(resolve => setTimeout(resolve, 200));
 	//
 	// stop after 10 frames
-	// if (frameCount > 100) {
+	// if (frameCount > 20) {
 	// 	console.log("Stopping after 10 frames");
 	// 	return;
 	// }
@@ -301,6 +301,7 @@ async function loadImageBitmap(url: string) {
 }
 // listen and find uv coordinates of mouse on click
 canvas.addEventListener('click', async (event) => {
+	frameCount = 0;
 	console.clear();
 	let rect = canvas.getBoundingClientRect();
 	const x = (event.clientX - rect.left);
@@ -315,6 +316,7 @@ canvas.addEventListener('click', async (event) => {
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
 	params.updateTravelValues([uv[0], uv[1]]);
 	// await updateTravBufferCoord(uv);
+	// requestAnimationFrame(frame);
 })
 
 // On close unbind buffers
