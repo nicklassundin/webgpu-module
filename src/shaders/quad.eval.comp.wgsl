@@ -6,9 +6,10 @@ valueAddress: f32,
 };
 
 struct Traversal {
-coord: vec2<f32>,
-	       address: f32,
-	       done: u32
+	coord: vec2<f32>,
+	address: f32,
+	done: u32,
+	maxLevel: f32
 };
 
 struct ThreadInfo {
@@ -68,6 +69,15 @@ fn getValue(node: Node) -> f32 {
 
 // check quadMap level of all is done
 fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
+	let mipLevelLeft = i32(traversal[0u].maxLevel) - i32(index);
+	result[0u][2u] = f32(mipLevelLeft);
+	result[0u][3u] = traversal[0u].maxLevel; 
+	if (mipLevelLeft <= 1){
+		result[0u][4u] = 666.0;
+		return true;
+	}else{
+		result[0u][4u] = 366.0;
+	}
 	for (var i = 0u; i < 4u; i = i + 1u) {
 		if(node.children[i] <= 0.0) {
 			continue;
@@ -97,7 +107,8 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 	
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
-	
+
+/*
 	result[0u][1u] = f32(textDim.x);
 	result[0u][2u] = f32(textDim.y);
 	result[0u][3u] = f32(coord.x);
@@ -105,6 +116,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 	result[0u][5u] = f32(textCoord.x);
 	result[0u][6u] = f32(textCoord.y);
 	result[0u][7u] = value;
+	*/
 
 	textureStore(texture, textCoord, color);
 }
@@ -125,6 +137,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
 
 		let textDim = textureDimensions(texture)*2u;
+
 		let threadIndex = local_id.x;
 
 		let index: u32 = u32(log2(f32(textDim.x)) - 1.0);
@@ -163,16 +176,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			child = children[q];
 			let quadCoord = vec2<u32>(q / 2u, q % 2u);
 			childPixCoord = 2u*pixCoord+quadCoord;
-			/*
-			result[0u][1u] = f32(q);
-			result[0u][2u] = f32(textDim.x);
-			result[0u][3u] = f32(2u*pixCoord.x);
-			result[0u][4u] = f32(2u*pixCoord.y);
-			//result[0u][5u] = f32(quadCoord.x);
-			//result[0u][6u] = f32(quadCoord.y);
-			result[0u][5u] = f32(childPixCoord.x);
-			result[0u][6u] = f32(childPixCoord.y);
-			*/
+			//result[0u][j+1u] = f32(q);
 
 
 			childNodeIndex = getNodeIndex(index+1, childPixCoord);
@@ -183,14 +187,27 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			}
 
 			let childNode = getNode(u32(child));
-			if (((quadMap[childNodeIndex] == 0u) && checkQuadMapLevelDone(index+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0)) {
+			
+			if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(index+1, childPixCoord, childNode)) ||
+				(values[u32(child)] == 0.0)) {
+				result[0u][5u] = 21;	
+				quadMap[childNodeIndex] = 1u;
 				continue;
+			}else{
+				result[0u][5u] = 42;	
 			}
+			/*
+			result[0u][5u] = f32(childNode.children[0]);
+			result[0u][6u] = f32(childNode.children[1]);
+			result[0u][7u] = f32(childNode.children[2]);
+			result[0u][8u] = f32(childNode.children[3]);
+			*/
 			break;
 		}
 
 		writeTexture(coord, u32(addr), quad, index);
-		quadMap[nodeIndex] = 1u;
+		quadMap[childNodeIndex] = 1u;
+
 
 		traversal[index+1].address = child;
 		traversal[index+1].coord = childCoord;
