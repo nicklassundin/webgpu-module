@@ -137,21 +137,35 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
 
 		let textDim = textureDimensions(texture)*2u;
-
-		let threadIndex = local_id.x;
-
-		let index: u32 = u32(log2(f32(textDim.x)) - 1.0);
+			
+		let levelOffset = u32(log2(f32(textDim.x)) - 1.0);
+	
+		//let index: u32 = u32(log2(f32(textDim.x)) - 1.0),
+		let index: u32 = global_id.x + global_id.y*2u;
 
 
 		let coord = traversal[index].coord;
-
 		let quad = quadFromCoord(coord, textDim);
-
 		let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
+	
+		if (global_id.x != 0u || global_id.y != 0u) {
+			// only the first thread in the workgroup should do anything
+			return;
+		}
+		// check if pixCoord are within workgroup bounds
+
+		
 		let nodeIndex = getNodeIndex(index, pixCoord);
 		let trav = traversal[index];
 	
 		result[0u][0u] = f32(index);
+		result[0u][1u] = f32(textDim.x);
+		result[0u][2u] = f32(pixCoord.x);
+		result[0u][3u] = f32(pixCoord.y);
+		result[0u][4u] = f32(coord.x);
+		result[0u][5u] = f32(coord.y);
+		result[0u][6u] = f32(global_id.x);
+		result[0u][7u] = f32(global_id.y);
 		
 		if (index != 0) {
 			if (trav.done == 0u) {
@@ -176,7 +190,6 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			child = children[q];
 			let quadCoord = vec2<u32>(q / 2u, q % 2u);
 			childPixCoord = 2u*pixCoord+quadCoord;
-			//result[0u][j+1u] = f32(q);
 
 
 			childNodeIndex = getNodeIndex(index+1, childPixCoord);
@@ -190,18 +203,9 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			
 			if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(index+1, childPixCoord, childNode)) ||
 				(values[u32(child)] == 0.0)) {
-				result[0u][5u] = 21;	
 				quadMap[childNodeIndex] = 1u;
 				continue;
-			}else{
-				result[0u][5u] = 42;	
 			}
-			/*
-			result[0u][5u] = f32(childNode.children[0]);
-			result[0u][6u] = f32(childNode.children[1]);
-			result[0u][7u] = f32(childNode.children[2]);
-			result[0u][8u] = f32(childNode.children[3]);
-			*/
 			break;
 		}
 

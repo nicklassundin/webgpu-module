@@ -3,7 +3,7 @@ import QuadTreeTraversal from './traversal/traversal';
 import VertexGen from './genVertex';
 import BufferMux from './traversal/BufferMux';
 
-const NUM_THREADS = 1;
+const LEVEL = 1;
 class QuadManager {
 	device: GPUDevice;
 	originalCanvasSize: number;
@@ -17,10 +17,11 @@ class QuadManager {
 		this.mipLevel = mipLevel;	
 	}
 	init(quadTree: QuadTree, uv: number[], data: array[]) {
-		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, this.mipLevel, NUM_THREADS, uv, data);
+		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, this.mipLevel, LEVEL, uv, data);
 
 		this.quadTree = new QuadTreeTraversal(this.device, this.bufferMux)
-		this.eval = new Eval(this.device, this.bufferMux);
+		
+		this.eval = new Eval(this.device, this.bufferMux, LEVEL);
 		this.genVertex = new VertexGen(this.device, this.bufferMux)
 	}
 	pass(level, frame: number = 0){

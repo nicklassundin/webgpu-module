@@ -61,9 +61,10 @@ class BufferMux {
 	constructor(device: GPUDevice, 
 		    canvasSize: number, 
 		    mipLevel: number,
-		   number_threads: number,
+		   level: number,
 		   uv: number[],
 		   data: array[]) {
+		let number_threads = Math.pow(2, level);
 		this.device = device;
 		const divisibleBy = 2*32 * WORKGROUPSIZE;
 		console.log(canvasSize)
@@ -75,7 +76,8 @@ class BufferMux {
 
 		this.config = {
 			textureSize: textureSize,
-			mipLevel: mipLevel,
+			// mipLevel: mipLevel,
+			mipLevel: mipLevel - level,
 			workgroupSize: WORKGROUPSIZE,
 		};
 		this.features = [];
@@ -96,10 +98,16 @@ class BufferMux {
 		}
 		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1, mipLevel]);
 		this.traversal = device.createBuffer({
-			size: traversal_values.byteLength * Math.pow(4, mipLevel),
+			size: traversal_values.byteLength * Math.pow(4, mipLevel)*number_threads,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
-		device.queue.writeBuffer(this.traversal, 0, traversal_values.buffer);
+		let groups = Math.pow(2, level+1);
+		for (let i = 0; i < groups; i++) {
+			let offset = i*traversal_values.byteLength*(mipLevel-level);
+			console.log(offset, level)
+			device.queue.writeBuffer(this.traversal, offset, traversal_values.buffer);
+		}
+
 		this.travThreadIter = device.createBuffer({
 			size: 4*16 + number_threads*4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
@@ -115,7 +123,8 @@ class BufferMux {
 			size: [textureSize.width, textureSize.height],
 			format: 'rgba8unorm',
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
-			mipLevelCount: mipLevel,
+			// mipLevelCount: mipLevel,
+			mipLevelCount: mipLevel - level
 		})
 		this.evalThreadIter = device.createBuffer({
 			size: 4*16 + number_threads*4,

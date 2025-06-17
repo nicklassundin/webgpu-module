@@ -81,13 +81,28 @@ class Eval {
 		quadTree: GPUBindGroupLayout,
 		texture: GPUBindGroupLayout,
 	};
+	wgS = {
+		x: 1,
+		y: 1,
+		z: 1,
+	};
 	get result() {
 		return this.bufferMux.result;
 	}
 	constructor(device: GPUDevice,
-		    bufferMux: BufferMux) {
+		    bufferMux: BufferMux,
+		    level: number) {
+
 			    this.device = device;
 			    this.bufferMux = bufferMux;
+			    this.startLevel = level;
+				
+			    let workgroupSize = Math.pow(2, level);
+			    this.wgS = {
+				    x: workgroupSize,
+				    y: workgroupSize,
+				    z: 1,
+			    };
 
 			    this.bindGroupLayouts = {
 				    quadTree: device.createBindGroupLayout(READ_BGL),
@@ -120,12 +135,14 @@ class Eval {
 			    computePass.setPipeline(this.pipeline);
 			    computePass.setBindGroup(0, this.bindGroups.texture);
 			    computePass.setBindGroup(1, this.bindGroups.quadTree);
-			    computePass.dispatchWorkgroups(1)
+			    // computePass.dispatchWorkgroups(1)
+			    //
+			    computePass.dispatchWorkgroups(this.wgS.x, this.wgS.y, this.wgS.z)
 			    computePass.end();
 		    }
 		    createBindGroups(level = 0){
 			    // Create texture for quadtree bindGroupQuad
-			    const mipLevel = this.bufferMux.config.mipLevel;
+			    const mipLevel = this.bufferMux.config.mipLevel - this.startLevel+1;
 
 			    let currentMipLevel = (mipLevel) - level % mipLevel - 1;
 			    // console.log(currentMipLevel, level, mipLevel)

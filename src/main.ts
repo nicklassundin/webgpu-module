@@ -231,26 +231,22 @@ async function frame() {
 		// clear browser console
 		return;
 	// }else if(16*2 > frameCount){
-	}else{
+	}
 
-		if (frameCount % 2 == 0){
-			await quadManager.eval.pass(frameCount / 2, commandEncoder);
+	current_mipLevel++;
+	await quadManager.eval.pass(frameCount, commandEncoder);
+	await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 			// console.log(textureSize.width, textureSize.height)
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
 			//await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
-		}else{
 			// mesure time 
 			// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
 			// console.log("QuadTree result (", frameCount, "):")
 			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 32, 32);
-		}
 		// TODO Optimization
-		current_mipLevel++;
-	}
 	quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 	device.queue.submit([commandEncoder.finish()]);
 	
