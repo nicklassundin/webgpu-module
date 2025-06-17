@@ -55,8 +55,8 @@ canvas.height = canvas.clientHeight * devicePixelRatio;
 
 
 const canvasOrigSize = {
-	width: canvas.width,
-	height: canvas.height,
+	width: Math.min(canvas.width, canvas.height),
+	height: Math.min(canvas.width, canvas.height)
 }
 usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -89,7 +89,9 @@ vertexBuffer.unmap();
 const image = await loadImageBitmap(textureList[0]);
 
 // TODO fix so mipLevel trasfers into structure
+// print image size
 const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
+
 // print byte size of image
 // Upload image data to texture level 0
 const imageBitmap = image;
