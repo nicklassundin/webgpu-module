@@ -64,13 +64,13 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 	//let color = searchMipMapTexture(coord);
 	var color = searchMipMapTexture(coord);
 	if (local_id.x == 0u || local_id.y == 0u) {
-		color = vec4<f32>(0.0, 0.0, 1.0, 0.5);
+		color = color*0.8 + vec4<f32>(0.2, 0.2, 0.2, 1.0);
 		// if workgroup_id.x == 0u || workgroup_id.y == 0u color red
 		if (workgroup_id.x == 0u && local_id.x == 0u) {
-			color.y = 1.0;
+			color += color*0.9 + vec4<f32>(0.1, 0.1, 0.1, 1.0);
 		}
 		if (workgroup_id.y == 0u && local_id.y == 0u) {
-			color.x = 1.0;
+			color += color*0.9 + vec4<f32>(0.1, 0.1, 0.1, 1.0);
 		}
 	}
 	//let color = vec4<f32>(uniforms.resolution.x / f32(texDim), uniforms.resolution.y / 1536, 0.0, 1.0);
