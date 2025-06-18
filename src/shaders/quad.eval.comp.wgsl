@@ -128,15 +128,16 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 			threadIterations.dimensions = textDim;
 			threadDim = textDim;
 		}
-		let levelOffset = u32(log2(f32(textDim.x)) - 1.0);
+		let level = u32(log2(f32(textDim.x)) - 1.0);
+		let minLevel = u32(log2(f32(threadDim.x)) - 1.0);
 
 		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u + 1u;
 		//let index: u32 = global_id.x + global_id.y*2u;
-		let level = u32(log2(f32(textDim.x)) - 1.0);
 		let index: u32 = level + threadIndex; 
 
 		var coord = traversal[index].coord;
 		var pixCoord = vec2<u32>(vec2<f32>(textDim) * coord);
+		
 
 		let seedTrav = traversal[0u];
 		if (textDim.x == threadDim.x) {
@@ -150,17 +151,22 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 				pixCoord = global_id.xy;
 			}
 		}
-		result[0u][0u] = f32(threadIndex);
-		result[0u][1u] = f32(index);
-		result[0u][2u] = f32(threadDim.x);
-		result[0u][3u] = f32(textDim.x);
 
 
 		let nodeIndex = getNodeIndex(level, pixCoord);
 
 
 		// check if outside traversal bounds (not needd for gpu)
-		let addr = traversal[index].address;
+		var addr = traversal[index].address;
+		if (level == minLevel && addr == 0.0) {
+			// for loop minLevel
+			for (var i = 0u; i < minLevel; i = i + 1u) {
+				let dim = u32(pow(2.0, f32(i)));
+				let preQuad = quadFromCoord(coord, vec2<u32>(dim, dim)); 
+				addr = getNode(u32(addr)).children[preQuad];
+			}
+			traversal[index].address = addr;
+		}
 		let node = getNode(u32(addr));
 		let nextQuad = quadFromCoord(coord, textDim*2u);
 		let children = node.children;
@@ -168,6 +174,12 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		var child = children[nextQuad];
 		var childNodeIndex = 0u;
 		var childPixCoord = vec2<u32>(0u, 0u);
+		
+		result[0u][0u] = f32(threadIndex);
+		result[0u][1u] = f32(index);
+		result[0u][2u] = f32(threadDim.x);
+		result[0u][3u] = f32(textDim.x);
+		result[0u][4u] = f32(addr);
 
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {

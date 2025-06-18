@@ -3,7 +3,7 @@ import QuadTreeTraversal from './traversal/traversal';
 import VertexGen from './genVertex';
 import BufferMux from './traversal/BufferMux';
 
-const LEVEL = 5;
+const LEVEL = 1;
 class QuadManager {
 	device: GPUDevice;
 	originalCanvasSize: number;
