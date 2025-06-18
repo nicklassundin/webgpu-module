@@ -188,6 +188,8 @@ class BufferMux {
 		this.device.queue.writeBuffer(this.uniform, this.uniformSize.resolution + this.uniformSize.workgroupSize, input.buffer);
 	}
 	unmap() {
+		// unmap and destroy
+		this.quadTreeMap.unmap();
 		this.quadTreeMap.destroy();
 		this.mipTexture.destroy();
 		this.evalThreadIter.destroy();

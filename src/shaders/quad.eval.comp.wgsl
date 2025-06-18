@@ -96,10 +96,28 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		value /= values[0u];
 	}
 
-	let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
-	//let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
+	let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
 	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
-
+	let color = vec4<f32>(0.0*value, 0.0*f32(quad+1u)/4.0, f32(index)/10, 1.0);
+	/*
+	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+	if(quad == 0u){
+		color.x = 1.0;
+	}else if(quad == 1u) {
+		color.y = 1.0;
+	}else if(quad == 2u) {
+		color.z = 1.0;
+	}else if(quad == 3u) {
+		color.y = 1.0;
+		color.z = 1.0;
+	}
+	*/
+	//let color = vec4<f32>(f32(index)/12*vec3<f32>(1.0, 1.0, 1.0), 1.0);
+	/*
+	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+	if(value != 0.0) {
+		color = vec4<f32>(1.0, vec2<f32>(workgroup.xy)/workgroupsize, 1.0);
+	}*/
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
 
@@ -120,6 +138,25 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 @compute @workgroup_size(1)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
+
+		if (global_id.x == 5u && global_id.y == 5u){
+		}else if(global_id.x == 5u && global_id.y == 4u) {
+		}else if(global_id.x == 6u && global_id.y == 6u) {
+		}else if(global_id.x == 7u && global_id.y == 7u) {
+		}else if(global_id.x == 6u && global_id.y == 7u) {
+		}else if(global_id.x == 9u && global_id.y == 9u) {
+
+		}else{
+			return;
+		}
+		/*
+		if (global_id.x == 5u && global_id.y == 5u ) {
+
+		}else{
+			return;
+		}
+		*/
+
 
 		let textDim = textureDimensions(texture)*2u;
 		var threadDim = threadIterations.dimensions;
@@ -143,8 +180,10 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		if (textDim.x == threadDim.x) {
 			let origPixCoord = vec2<u32>(vec2<f32>(threadDim) * seedTrav.coord);
 			if (origPixCoord.x == pixCoord.x && origPixCoord.y == pixCoord.x) {
+				return;
 				coord = seedTrav.coord;
 				traversal[index].coord = coord;
+				
 			}else{
 				coord = vec2<f32>(global_id.xy) / vec2<f32>(textDim);
 				traversal[index].coord = coord;
@@ -206,7 +245,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		}
 
 		let quad = quadFromCoord(coord, textDim);
-		writeTexture(coord, u32(addr), quad, index, global_id);
+		writeTexture(coord, u32(addr), quad, level, global_id);
 		quadMap[childNodeIndex] = 1u;
 
 

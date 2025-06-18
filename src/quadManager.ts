@@ -3,7 +3,14 @@ import QuadTreeTraversal from './traversal/traversal';
 import VertexGen from './genVertex';
 import BufferMux from './traversal/BufferMux';
 
-const LEVEL = 1;
+
+const LEVEL = 4;
+// TODO this level works 
+// const LEVEL = 5;
+// TODO this level breaks when painting levels seem to overlap
+// const LEVEL = 6;
+// TODO breaks when looking at workgroup deligation of areas
+// const LEVEL = 7;
 class QuadManager {
 	device: GPUDevice;
 	originalCanvasSize: number;
