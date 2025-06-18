@@ -96,11 +96,9 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		value /= values[0u];
 	}
 
-	//let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
-	let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
-	let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
-	// color red
-	//let color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
+	//let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
+	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
 
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
@@ -144,7 +142,6 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		if (textDim.x == threadDim.x) {
 			let origPixCoord = vec2<u32>(vec2<f32>(threadDim) * seedTrav.coord);
 			if (origPixCoord.x == pixCoord.x && origPixCoord.y == pixCoord.x) {
-				return;
 				coord = seedTrav.coord;
 				traversal[index].coord = coord;
 			}else{

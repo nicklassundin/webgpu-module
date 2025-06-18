@@ -235,7 +235,7 @@ async function frame() {
 
 	current_mipLevel++;
 	await quadManager.eval.pass(frameCount, commandEncoder);
-	await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 			// console.log(textureSize.width, textureSize.height)
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
