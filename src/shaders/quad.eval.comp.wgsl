@@ -89,14 +89,16 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	return true;
 }
 
-fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
+fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgroup: vec3<u32>) {
 	let node = getNode(address);
 	var value = getValue(node);
 	if (values[u32(address)] != 0){
 		value /= values[0u];
 	}
 
-	let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
+	//let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
+	let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
+	let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
 	// color red
 	//let color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 
@@ -142,6 +144,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 		if (textDim.x == threadDim.x) {
 			let origPixCoord = vec2<u32>(vec2<f32>(threadDim) * seedTrav.coord);
 			if (origPixCoord.x == pixCoord.x && origPixCoord.y == pixCoord.x) {
+				return;
 				coord = seedTrav.coord;
 				traversal[index].coord = coord;
 			}else{
@@ -194,7 +197,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 		}
 
 		let quad = quadFromCoord(coord, textDim);
-		writeTexture(coord, u32(addr), quad, index);
+		writeTexture(coord, u32(addr), quad, index, global_id);
 		quadMap[childNodeIndex] = 1u;
 
 

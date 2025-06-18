@@ -76,8 +76,7 @@ class BufferMux {
 
 		this.config = {
 			textureSize: textureSize,
-			// mipLevel: mipLevel,
-			mipLevel: mipLevel - level,
+			mipLevel: mipLevel,
 			workgroupSize: WORKGROUPSIZE,
 		};
 		this.features = [];
@@ -98,13 +97,12 @@ class BufferMux {
 		}
 		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1, mipLevel]);
 		this.traversal = device.createBuffer({
-			size: traversal_values.byteLength * Math.pow(4, mipLevel)*number_threads,
+			size: traversal_values.byteLength * Math.pow(4, mipLevel-level)*number_threads,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
-		let groups = Math.pow(2, level+1);
+		let groups = Math.pow(level+1,2);
 		for (let i = 0; i < groups; i++) {
 			let offset = i*traversal_values.byteLength*(mipLevel-level);
-			console.log(offset, level)
 			device.queue.writeBuffer(this.traversal, offset, traversal_values.buffer);
 		}
 
@@ -124,7 +122,6 @@ class BufferMux {
 			format: 'rgba8unorm',
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
 			mipLevelCount: mipLevel,
-			// mipLevelCount: mipLevel - level
 		})
 		this.evalThreadIter = device.createBuffer({
 			size: 4*16 + number_threads*4,
