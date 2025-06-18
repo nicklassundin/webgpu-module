@@ -124,7 +124,7 @@ class BufferMux {
 			format: 'rgba8unorm',
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
 			// mipLevelCount: mipLevel,
-			mipLevelCount: mipLevel - level
+			mipLevelCount: mipLevel - level + 1
 		})
 		this.evalThreadIter = device.createBuffer({
 			size: 4*16 + number_threads*4,

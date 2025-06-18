@@ -6,15 +6,15 @@ valueAddress: f32,
 };
 
 struct Traversal {
-	coord: vec2<f32>,
-	address: f32,
-	done: u32,
-	maxLevel: f32
+coord: vec2<f32>,
+	       address: f32,
+	       done: u32,
+	       maxLevel: f32
 };
 
 struct ThreadInfo {
-	reference: array<f32, 16>,
-		   iterations: array<u32>,
+reference: array<f32, 16>,
+		   dimensions: vec2<u32>,
 
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
@@ -70,13 +70,8 @@ fn getValue(node: Node) -> f32 {
 // check quadMap level of all is done
 fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	let mipLevelLeft = i32(traversal[0u].maxLevel) - i32(index);
-	result[0u][2u] = f32(mipLevelLeft);
-	result[0u][3u] = traversal[0u].maxLevel; 
 	if (mipLevelLeft <= 1){
-		result[0u][4u] = 666.0;
 		return true;
-	}else{
-		result[0u][4u] = 366.0;
 	}
 	for (var i = 0u; i < 4u; i = i + 1u) {
 		if(node.children[i] <= 0.0) {
@@ -100,23 +95,16 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 	if (values[u32(address)] != 0){
 		value /= values[0u];
 	}
-	
+
+	result[0u][2u] = coord.x;
+	result[0u][3u] = coord.y;
+
 	let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
 	// color red
 	//let color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-	
+
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
-
-/*
-	result[0u][1u] = f32(textDim.x);
-	result[0u][2u] = f32(textDim.y);
-	result[0u][3u] = f32(coord.x);
-	result[0u][4u] = f32(coord.y);
-	result[0u][5u] = f32(textCoord.x);
-	result[0u][6u] = f32(textCoord.y);
-	result[0u][7u] = value;
-	*/
 
 	textureStore(texture, textCoord, color);
 }
@@ -137,53 +125,54 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
 
 		let textDim = textureDimensions(texture)*2u;
-			
+		var threadDim = threadIterations.dimensions;
+		if (threadDim.x == 0u ||threadDim.y == 0u) {
+			// initialize thread info
+			threadIterations.dimensions = textDim;
+			threadDim = textDim;
+		}
 		let levelOffset = u32(log2(f32(textDim.x)) - 1.0);
-	
-		//let index: u32 = u32(log2(f32(textDim.x)) - 1.0),
-		let index: u32 = global_id.x + global_id.y*2u;
 
+		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u + 1u;
+		//let index: u32 = global_id.x + global_id.y*2u;
+		let level = u32(log2(f32(textDim.x)) - 1.0);
+		let index: u32 = level + threadIndex; 
 
-		let coord = traversal[index].coord;
-		let quad = quadFromCoord(coord, textDim);
-		let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
-	
-		if (global_id.x != 0u || global_id.y != 0u) {
-			// only the first thread in the workgroup should do anything
-			return;
-		}
-		// check if pixCoord are within workgroup bounds
+		var coord = traversal[index].coord;
+		var pixCoord = vec2<u32>(vec2<f32>(textDim) * coord);
 
-		
-		let nodeIndex = getNodeIndex(index, pixCoord);
-		let trav = traversal[index];
-	
-		result[0u][0u] = f32(index);
-		result[0u][1u] = f32(textDim.x);
-		result[0u][2u] = f32(pixCoord.x);
-		result[0u][3u] = f32(pixCoord.y);
-		result[0u][4u] = f32(coord.x);
-		result[0u][5u] = f32(coord.y);
-		result[0u][6u] = f32(global_id.x);
-		result[0u][7u] = f32(global_id.y);
-		
-		if (index != 0) {
-			if (trav.done == 0u) {
-				return; // already done
+		let seedTrav = traversal[0u];
+		if (textDim.x == threadDim.x) {
+			let origPixCoord = vec2<u32>(vec2<f32>(threadDim) * seedTrav.coord);
+			if (origPixCoord.x == pixCoord.x && origPixCoord.y == pixCoord.x) {
+				coord = seedTrav.coord;
+				traversal[index].coord = coord;
+			}else{
+				coord = vec2<f32>(global_id.xy) / vec2<f32>(textDim);
+				traversal[index].coord = coord;
+				pixCoord = global_id.xy;
 			}
-		}else{
 		}
-		let addr = trav.address;
+		result[0u][0u] = f32(threadIndex);
+		result[0u][1u] = f32(index);
+		result[0u][2u] = coord.x;
+		result[0u][3u] = coord.y;
+
+
+		let nodeIndex = getNodeIndex(level, pixCoord);
+
+		result[0u][4u] = 666.0;
 
 		// check if outside traversal bounds (not needd for gpu)
-		let node = getNode(u32(trav.address));
+		let addr = traversal[index].address;
+		let node = getNode(u32(addr));
 		let nextQuad = quadFromCoord(coord, textDim*2u);
 		let children = node.children;
 
 		var child = children[nextQuad];
 		var childNodeIndex = 0u;
 		var childPixCoord = vec2<u32>(0u, 0u);
-		
+
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
 			let q = (j + nextQuad) % 4u;
@@ -192,29 +181,29 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 			childPixCoord = 2u*pixCoord+quadCoord;
 
 
-			childNodeIndex = getNodeIndex(index+1, childPixCoord);
+			childNodeIndex = getNodeIndex(level+1, childPixCoord);
 
-			
+
 			if (q != nextQuad){
 				childCoord = vec2<f32>(f32(childPixCoord.x) / f32(textDim.x*2u), f32(childPixCoord.y) / f32(textDim.y*2u));
 			}
 
 			let childNode = getNode(u32(child));
-			
-			if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(index+1, childPixCoord, childNode)) ||
-				(values[u32(child)] == 0.0)) {
+
+			if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0)) {
 				quadMap[childNodeIndex] = 1u;
 				continue;
 			}
 			break;
 		}
 
+		let quad = quadFromCoord(coord, textDim);
 		writeTexture(coord, u32(addr), quad, index);
 		quadMap[childNodeIndex] = 1u;
 
 
 		traversal[index+1].address = child;
 		traversal[index+1].coord = childCoord;
-		traversal[0u].coord = childCoord;
+		traversal[threadIndex].coord = childCoord;
 		traversal[index+1u].done = 1u;
 	}
