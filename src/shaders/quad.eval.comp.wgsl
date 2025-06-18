@@ -96,9 +96,6 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 		value /= values[0u];
 	}
 
-	result[0u][2u] = coord.x;
-	result[0u][3u] = coord.y;
-
 	let color = vec4<f32>(1.0 - value, f32(quad+1u)/4.0, 1.0 - f32(index)/10, 1.0);
 	// color red
 	//let color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
@@ -155,13 +152,12 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32) {
 		}
 		result[0u][0u] = f32(threadIndex);
 		result[0u][1u] = f32(index);
-		result[0u][2u] = coord.x;
-		result[0u][3u] = coord.y;
+		result[0u][2u] = f32(threadDim.x);
+		result[0u][3u] = f32(textDim.x);
 
 
 		let nodeIndex = getNodeIndex(level, pixCoord);
 
-		result[0u][4u] = 666.0;
 
 		// check if outside traversal bounds (not needd for gpu)
 		let addr = traversal[index].address;

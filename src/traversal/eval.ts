@@ -96,13 +96,14 @@ class Eval {
 			    this.device = device;
 			    this.bufferMux = bufferMux;
 			    this.startLevel = level;
-				
+
 			    let workgroupSize = Math.pow(2, level);
 			    this.wgS = {
 				    x: workgroupSize,
 				    y: workgroupSize,
 				    z: 1,
 			    };
+			    console.log(this.wgS)
 
 			    this.bindGroupLayouts = {
 				    quadTree: device.createBindGroupLayout(READ_BGL),
@@ -142,10 +143,10 @@ class Eval {
 		    }
 		    createBindGroups(level = 0){
 			    // Create texture for quadtree bindGroupQuad
-			    const mipLevel = this.bufferMux.config.mipLevel - this.startLevel+1;
+			    const mipLevel = this.bufferMux.config.mipLevel;
 
-			    let currentMipLevel = (mipLevel) - level % mipLevel;
-			    // console.log(currentMipLevel, level, mipLevel)
+			    let currentMipLevel = (mipLevel) - level % mipLevel + 2 - this.startLevel;
+			    console.log(currentMipLevel)
 			    const bindGroupQuadTreeTexture = this.device.createBindGroup({
 				    layout: this.bindGroupLayouts.texture,
 				    entries: [
