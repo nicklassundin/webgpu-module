@@ -38,12 +38,14 @@ class Trav:
         self.mipLevel = mipLevel
 
 # calculate max mipmap level
-MAX_DIMENSION = 256
-MAX_DIMENSION = MAX_DIMENSION / 8
+MAX_DIMENSION = 512
+# MAX_DIMENSION = MAX_DIMENSION / 4
+# MAX_DIMENSION = MAX_DIMENSION / 8
 # MAX_DIMENSION = MAX_DIMENSION / 32
 # MAX_DIMENSION = MAX_DIMENSION / 64
 MAX_DIMENSION = int(MAX_DIMENSION)
 maxMipMapLevel = int(math.log2(MAX_DIMENSION));
+MAX_DRAW_LEVELS = 6;
 print("Max Mipmap Level:", maxMipMapLevel)
 
 def initImages(maxMipMapLevel: int) -> [[int]]:
@@ -152,7 +154,7 @@ def colorImage(coord: [int, int], depth: int, value: float = 0.0):
         image[y][x][3,...] = 0.6;
     else:
         image[y][x][0,...] = 1.0;
-        image[y][x][3,...] = 0.2;
+        image[y][x][3,...] = 0.05;
 
     # print(mipLevel, uv, image[y][x])
 
@@ -206,7 +208,7 @@ def checkQuadMapLevelDone(index: int, coord: [int, int]) -> bool:
 
 def coordFromQuad(uv: [float, float], textDim: [int, int], quad: int) -> [float, float]:
     uv = np.array(uv)
-    
+
     textDim = np.array(textDim)
     quadCoord = np.array([quad // 2, quad % 2])
     pixCoord = textDim * uv;
@@ -222,7 +224,7 @@ def coordFromQuad(uv: [float, float], textDim: [int, int], quad: int) -> [float,
 reference: [int] = [0 for _ in range(maxMipMapLevel + 1)]
 
 def traversData():
-    print("Traverse data")
+    # print("Traverse data")
     for i, trav in enumerate(traversal):
         dim = pow(2, maxMipMapLevel - trav.mipLevel)
         index = int(math.log2(dim));
@@ -234,7 +236,7 @@ def traversData():
         addr = trav.addr
         
         quadMap[nodeIndex] = True
-        print(i+1,"/",len(traversal), coord)
+        # print(i+1,"/",len(traversal), coord)
         if (i == len(traversal) - 1):
             traversal[0].coord = coord
             continue
@@ -264,7 +266,7 @@ def traversData():
                 coord = childPixCoord / (textDim * 2)
 
             if (quadMap[childNodeIndex] and checkQuadMapLevelDone(index+1, childPixCoord) or values[child] == 0):
-                print("Skipping child:", index+2, childPixCoord, quadMap[childNodeIndex]);
+                # print("Skipping child:", index+2, childPixCoord, quadMap[childNodeIndex]);
                 continue
 
             break;
@@ -339,14 +341,21 @@ surfaces, rgba_images = fillRGBA(images)
 
 
 num_lines = 0;
+
+lines = []
 def drawLine(ax):
+    if len(lines) > 0:
+        line[0].remove()
     global num_lines
     pn = np.array([traversal[0].coord[0], traversal[0].coord[1]])
     p0 = np.array([pn[0], pn[1], 0])  # Start point at mipmap level 0
     p1 = np.array([pn[0], pn[1], maxMipMapLevel])  # End point at max mipmap level
     # plot as line between the points
-    ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]], color='red', linewidth=2, label='Traversal Path')
-    ax.text(pn[0], pn[1], maxMipMapLevel + 0.1, f'Line: {num_lines}', color='red', fontsize=10)
+    # ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]], color='red', linewidth=2, label='Traversal Path')
+    line = ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]], color='red', linewidth=2, label='Traversal Path')
+    # ax.text(pn[0], pn[1], maxMipMapLevel + 0.1, f'Line: {num_lines}', color='red', fontsize=10)
+    
+    lines.append(line)
     num_lines = num_lines + 1
 
 def setupPlot():
@@ -366,9 +375,10 @@ setupPlot()
 def drawSurface(images):
     for coll in ax.collections:
             coll.remove()
-    surfaces, rgba_images = fillRGBA(images)
+    surface, rgba_images = fillRGBA(images[0:MAX_DRAW_LEVELS])
+    # surfaces, rgba_images = fillRGBA(images)
     fig.canvas.draw_idle()
-    print("Redrawing surface with updated images")
+    # print("Redrawing surface with updated images")
 
 
 
@@ -398,7 +408,7 @@ def resetImages(event):
     global MAX_DIMENSION, maxMipMapLevel, images
     MAX_DIMENSION = int(maxDim_slider.val)
     maxMipMapLevel = int(math.log2(MAX_DIMENSION))
-    print("Max Mipmap Level:", maxMipMapLevel)
+    # print("Max Mipmap Level:", maxMipMapLevel)
     images = initImages(maxMipMapLevel)
     # reset traversal
     global traversal
@@ -414,9 +424,9 @@ def resetImages(event):
     setupPlot()
     surfaces, rgba_images = fillRGBA(images) 
     drawSurface(images)
-    print("Max Mipmap Level reset to:", maxMipMapLevel)
-    print("Quad Map Size:", len(quadMap))
-    print("Max Mipmap Level reset to:", maxMipMapLevel)
+    # print("Max Mipmap Level reset to:", maxMipMapLevel)
+    # print("Quad Map Size:", len(quadMap))
+    # print("Max Mipmap Level reset to:", maxMipMapLevel)
 maxDim_slider.on_changed(resetImages)
     
 
@@ -450,6 +460,18 @@ toggle_button.on_clicked(toggle_update)
 
 
 
+def callAll(event):
+    nrPixels = int(images[0].shape[0]*images[0].shape[1])
+    for i in range(nrPixels):
+        print("Calling pixel:", i+1, "/", nrPixels)
+        traversData()
+    surface, rgba_images = fillRGBA(images[0:MAX_DRAW_LEVELS])
+    fig.canvas.draw_idle()
+    print("Called all pixels")
+
+callAll_ax = plt.axes([0.9, 0.1, 0.1, 0.075])
+callAll_button_ax = Button(callAll_ax, 'Call All')
+callAll_button_ax.on_clicked(callAll)
 
 plt.show()
 

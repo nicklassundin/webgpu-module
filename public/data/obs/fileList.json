@@ -3,6 +3,14 @@
     "./data/obs/heatmap_Phylloscopus_collybita.png",
     "./data/obs/heatmap_Phylloscopus_trochilus.png",
     "./data/obs/quadtree_Phylloscopus_collybita.json",
-    "./data/obs/quadtree_Phylloscopus_trochilus.json"
+    "./data/obs/quadtree_Phylloscopus_trochilus.json",
+    "./data/obs/quadtree_debug_data.json",
+    "./data/obs/quadtree_debug_data2.json",
+    "./data/obs/quadtree_debug_data3.json",
+    "./data/obs/quadtree_debug_dia_X.json",
+    "./data/obs/quadtree_debug_dia_tl.json",
+    "./data/obs/quadtree_debug_dia_tr.json",
+    "./data/obs/quadtree_debug_hori.json",
+    "./data/obs/quadtree_debug_vert.json"
   ]
 }
