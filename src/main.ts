@@ -57,6 +57,8 @@ canvas.height = canvas.clientHeight * devicePixelRatio;
 const canvasOrigSize = {
 	width: Math.min(canvas.width, canvas.height),
 	height: Math.min(canvas.width, canvas.height)
+	// width: Math.min(canvas.width, canvas.height)*2.0,
+	// height: Math.min(canvas.width, canvas.height)*2.0
 }
 usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -178,9 +180,7 @@ const gui = new GUI();
 {
 	const folder = gui.addFolder("Mipmap");
 	folder.add({ value: mipLevel}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
-		const resolution = new Float32Array([canvas.width,
-						    canvas.height,
-		value]);
+		const resolution = new Float32Array([canvasOrigSize.width, canvasOrigSize.height, value]);
 		await updateUniformBuffer(resolution);
 	});
 	// Add folder for uv coordinates
@@ -210,7 +210,6 @@ async function frame() {
 	stats.begin();
 	const currentTime = Date.now();
 	const commandEncoder = device.createCommandEncoder();
-	// console.log(frameCount)
 	// Update the stats panel
 	if (params.change) {
 		frameCount = 0;
@@ -235,15 +234,13 @@ async function frame() {
 	current_mipLevel++;
 	await quadManager.eval.pass(frameCount, commandEncoder);
 	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
-			// console.log(textureSize.width, textureSize.height)
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
 			// mesure time 
 			// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
-			// console.log("QuadTree result (", frameCount, "):")
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
-			await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
+			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// TODO Optimization
 	quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 	device.queue.submit([commandEncoder.finish()]);
@@ -258,16 +255,6 @@ async function frame() {
 	frameCount++;
 	stats.end();
 
-	// console.log('Frame: ', frameCount, 'Time: ', currentTime - lastFrameTime, 'ms');
-		// return;
-	// wait 500 ms
-	// await new Promise(resolve => setTimeout(resolve, 200));
-	//
-	// stop after 10 frames
-	// if (frameCount > 20) {
-	// 	console.log("Stopping after 10 frames");
-	// 	return;
-	// }
 	requestAnimationFrame(frame);
 }
 

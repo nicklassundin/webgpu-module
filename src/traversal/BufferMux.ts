@@ -67,12 +67,10 @@ class BufferMux {
 		let number_threads = Math.pow(2, level);
 		this.device = device;
 		const divisibleBy = 2*32 * WORKGROUPSIZE;
-		console.log(canvasSize)
 		const textureSize = { 
 			width: Math.floor(canvasSize.width / divisibleBy) * divisibleBy,
 			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
 		};
-		console.log(textureSize)
 
 		this.config = {
 			textureSize: textureSize,

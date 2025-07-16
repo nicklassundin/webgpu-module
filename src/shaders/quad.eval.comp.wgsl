@@ -118,6 +118,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 @group(1) @binding(3) var<storage, read_write> nodes: array<f32>;
 
 @compute @workgroup_size(1)
+//@compute @workgroup_size(2,2)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
 		let textDim = textureDimensions(texture)*2u;
@@ -128,11 +129,25 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 			threadIterations.dimensions = textDim;
 			threadDim = textDim;
 		}
-		let level = u32(log2(f32(textDim.x)) - 1.0);
-		let minLevel = u32(log2(f32(threadDim.x)) - 1.0);
 
+
+		let level = u32(log2(f32(textDim.x)) - 1.0);
+		
+		/*
+		// TODO indroduce threadIndex for local
+		// TODO Alt 2:
+		if (local_id.x != 0u || local_id.y != 0u) {
+			return; // out of bounds
+		}
+		let minLevel = u32(log2(f32(threadDim.x)) - 1.0)*2u;
+		let localThreadIndex: u32 = local_id.x + local_id.y * 2u;
+		// TODO problem with indexing seem to reapet
+		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u*2u + localThreadIndex + 1u;
+		*/
+
+		// TODO Alt 1:
+		let minLevel = u32(log2(f32(threadDim.x)) - 1.0);
 		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u + 1u;
-		//let index: u32 = global_id.x + global_id.y*2u;
 		let index: u32 = level + threadIndex; 
 
 		var coord = traversal[index].coord;
