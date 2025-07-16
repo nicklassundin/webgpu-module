@@ -14,8 +14,7 @@ coord: vec2<f32>,
 
 struct ThreadInfo {
 reference: array<f32, 16>,
-		   dimensions: vec2<u32>,
-
+		   dimensions: vec2<u32>
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
@@ -98,26 +97,10 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 
 	let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
 	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
-	let color = vec4<f32>(0.0*value, 0.0*f32(quad+1u)/4.0, f32(index)/10, 1.0);
-	/*
-	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-	if(quad == 0u){
-		color.x = 1.0;
-	}else if(quad == 1u) {
-		color.y = 1.0;
-	}else if(quad == 2u) {
-		color.z = 1.0;
-	}else if(quad == 3u) {
-		color.y = 1.0;
-		color.z = 1.0;
-	}
-	*/
-	//let color = vec4<f32>(f32(index)/12*vec3<f32>(1.0, 1.0, 1.0), 1.0);
-	/*
-	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-	if(value != 0.0) {
-		color = vec4<f32>(1.0, vec2<f32>(workgroup.xy)/workgroupsize, 1.0);
-	}*/
+	//let color = vec4<f32>(value, f32(quad+1u)/4.0, f32(index)/10, 1.0);
+	let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+	//let color = vec4<f32>(f32(address%3u)/3.0, 0.5*f32((address+1u)%3u)/3.0, 0.5*f32((address+2u)%3u)/3.0, 1.0);
+	
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
 
@@ -134,33 +117,13 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 @group(1) @binding(2) var<storage, read_write> values: array<f32>;
 @group(1) @binding(3) var<storage, read_write> nodes: array<f32>;
 
-
 @compute @workgroup_size(1)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
-
-		/*
-		if (global_id.x == 5u && global_id.y == 5u){
-		}else if(global_id.x == 5u && global_id.y == 4u) {
-		}else if(global_id.x == 6u && global_id.y == 6u) {
-		}else if(global_id.x == 7u && global_id.y == 7u) {
-		}else if(global_id.x == 6u && global_id.y == 7u) {
-		}else if(global_id.x == 9u && global_id.y == 9u) {
-
-		}else{
-			return;
-		}
-		if (global_id.x == 5u && global_id.y == 5u ) {
-
-		}else{
-			return;
-		}
-		*/
-
-
 		let textDim = textureDimensions(texture)*2u;
+
 		var threadDim = threadIterations.dimensions;
-		if (threadDim.x == 0u ||threadDim.y == 0u) {
+		if (threadDim.x == 0u && threadDim.y == 0u && threadIterations.dimensions.y == 0u) {
 			// initialize thread info
 			threadIterations.dimensions = textDim;
 			threadDim = textDim;
@@ -176,14 +139,15 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		var pixCoord = vec2<u32>(vec2<f32>(textDim) * coord);
 		
 
+
 		let seedTrav = traversal[0u];
+		let origPixCoord = vec2<u32>(vec2<f32>(textDim) * seedTrav.coord);
+	
+		// Initialization of traversal
 		if (textDim.x == threadDim.x) {
-			let origPixCoord = vec2<u32>(vec2<f32>(threadDim) * seedTrav.coord);
-			if (origPixCoord.x == pixCoord.x && origPixCoord.y == pixCoord.x) {
-				return;
+			if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x) {
 				coord = seedTrav.coord;
 				traversal[index].coord = coord;
-				
 			}else{
 				coord = vec2<f32>(global_id.xy) / vec2<f32>(textDim);
 				traversal[index].coord = coord;
@@ -192,20 +156,26 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		}
 
 
+
 		let nodeIndex = getNodeIndex(level, pixCoord);
 
-
-		// check if outside traversal bounds (not needd for gpu)
+		// check if outside traversal bounds (not need for gpu)
 		var addr = traversal[index].address;
 		if (level == minLevel && addr == 0.0) {
 			// for loop minLevel
-			for (var i = 0u; i < minLevel; i = i + 1u) {
+			for (var i = 0u; i < minLevel+2u; i = i + 1u) {
 				let dim = u32(pow(2.0, f32(i)));
 				let preQuad = quadFromCoord(coord, vec2<u32>(dim, dim)); 
 				addr = getNode(u32(addr)).children[preQuad];
 			}
 			traversal[index].address = addr;
 		}
+		// TODO should fill out reference correlty but don't stop when addr is -1
+		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x) {
+			let value = getValue(getNode(u32(addr)));
+			threadIterations.reference[u32(level-minLevel)] = f32(addr);
+		}
+
 		let node = getNode(u32(addr));
 		let nextQuad = quadFromCoord(coord, textDim*2u);
 		let children = node.children;
@@ -214,15 +184,38 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		var childNodeIndex = 0u;
 		var childPixCoord = vec2<u32>(0u, 0u);
 		
-		result[0u][0u] = f32(threadIndex);
-		result[0u][1u] = f32(index);
-		result[0u][2u] = f32(threadDim.x);
-		result[0u][3u] = f32(textDim.x);
-		result[0u][4u] = f32(addr);
+		let refer = threadIterations.reference[u32(level-minLevel)+1u];
+		let childValues = vec4<f32>(getValue(getNode(u32(children[0u]))), 
+			getValue(getNode(u32(children[1u]))), 
+			getValue(getNode(u32(children[2u]))), 
+			getValue(getNode(u32(children[3u])))) - refer;
+		// make vector with index of sorted childValues from smallest to largest
+		var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
+		for (var i = 0u; i < 4u; i = i + 1u) {
+			for (var j = i + 1u; j < 4u; j = j + 1u) {
+				if (childValues[i] > childValues[j]) {
+					let temp = sortedIndices[i];
+					sortedIndices[i] = sortedIndices[j];
+					sortedIndices[j] = temp;
+				}
+			}
+		}
+		result[0u][0u] = f32(sortedIndices[0u]); 
+		result[0u][1u] = f32(sortedIndices[1u]);
+		result[0u][2u] = f32(sortedIndices[2u]);
+		result[0u][3u] = f32(sortedIndices[3u]);
 
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
+
+			// Alt 1:
+			//let n = (j + nextQuad) % 4u;
+			//let q = sortedIndices[n];
+			// Alt 2:
+			//let q = sortedIndices[j];
+			// Alt 3:
 			let q = (j + nextQuad) % 4u;
+			
 			child = children[q];
 			let quadCoord = vec2<u32>(q / 2u, q % 2u);
 			childPixCoord = 2u*pixCoord+quadCoord;
@@ -253,4 +246,5 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		traversal[index+1].coord = childCoord;
 		traversal[threadIndex].coord = childCoord;
 		traversal[index+1u].done = 1u;
+		
 	}

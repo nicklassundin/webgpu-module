@@ -238,13 +238,12 @@ async function frame() {
 			// console.log(textureSize.width, textureSize.height)
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
-			//await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
+			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
 			// mesure time 
 			// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
 			// console.log("QuadTree result (", frameCount, "):")
-			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.result, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.quadTree.buffers.travBuffer, 32, 32);
+			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
+			await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// TODO Optimization
 	quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 	device.queue.submit([commandEncoder.finish()]);
