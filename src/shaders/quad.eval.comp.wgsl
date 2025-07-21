@@ -88,13 +88,7 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	return true;
 }
 
-fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgroup: vec3<u32>) {
-	let node = getNode(address);
-	var value = getValue(node);
-	if (values[u32(address)] != 0){
-		value /= values[0u];
-	}
-
+fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup: vec3<u32>) {
 	let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
 	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
 	//let color = vec4<f32>(value, f32(quad+1u)/4.0, f32(index)/10, 1.0);
@@ -133,19 +127,7 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 
 		let level = u32(log2(f32(textDim.x)) - 1.0);
 		
-		/*
-		// TODO indroduce threadIndex for local
-		// TODO Alt 2:
-		if (local_id.x != 0u || local_id.y != 0u) {
-			return; // out of bounds
-		}
-		let minLevel = u32(log2(f32(threadDim.x)) - 1.0)*2u;
-		let localThreadIndex: u32 = local_id.x + local_id.y * 2u;
-		// TODO problem with indexing seem to reapet
-		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u*2u + localThreadIndex + 1u;
-		*/
-
-		// TODO Alt 1:
+		// Alt 1:
 		let minLevel = u32(log2(f32(threadDim.x)) - 1.0);
 		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u + 1u;
 		let index: u32 = level + threadIndex; 
@@ -187,8 +169,13 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		}
 		// TODO should fill out reference correlty but don't stop when addr is -1
 		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x) {
+			if (addr < 0.0) {
+				traversal[index].done = 1u;
+				return;
+			}
 			let value = getValue(getNode(u32(addr)));
-			threadIterations.reference[u32(level-minLevel)] = f32(addr);
+			//threadIterations.reference[u32(level-minLevel)] = f32(addr);
+			threadIterations.reference[u32(level-minLevel)] = value / values[0u]; 
 		}
 
 		let node = getNode(u32(addr));
@@ -215,10 +202,12 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 				}
 			}
 		}
+		/*
 		result[0u][0u] = f32(sortedIndices[0u]); 
 		result[0u][1u] = f32(sortedIndices[1u]);
 		result[0u][2u] = f32(sortedIndices[2u]);
 		result[0u][3u] = f32(sortedIndices[3u]);
+		*/
 
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
@@ -245,15 +234,22 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 
 			let childNode = getNode(u32(child));
 
-			if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0)) {
+			if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
 				quadMap[childNodeIndex] = 1u;
 				continue;
 			}
 			break;
 		}
-
 		let quad = quadFromCoord(coord, textDim);
-		writeTexture(coord, u32(addr), quad, level, global_id);
+		var value = getValue(node) / values[0u];
+		if (addr >= 0.0 && value != 0.0) {
+
+			let parRef = threadIterations.reference[u32(level-minLevel)];
+			//result[0u][u32(level - minLevel)] = value;
+			//result[0u][u32(level - minLevel)] = f32(addr);
+			value = abs(parRef - value);
+			writeTexture(coord, value, quad, level, global_id);
+		}
 		quadMap[childNodeIndex] = 1u;
 
 
@@ -261,5 +257,4 @@ fn writeTexture(coord: vec2<f32>, address: u32, quad: u32, index : u32, workgrou
 		traversal[index+1].coord = childCoord;
 		traversal[threadIndex].coord = childCoord;
 		traversal[index+1u].done = 1u;
-		
 	}
