@@ -88,10 +88,16 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	return true;
 }
 
-fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup: vec3<u32>) {
-	let workgroupsize = f32(threadIterations.dimensions.x) -1.0;
+fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>) {
+	let workgroupsize = f32(threadIterations.dimensions.x);
+	// TODO use workgroup color
 	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
-	//let color = vec4<f32>(value, f32(quad+1u)/4.0, f32(index)/10, 1.0);
+	//let color = vec4<f32>(coord, 0.0, 1.0);
+	//let color = vec4<f32>(coord.x, 0.0, f32(index)/8.0, 1.0);
+	//let color = vec4<f32>(f32(workgroup.x)/workgroupsize, 0.0, 0.0, 1.0);
+	//let color = vec4<f32>(0.0, 0.0, f32(index)/20.0, 1.0);
+	//let color = vec4<f32>(0.0, coord.y, 0.0, 1.0);
+	//let color = vec4<f32>(coord.x, vec2<f32>(workgroup.xy)/workgroupsize, 1.0);
 	let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 	//let color = vec4<f32>(f32(address%3u)/3.0, 0.5*f32((address+1u)%3u)/3.0, 0.5*f32((address+2u)%3u)/3.0, 1.0);
 	
@@ -115,7 +121,8 @@ fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup:
 //@compute @workgroup_size(2,2)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
-		let textDim = textureDimensions(texture)*2u;
+
+		let textDim = textureDimensions(texture);
 
 		var threadDim = threadIterations.dimensions;
 		if (threadDim.x == 0u && threadDim.y == 0u && threadIterations.dimensions.y == 0u) {
@@ -123,6 +130,21 @@ fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup:
 			threadIterations.dimensions = textDim;
 			threadDim = textDim;
 		}
+
+		if (global_id.x > textDim.x || global_id.y > textDim.y) {
+			return; // out of bounds
+		}
+		
+		// TODO debug what workgroup work in what destrict
+		/**
+		if (global_id.x == 3u && global_id.y == 3u) {
+		} else if (global_id.x == 4u && global_id.y == 4u) {
+		} else if (global_id.x == 3u && global_id.y == 4u) {
+		} else {
+			return;
+		}
+		*/
+
 
 
 		let level = u32(log2(f32(textDim.x)) - 1.0);
@@ -167,7 +189,6 @@ fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup:
 			}
 			traversal[index].address = addr;
 		}
-		// TODO should fill out reference correlty but don't stop when addr is -1
 		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x) {
 			if (addr < 0.0) {
 				traversal[index].done = 1u;
@@ -176,6 +197,9 @@ fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup:
 			let value = getValue(getNode(u32(addr)));
 			//threadIterations.reference[u32(level-minLevel)] = f32(addr);
 			threadIterations.reference[u32(level-minLevel)] = value / values[0u]; 
+		}else{
+			// TODO should set coord only when it isn't between workgroup pixel area bound
+			//coord = vec2<f32>(global_id.xy) / vec2<f32>(textDim);
 		}
 
 		let node = getNode(u32(addr));
@@ -202,12 +226,6 @@ fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup:
 				}
 			}
 		}
-		/*
-		result[0u][0u] = f32(sortedIndices[0u]); 
-		result[0u][1u] = f32(sortedIndices[1u]);
-		result[0u][2u] = f32(sortedIndices[2u]);
-		result[0u][3u] = f32(sortedIndices[3u]);
-		*/
 
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
@@ -240,16 +258,21 @@ fn writeTexture(coord: vec2<f32>, value: f32, quad: u32, index : u32, workgroup:
 			}
 			break;
 		}
-		let quad = quadFromCoord(coord, textDim);
 		var value = getValue(node) / values[0u];
 		if (addr >= 0.0 && value != 0.0) {
-
 			let parRef = threadIterations.reference[u32(level-minLevel)];
-			//result[0u][u32(level - minLevel)] = value;
-			//result[0u][u32(level - minLevel)] = f32(addr);
 			value = abs(parRef - value);
-			writeTexture(coord, value, quad, level, global_id);
+			result[0u][0u] = f32(textDim.x);
+			result[0u][1u] = f32(textDim.y);
+			result[0u][2u] = f32(threadIterations.dimensions.x);
+			result[0u][3u] = f32(threadIterations.dimensions.y);
+			result[0u][4u] = f32(global_id.x);
+			result[0u][5u] = f32(global_id.y);
+			result[0u][6u] = coord.x;
+			result[0u][7u] = coord.y;
+			//writeTexture(coord, value, level, global_id);
 		}
+		writeTexture(coord, value, level, global_id);
 		quadMap[childNodeIndex] = 1u;
 
 
