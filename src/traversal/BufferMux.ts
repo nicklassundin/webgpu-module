@@ -72,9 +72,16 @@ class BufferMux {
 			width: Math.floor(canvasSize.width / divisibleBy) * divisibleBy,
 			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
 		};
+		const mipTextureSize = {
+			// width: textureSize.width * 2,
+			width: textureSize.width,
+			// height: textureSize.height * 2,
+			height: textureSize.height,
+		};
 
 		this.config = {
 			textureSize: textureSize,
+			mipTextureSize: mipTextureSize,
 			mipLevel: mipLevel,
 			workgroupSize: WORKGROUPSIZE,
 		};
@@ -117,7 +124,8 @@ class BufferMux {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
 		this.mipTexture = device.createTexture({
-			size: [textureSize.width, textureSize.height],
+			// size: [textureSize.width, textureSize.height],
+			size: [mipTextureSize.width, mipTextureSize.height],
 			format: 'rgba8unorm',
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
 			mipLevelCount: mipLevel,

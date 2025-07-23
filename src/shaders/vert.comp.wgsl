@@ -17,15 +17,21 @@ workgroupSize: vec2<u32>,
 @group(1) @binding(2) var texture: texture_2d<f32>;
 
 fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
-	let fullTextDim = textureDimensions(outTexture);
-	let res = max(fullTextDim.x, fullTextDim.y);
-	let uv = vec2<f32>(vec2<f32>(coord) / vec2<f32>(f32(res), f32(res)));
-	for (var i: i32 = 0; i < 16; i = i + 1) {
+	//let fullTextDim = textureDimensions(outTexture);
+	//let fullTextDim = textureDimensions(outTexture);
+	// fullTextDim of texture mip level 0
+	let inTextureDim = textureDimensions(texture);
+	let outTextDim = textureDimensions(outTexture);
+	let startMipLevel = i32(inTextureDim.x / outTextDim.x);
+
+	let uv = vec2<f32>(vec2<f32>(coord) / vec2<f32>(inTextureDim));
+	for (var i: i32 = startMipLevel; i < 16; i = i + 1) {
 		let textureValue = textureSampleLevel(texture, mipSampler, uv, f32(i));
 
 		if (textureValue.w != 0.0) {
 			// TODO change back to textureValue
 			//return vec4<f32>(f32(i)/16.0, 0.0, 0.0, 1.0);
+			//return vec4<f32>(uv, 0.0, 1.0);
 			return textureValue;
 		}
 	}
