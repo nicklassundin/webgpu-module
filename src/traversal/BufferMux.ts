@@ -1,5 +1,6 @@
 
 const WORKGROUPSIZE = 8;
+// const WORKGROUPSIZE = 12;
 class QuadTree {
 	nodes: GPUBuffer;
 	values: GPUBuffer;

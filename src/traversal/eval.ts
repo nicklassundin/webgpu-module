@@ -97,7 +97,9 @@ class Eval {
 			    this.bufferMux = bufferMux;
 			    this.startLevel = level;
 
-			    let workgroupSize = Math.pow(2, level);
+			    // let workgroupSize = Math.pow(2, level);
+			    // TODO should be integrated with BufferMux constant
+			    let workgroupSize = 8;
 			    this.wgS = {
 				    x: workgroupSize,
 				    y: workgroupSize,

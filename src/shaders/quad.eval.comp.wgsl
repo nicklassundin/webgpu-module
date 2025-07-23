@@ -131,22 +131,6 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 			threadDim = textDim;
 		}
 
-		if (global_id.x > textDim.x || global_id.y > textDim.y) {
-			return; // out of bounds
-		}
-		
-		// TODO debug what workgroup work in what destrict
-		/**
-		if (global_id.x == 3u && global_id.y == 3u) {
-		} else if (global_id.x == 4u && global_id.y == 4u) {
-		} else if (global_id.x == 3u && global_id.y == 4u) {
-		} else {
-			return;
-		}
-		*/
-
-
-
 		let level = u32(log2(f32(textDim.x)) - 1.0);
 		
 		// Alt 1:
@@ -160,17 +144,32 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 
 
 		let seedTrav = traversal[0u];
-		let origPixCoord = vec2<u32>(vec2<f32>(textDim) * seedTrav.coord);
+
+		let origDim = threadIterations.dimensions;
+		let origPixCoord = vec2<u32>(vec2<f32>(origDim) * seedTrav.coord);
+		let ratio = f32(textDim.x) / f32(origDim.x);
+		let pixRegCoord = global_id.xy;
 	
 		// Initialization of traversal
 		if (textDim.x == threadDim.x) {
-			if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x) {
+			if (pixRegCoord.y == origPixCoord.y && pixRegCoord.x == origPixCoord.x) {
 				coord = seedTrav.coord;
 				traversal[index].coord = coord;
+				pixCoord = origPixCoord;
 			}else{
-				coord = vec2<f32>(global_id.xy) / vec2<f32>(textDim);
 				traversal[index].coord = coord;
 				pixCoord = global_id.xy;
+				coord = (vec2<f32>(pixCoord)) / vec2<f32>(textDim);	
+			/*
+			result[0u][0u] = f32(global_id.x);
+			result[0u][1u] = f32(global_id.y);
+			result[0u][2u] = f32(coord.x);
+			result[0u][3u] = f32(coord.y);
+			result[0u][4u] = f32(pixCoord.x);
+			result[0u][5u] = f32(pixCoord.y);
+			result[0u][6u] = f32(textDim.x);
+			result[0u][7u] = f32(textDim.y);
+			*/
 			}
 		}
 
@@ -262,14 +261,6 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 		if (addr >= 0.0 && value != 0.0) {
 			let parRef = threadIterations.reference[u32(level-minLevel)];
 			value = abs(parRef - value);
-			result[0u][0u] = f32(textDim.x);
-			result[0u][1u] = f32(textDim.y);
-			result[0u][2u] = f32(threadIterations.dimensions.x);
-			result[0u][3u] = f32(threadIterations.dimensions.y);
-			result[0u][4u] = f32(global_id.x);
-			result[0u][5u] = f32(global_id.y);
-			result[0u][6u] = coord.x;
-			result[0u][7u] = coord.y;
 			//writeTexture(coord, value, level, global_id);
 		}
 		writeTexture(coord, value, level, global_id);
