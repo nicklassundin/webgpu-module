@@ -61,7 +61,7 @@ class BufferMux {
 		
 	constructor(device: GPUDevice, 
 		    canvasSize: number, 
-		    mipLevel: number,
+		    // mipLevel: number,
 		   level: number,
 		   uv: number[],
 		   data: array[]) {
@@ -73,11 +73,17 @@ class BufferMux {
 			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
 		};
 		const mipTextureSize = {
-			// width: textureSize.width * 2,
-			width: textureSize.width,
-			// height: textureSize.height * 2,
-			height: textureSize.height,
+			width: textureSize.width * 2,
+			// width: textureSize.width,
+			height: textureSize.height * 2,
+			// height: textureSize.height,
 		};
+		// calculate mipLevel from mipTextureSize
+		// const mipLevel = Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height));
+		const mipLevel = Math.floor(Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height))) + 1;
+		// console.log('TmipLevel', TmipLevel);
+		// const mipLevel = 10;
+
 
 		this.config = {
 			textureSize: textureSize,
@@ -92,7 +98,9 @@ class BufferMux {
 			const quadTree = new QuadTree(device, data[i]);
 			this.quadTrees.push(quadTree);
 			const features = device.createBuffer({
-				size: Float32Array.BYTES_PER_ELEMENT*Math.pow(4, mipLevel),
+				// TODO Large not in use
+				// size: Float32Array.BYTES_PER_ELEMENT*Math.pow(4, mipLevel), // TODO remove
+				size: 4, 
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			});
 			this.features.push(features);
@@ -190,6 +198,23 @@ class BufferMux {
 			workgroupSize: 4*4 + 4*8,
 			input: 4*4 + 4*8 + 4*4,
 		}
+		// Console log all size of buffers
+		console.log('BufferMux initialized with:');
+		console.log('textureSize:', textureSize);
+		console.log('mipTextureSize:', mipTextureSize);
+		console.log('mipLevel:', mipLevel);
+		console.log('quadTreeMap size:', this.quadTreeMap.size);
+		console.log('evalThreadIter size:', this.evalThreadIter.size);
+		console.log('result size:', this.result.size);
+		console.log('texture size:', this.texture.size);
+		console.log('vertices size:', this.vertices.size);
+		console.log('indices size:', this.indices.size);
+		console.log('uniform size:', this.uniform.size);
+		console.log('state size:', this.state.size);
+		console.log('traversal size:', this.traversal.size);
+		console.log('travThreadIter size:', this.travThreadIter.size);
+		console.log('quadTrees:', this.quadTrees.length);
+
 	}
 	updateInput(input: Float32Array) {
 		this.device.queue.writeBuffer(this.uniform, this.uniformSize.resolution + this.uniformSize.workgroupSize, input.buffer);

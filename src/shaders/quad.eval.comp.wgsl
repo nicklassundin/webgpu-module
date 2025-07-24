@@ -63,7 +63,7 @@ fn getNodeIndex(level: u32, coord: vec2<u32>) -> u32 {
 }
 
 fn getValue(node: Node) -> f32 {
-	return values[u32(node.valueAddress)];
+	return values[u32(node.valueAddress)]/values[0u];
 }
 
 // check quadMap level of all is done
@@ -257,15 +257,22 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 			}
 			break;
 		}
-		var value = getValue(node) / values[0u];
-		if (addr >= 0.0 && value != 0.0) {
+		var value = getValue(node);
+		if (addr >= 0.0 && value <= 0.0) {
 			let parRef = threadIterations.reference[u32(level-minLevel)];
 			value = abs(parRef - value);
 			//writeTexture(coord, value, level, global_id);
 		}
+		// TODO testing
+		/*
+		if (getValue(node)*values[0u] > 1.0){
+			value = 0.0;
+		}else{
+			value = 1.0 - value;
+		}
+		*/
 		writeTexture(coord, value, level, global_id);
 		quadMap[childNodeIndex] = 1u;
-
 
 		traversal[index+1].address = child;
 		traversal[index+1].coord = childCoord;

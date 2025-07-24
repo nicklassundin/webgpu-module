@@ -92,7 +92,7 @@ const image = await loadImageBitmap(textureList[0]);
 
 // TODO fix so mipLevel trasfers into structure
 // print image size
-const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
+// const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
 
 // print byte size of image
 // Upload image data to texture level 0
@@ -124,7 +124,8 @@ const quadTree = new QuadTree(device, quadTreeJson)
 quadTreeJson = [quadTreeJson];
 
 import QuadManager from "./quadManager";
-let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
+// let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
+let quadManager = new QuadManager(device, canvasOrigSize);
 quadManager.init(quadTree, DEFAULT_COORD, quadTreeJson);
 
 const textureSize = quadManager.bufferMux.config.textureSize;
@@ -153,7 +154,7 @@ class Params {
 
 let calls = 0;
 function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder, travBuffer) {
-	const mipLevel = travBuffer.length; 
+	// const mipLevel = travBuffer.length; 
 
 	const values = new Float32Array([uv[0], uv[1], 0, 1]);
 		const stagingBuffer = device.createBuffer({
@@ -178,18 +179,18 @@ async function updateUniformBuffer(values: number[]) {
 const params = new Params(DEFAULT_COORD);
 const gui = new GUI();
 {
-	const folder = gui.addFolder("Mipmap");
-	folder.add({ value: mipLevel}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
-		const resolution = new Float32Array([canvasOrigSize.width, canvasOrigSize.height, value]);
-		await updateUniformBuffer(resolution);
-	});
+	// const folder = gui.addFolder("Mipmap");
+	// folder.add({ value: mipLevel}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
+		// const resolution = new Float32Array([canvasOrigSize.width, canvasOrigSize.height, value]);
+		// await updateUniformBuffer(resolution);
+	// });
 	// Add folder for uv coordinates
 	const uvFolder = gui.addFolder("UV Coordinates");
 	uvFolder.add({ value: DEFAULT_COORD[0] }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
 		params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
 	})
 	uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
-	folder.open();
+	// folder.open();
 }
 
 // Main loop
@@ -218,7 +219,8 @@ async function frame() {
 		reference = true
 
 		await quadManager.unmap();
-		quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
+		// quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
+		quadManager = new QuadManager(device, textureSize, params.travelValues);
 		quadManager.init(quadTree, params.travelValues, quadTreeJson);
 		render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager.bufferMux);
 		const commandEncoderArg = device.createCommandEncoder();
@@ -294,7 +296,7 @@ canvas.addEventListener('click', async (event) => {
 	// 	y: canvas.height / WIDTH * devicePixelRatio 
 	// }
 	const uv = [x / canvas.width, y / canvas.height];
-	gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
+	// gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 	gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 	gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
 	params.updateTravelValues([uv[0], uv[1]]);

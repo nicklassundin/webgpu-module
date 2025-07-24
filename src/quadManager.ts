@@ -17,14 +17,14 @@ class QuadManager {
 	quadTree: QuadTreeTraversal;
 	eval: Eval;
 	bufferMux: BufferMux;
-	constructor(device: GPUDevice, originalCanvasSize: number, mipLevel: number) {
+	constructor(device: GPUDevice, originalCanvasSize: number) {
 		this.device = device;
 
 		this.originalCanvasSize = originalCanvasSize;
-		this.mipLevel = mipLevel;	
 	}
 	init(quadTree: QuadTree, uv: number[], data: array[]) {
-		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, this.mipLevel, LEVEL, uv, data);
+		// this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, this.mipLevel, LEVEL, uv, data);
+		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, LEVEL, uv, data);
 
 		this.quadTree = new QuadTreeTraversal(this.device, this.bufferMux)
 		
