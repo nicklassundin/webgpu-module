@@ -117,7 +117,10 @@ const depthSampler = device.createSampler({
 });
 
 import QuadTree from './data'
-const quadTreeData = await fetch(quadTreeList[0]);
+// console print file name
+// const quadTreeData = await fetch(quadTreeList[0]);
+console.log("Loading QuadTree from:", quadTreeList[1]);
+const quadTreeData = await fetch(quadTreeList[1]);
 const quadTreeJsonString = await quadTreeData.json();
 let quadTreeJson = JSON.parse(quadTreeJsonString);
 const quadTree = new QuadTree(device, quadTreeJson)

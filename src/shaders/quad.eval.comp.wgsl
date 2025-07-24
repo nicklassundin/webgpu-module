@@ -258,11 +258,13 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 			break;
 		}
 		var value = getValue(node);
-		if (addr >= 0.0 && value <= 0.0) {
+		if (addr >= 0.0 && value >= 0.0) {
 			let parRef = threadIterations.reference[u32(level-minLevel)];
 			value = abs(parRef - value);
 			//writeTexture(coord, value, level, global_id);
-		}
+		}else{
+			value = 0.0;
+		}	
 		// TODO testing
 		/*
 		if (getValue(node)*values[0u] > 1.0){
