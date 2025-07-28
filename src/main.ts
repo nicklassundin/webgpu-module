@@ -179,6 +179,9 @@ async function updateUniformBuffer(values: number[]) {
 }
 // TODO GUe
 
+
+// time intervall 10, 100, 1000 ms
+var timeInterval = [10, 100, 1000];
 const params = new Params(DEFAULT_COORD);
 const gui = new GUI();
 {
@@ -187,13 +190,22 @@ const gui = new GUI();
 		// const resolution = new Float32Array([canvasOrigSize.width, canvasOrigSize.height, value]);
 		// await updateUniformBuffer(resolution);
 	// });
+	// folder.open();
 	// Add folder for uv coordinates
 	const uvFolder = gui.addFolder("UV Coordinates");
 	uvFolder.add({ value: DEFAULT_COORD[0] }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
 		params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
 	})
 	uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
-	// folder.open();
+	uvFolder.open();
+	// check box for output
+	const checkbox = gui.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
+		params.output = value;
+		if (value) {
+			// reset timeInterval
+			timeInterval = [10, 100, 1000];
+		}
+	})
 }
 
 // Main loop
@@ -256,6 +268,8 @@ async function frame() {
 		render.pass(frameCount, renderCommandEncoder)
 		device.queue.submit([renderCommandEncoder.finish()]);
 		lastFrameTime = currentTime;
+		let data = await quadManager.bufferMux.getTextureData();
+		// console.log(data)
 	}
 	frameCount++;
 	stats.end();

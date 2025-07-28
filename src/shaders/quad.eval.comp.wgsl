@@ -80,7 +80,9 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 		let quad = vec2<u32>(i / 2u, i % 2u);
 		let pixCoord = 2u * vec2<u32>(coord) + quad;
 		let nodeIndex = getNodeIndex(index+1, pixCoord);
-		if quadMap[nodeIndex] == 0u {
+		let quadBool = get_bit(nodeIndex);
+		//if quadMap[nodeIndex] == 0u {
+		if !quadBool {
 			return false;
 		}
 
@@ -109,7 +111,31 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 
 @group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
 @group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
-@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
+
+struct BitArray {
+	data: array<u32>
+};
+@group(0) @binding(2) var<storage, read_write> quadMap: BitArray; 
+//@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
+
+fn get_bit(n: u32) -> bool {
+	let word = n / 32u;
+	let bit = n % 32u;
+	return (quadMap.data[word] & (1u << bit)) != 0u;
+}
+fn set_bit(n: u32, value: bool) {
+	let word = n / 32u;
+	let bit = n % 32u;
+	let mask = 1u << bit;
+
+	if value {
+		quadMap.data[word] |= mask;
+	} else {
+		quadMap.data[word] &= ~mask;
+	}
+}
+
+
 @group(0) @binding(3) var texture: texture_storage_2d<rgba8unorm, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 @group(1) @binding(0) var<storage, read_write> levelValues: array<array<f32, 16>>;
@@ -160,16 +186,6 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 				traversal[index].coord = coord;
 				pixCoord = global_id.xy;
 				coord = (vec2<f32>(pixCoord)) / vec2<f32>(textDim);	
-			/*
-			result[0u][0u] = f32(global_id.x);
-			result[0u][1u] = f32(global_id.y);
-			result[0u][2u] = f32(coord.x);
-			result[0u][3u] = f32(coord.y);
-			result[0u][4u] = f32(pixCoord.x);
-			result[0u][5u] = f32(pixCoord.y);
-			result[0u][6u] = f32(textDim.x);
-			result[0u][7u] = f32(textDim.y);
-			*/
 			}
 		}
 
@@ -202,6 +218,16 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 		}
 
 		let node = getNode(u32(addr));
+		var value = getValue(node);
+		if (addr >= 0.0 && value >= 0.0) {
+			// TODO normalize against parent value
+			let parRef = threadIterations.reference[u32(level-minLevel)];
+			//value = abs(parRef - value);
+			//writeTexture(coord, value, level, global_id);
+		}else{
+			// TODO should be parent value
+			value = 0.0;
+		}
 		let nextQuad = quadFromCoord(coord, textDim*2u);
 		let children = node.children;
 
@@ -250,31 +276,23 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>)
 			}
 
 			let childNode = getNode(u32(child));
-
-			if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
-				quadMap[childNodeIndex] = 1u;
+			
+			let quadBool = get_bit(childNodeIndex); 
+			//if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
+			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
+				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim*2u);
+				writeTexture(tempCoord, value, level, global_id);
+				//quadMap[childNodeIndex] = 1u;
+				set_bit(childNodeIndex, true);
 				continue;
 			}
 			break;
 		}
-		var value = getValue(node);
-		if (addr >= 0.0 && value >= 0.0) {
-			let parRef = threadIterations.reference[u32(level-minLevel)];
-			value = abs(parRef - value);
-			//writeTexture(coord, value, level, global_id);
-		}else{
-			value = 0.0;
-		}	
-		// TODO testing
-		/*
-		if (getValue(node)*values[0u] > 1.0){
-			value = 0.0;
-		}else{
-			value = 1.0 - value;
+		if (value != 0.0){
+			writeTexture(coord, value, level, global_id);
 		}
-		*/
-		writeTexture(coord, value, level, global_id);
-		quadMap[childNodeIndex] = 1u;
+		set_bit(childNodeIndex, true);
+		//quadMap[childNodeIndex] = 1u;
 
 		traversal[index+1].address = child;
 		traversal[index+1].coord = childCoord;

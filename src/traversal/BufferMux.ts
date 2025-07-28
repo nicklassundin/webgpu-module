@@ -152,7 +152,12 @@ class BufferMux {
 		this.texture = device.createTexture({
 			size: [textureSize.width, textureSize.height],
 			format: 'rgba8unorm',
-			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST,
+			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
+		});
+		// readback buffer for texture
+		this.textureReadback = device.createBuffer({
+			size: textureSize.width * textureSize.height * 4,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
 		});
 		this.sampler = device.createSampler({
 			minFilter: 'nearest',
@@ -218,6 +223,39 @@ class BufferMux {
 	}
 	updateInput(input: Float32Array) {
 		this.device.queue.writeBuffer(this.uniform, this.uniformSize.resolution + this.uniformSize.workgroupSize, input.buffer);
+	}
+	// copy texture to readback buffer
+	async copyTextureToReadback() {
+		const textureSize = this.config.textureSize;
+		// command encoder
+		const commandEncoder = this.device.createCommandEncoder();
+		commandEncoder.copyTextureToBuffer(
+			{
+				texture: this.texture,
+			},
+			{
+				buffer: this.textureReadback,
+				bytesPerRow: textureSize.width * 4,
+			},
+			{
+				width: textureSize.width,
+				height: textureSize.height,
+			});
+		// submit command
+		this.device.queue.submit([commandEncoder.finish()]);
+		// await for the command to finish
+		return this.device.queue.onSubmittedWorkDone();
+	}
+	// get texture data
+	async getTextureData() {
+		this.textureReadback.unmap();
+		await this.copyTextureToReadback();
+		await this.textureReadback.mapAsync(GPUMapMode.READ);
+		const arrayBuffer = this.textureReadback.getMappedRange();
+		const data = new Uint8Array(arrayBuffer);
+		// return data;
+		// console.log(data)	
+		return data;
 	}
 	unmap() {
 		// unmap and destroy

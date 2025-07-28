@@ -44,7 +44,7 @@ class Render {
 			mipmapFilter: 'linear',
 			// minFilter: 'nearest',
 			// magFilter: 'nearest',
-			// mipmapFilter: 'nearest',
+			mipmapFilter: 'nearest',
 			addressModeU: 'clamp-to-edge',
 			addressModeV: 'clamp-to-edge',
 			addressModeW: 'clamp-to-edge',
@@ -82,7 +82,7 @@ class Render {
 			colorAttachments: [
 				{
 					view: undefined,
-					clearValue: [0, 0, 0, 1], // Clear to transparent
+					clearValue: [0, 0, 0, 0], // Clear to transparent
 					// loadOp: 'clear',
 					loadOp: 'load',
 					storeOp: 'store',
