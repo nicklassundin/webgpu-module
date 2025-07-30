@@ -134,6 +134,24 @@ fn set_bit(n: u32, value: bool) {
 	}
 }
 
+fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
+	let childValues = vec4<f32>(getValue(getNode(u32(children[0u]))), 
+		getValue(getNode(u32(children[1u]))), 
+		getValue(getNode(u32(children[2u]))), 
+		getValue(getNode(u32(children[3u])))) - reference;
+	var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
+	for (var i = 0u; i < 4u; i = i + 1u) {
+		for (var j = i + 1u; j < 4u; j = j + 1u) {
+			if (childValues[i] < childValues[j]) {
+				let temp = sortedIndices[i];
+				sortedIndices[i] = sortedIndices[j];
+				sortedIndices[j] = temp;
+			}
+		}
+	}
+	return sortedIndices;
+}
+
 
 @group(0) @binding(3) var texture: texture_storage_2d<rgba8unorm, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
@@ -165,8 +183,7 @@ fn set_bit(n: u32, value: bool) {
 
 		var coord = traversal[index].coord;
 		var pixCoord = vec2<u32>(vec2<f32>(textDim) * coord);
-		
-
+			
 
 		let seedTrav = traversal[0u];
 
@@ -254,39 +271,20 @@ fn set_bit(n: u32, value: bool) {
 		var child = children[nextQuad];
 		var childNodeIndex = 0u;
 		var childPixCoord = vec2<u32>(0u, 0u);
+	
 		
+		// order children based on priority
 		let refer = threadIterations.reference[u32(level-minLevel)+1u];
-		let childValues = vec4<f32>(getValue(getNode(u32(children[0u]))), 
-			getValue(getNode(u32(children[1u]))), 
-			getValue(getNode(u32(children[2u]))), 
-			getValue(getNode(u32(children[3u])))) - refer;
-		// make vector with index of sorted childValues from smallest to largest
-		var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
-		for (var i = 0u; i < 4u; i = i + 1u) {
-			for (var j = i + 1u; j < 4u; j = j + 1u) {
-				if (childValues[i] < childValues[j]) {
-					let temp = sortedIndices[i];
-					sortedIndices[i] = sortedIndices[j];
-					sortedIndices[j] = temp;
-				}
-			}
-		}
+		let sortedIndices = orderChildren(children, refer);
 
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
 
-			// Alt 1:
-			//let n = (j + nextQuad) % 4u;
-			//let q = sortedIndices[n];
-			// Alt 2:
-			//let q = sortedIndices[j];
-			// Alt 3:
 			let q = (j + nextQuad) % 4u;
 			
 			child = children[q];
 			let quadCoord = vec2<u32>(q / 2u, q % 2u);
 			childPixCoord = 2u*pixCoord+quadCoord;
-
 
 			childNodeIndex = getNodeIndex(level+1, childPixCoord);
 
@@ -298,11 +296,9 @@ fn set_bit(n: u32, value: bool) {
 			let childNode = getNode(u32(child));
 			
 			let quadBool = get_bit(childNodeIndex); 
-			//if ((quadMap[childNodeIndex] == 1u && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
 			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim*2u);
 				writeTexture(tempCoord, value, level, global_id);
-				//quadMap[childNodeIndex] = 1u;
 				set_bit(childNodeIndex, true);
 				continue;
 			}
