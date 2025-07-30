@@ -89,21 +89,28 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	return true;
 }
 
-fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>) {
+fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>, local_id: vec3<u32>) {
 	let workgroupsize = f32(threadIterations.dimensions.x);
 	// TODO use workgroup color
-	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
 	//let color = vec4<f32>(coord, 0.0, 1.0);
 	//let color = vec4<f32>(coord.x, 0.0, f32(index)/8.0, 1.0);
 	//let color = vec4<f32>(f32(workgroup.x)/workgroupsize, 0.0, 0.0, 1.0);
 	//let color = vec4<f32>(0.0, 0.0, f32(index)/20.0, 1.0);
 	//let color = vec4<f32>(0.0, coord.y, 0.0, 1.0);
 	//let color = vec4<f32>(coord.x, vec2<f32>(workgroup.xy)/workgroupsize, 1.0);
-	let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
 	//let color = vec4<f32>(f32(address%3u)/3.0, 0.5*f32((address+1u)%3u)/3.0, 0.5*f32((address+2u)%3u)/3.0, 1.0);
+	//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+	//let color = vec4<f32>(vec3<f32>(local_id).xy/vec2<f32>(f32(local_size)*1000, f32(local_size)), 0.0, 1.0);
+	let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 	
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
+	//result[0u][0u] = f32(textCoord.x);
+	//result[0u][1u] = f32(textCoord.y);
+	//result[0u][2u] = coord.x;
+	//result[0u][3u] = coord.y;
+	
 
 	textureStore(texture, textCoord, color);
 }
@@ -160,8 +167,11 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 @group(1) @binding(2) var<storage, read_write> values: array<f32>;
 @group(1) @binding(3) var<storage, read_write> nodes: array<f32>;
 
-@compute @workgroup_size(1)
-//@compute @workgroup_size(2,2)
+//@compute @workgroup_size(1)
+//const local_size: u32 = 16u;
+const local_size: u32 = 1u;
+@compute @workgroup_size(1,1)
+//@compute @workgroup_size(16,16)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
 
@@ -178,7 +188,7 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 		
 		// Alt 1:
 		let minLevel = u32(log2(f32(threadDim.x)) - 1.0);
-		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u +1u;
+		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x*local_size)*16u +1u;
 		let index: u32 = level + threadIndex; 
 
 		var coord = traversal[index].coord;
@@ -189,20 +199,12 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 
 		let origDim = threadIterations.dimensions;
 		let origPixCoord = vec2<u32>(vec2<f32>(origDim) * seedTrav.coord);
-		let ratio = f32(textDim.x) / f32(origDim.x);
-		let pixRegCoord = global_id.xy;
-	
 		// Initialization of traversal
 		if (textDim.x == threadDim.x) {
-			if (pixRegCoord.y == origPixCoord.y && pixRegCoord.x == origPixCoord.x) {
-				coord = seedTrav.coord;
-				traversal[index].coord = coord;
-				pixCoord = origPixCoord;
-			}else{
-				traversal[index].coord = coord;
-				pixCoord = global_id.xy;
-				coord = (vec2<f32>(pixCoord)) / vec2<f32>(textDim);	
-			}
+			//pixCoord = global_id.xy*local_size + local_id.xy;
+			pixCoord = global_id.xy;
+			coord = (vec2<f32>(pixCoord)) / vec2<f32>(textDim);	
+			traversal[index].coord = coord;
 		}
 
 
@@ -234,7 +236,6 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 			}
 			let value = getValue(getNode(u32(addr)));
 			threadIterations.reference[u32(level-minLevel)] = value;
-			result[0u][u32(level-minLevel)] = f32(level-minLevel);
 			let nextQuad = quadFromCoord(coord, textDim*2u);
 			let node = getNode(u32(addr));
 			let childAddress = node.children[nextQuad];
@@ -245,9 +246,6 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 			let childNodeIndex = getNodeIndex(level+1, childPixCoord);
 			set_bit(childNodeIndex, true);
 			return;
-		}else{
-			// TODO should set coord only when it isn't between workgroup pixel area bound
-			//coord = vec2<f32>(global_id.xy) / vec2<f32>(textDim);
 		}
 		// Dont process if reference is not set
 		if (threadIterations.reference[u32(level-minLevel)] == 0.0) {
@@ -257,13 +255,8 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 		let node = getNode(u32(addr));
 		var value = getValue(node);
 		if (addr >= 0.0 && value >= 0.0) {
-			// TODO normalize against parent value
 			let parRef = threadIterations.reference[u32(level-minLevel)];
 			value = 1.0 - abs(parRef - value);
-			//writeTexture(coord, value, level, global_id);
-		}else{
-			// TODO should be parent value
-			value = 0.0;
 		}
 		let nextQuad = quadFromCoord(coord, textDim*2u);
 		let children = node.children;
@@ -277,6 +270,12 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 		let refer = threadIterations.reference[u32(level-minLevel)+1u];
 		let sortedIndices = orderChildren(children, refer);
 
+/*
+		if (global_id.x != 3u || global_id.y != 3u){
+			return;
+		}
+		*/
+
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
 
@@ -288,24 +287,30 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 
 			childNodeIndex = getNodeIndex(level+1, childPixCoord);
 
-
 			if (q != nextQuad){
 				childCoord = vec2<f32>(f32(childPixCoord.x) / f32(textDim.x*2u), f32(childPixCoord.y) / f32(textDim.y*2u));
 			}
-
 			let childNode = getNode(u32(child));
 			
 			let quadBool = get_bit(childNodeIndex); 
 			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
-				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim*2u);
-				writeTexture(tempCoord, value, level, global_id);
+				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
+				writeTexture(tempCoord, value, level, global_id, local_id);
 				set_bit(childNodeIndex, true);
 				continue;
 			}
 			break;
 		}
+		/*
+			if (pixCoord.x != childPixCoord.x/2){
+				result[0u][0u] = f32(pixCoord.x);
+				result[0u][1u] = f32(pixCoord.y);
+				result[0u][2u] = f32(childPixCoord.x/2);
+				result[0u][3u] = f32(childPixCoord.y/2);
+			}
+			*/
 		if (value != 0.0){
-			writeTexture(coord, value, level, global_id);
+			writeTexture(coord, value, level, global_id, local_id);
 		}
 		set_bit(childNodeIndex, true);
 		//quadMap[childNodeIndex] = 1u;
