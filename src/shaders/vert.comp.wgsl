@@ -22,11 +22,12 @@ fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
 
 	let uv = vec2<f32>(vec2<f32>(coord) / vec2<f32>(outTextDim));
 	for (var i: i32 = 0; i < 16; i = i + 1) {
-		let textureValue = textureSampleLevel(texture, mipSampler, uv, f32(i));
+		var textureValue = textureSampleLevel(texture, mipSampler, uv, f32(i));
 		if (textureValue.w > 0.0) {
 			// TODO change back to textureValue
 			//return vec4<f32>(f32(i)/16.0, 0.0, 0.0, 1.0);
 			//return vec4<f32>(uv, 0.0, 1.0);
+			textureValue.g = f32(i) / 16.0;
 			return textureValue; 	
 		}
 	}
@@ -65,8 +66,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 
 	//let color = searchMipMapTexture(coord);
 	var color = searchMipMapTexture(coord);
-	color = vec4<f32>(color.r, 0.05, 0.05, 1.0);
-	/*
+	//color = vec4<f32>(color.r, 0.05, 0.05, 1.0);
 	if (local_id.x == 0u || local_id.y == 0u) {
 		color = color*0.8 + vec4<f32>(0.2, 0.2, 0.2, 1.0);
 		// if workgroup_id.x == 0u || workgroup_id.y == 0u color red
@@ -77,6 +77,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 			color += color*0.9 + vec4<f32>(0.1, 0.1, 0.1, 1.0);
 		}
 	}
+	/*
 	*/
 	//let color = vec4<f32>(uniforms.resolution.x / f32(texDim), uniforms.resolution.y / 1536, 0.0, 1.0);
 	if (color.w > 0.0){

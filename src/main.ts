@@ -16,6 +16,8 @@ stats.showPanel(0)
 document.body.appendChild(stats.dom);
 
 const DEFAULT_COORD = [0.5, 0.6];
+// const DEFAULT_COORD = [0.19, 0.14];
+// const DEFAULT_COORD = [0.11, 0.07];
 
 // import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
@@ -256,8 +258,8 @@ async function frame() {
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
 			// mesure time 
 			// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
+			await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
+			await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// TODO Optimization
 	quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 	device.queue.submit([commandEncoder.finish()]);

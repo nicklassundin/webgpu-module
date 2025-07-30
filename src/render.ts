@@ -39,11 +39,11 @@ class Render {
 		// Resolution 4 * 2; Mipmap level 4 * 1
 		// Sampler
 		const sampler = device.createSampler({ 
-			minFilter: 'linear',
-			magFilter: 'linear',
-			mipmapFilter: 'linear',
-			// minFilter: 'nearest',
-			// magFilter: 'nearest',
+			// minFilter: 'linear',
+			// magFilter: 'linear',
+			// mipmapFilter: 'linear',
+			minFilter: 'nearest',
+			magFilter: 'nearest',
 			mipmapFilter: 'nearest',
 			addressModeU: 'clamp-to-edge',
 			addressModeV: 'clamp-to-edge',

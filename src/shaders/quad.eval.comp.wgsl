@@ -43,7 +43,6 @@ fn coordFromQuad(uv_s: vec2<f32>, textDim: vec2<u32>, quad: u32) -> vec2<f32> {
 
 	let coord = vec2<f32>(pixCoord) / vec2<f32>(textDim*2u);
 	return coord; 
-
 }
 
 fn getLevelIndex(level: u32) -> u32 {
@@ -63,7 +62,7 @@ fn getNodeIndex(level: u32, coord: vec2<u32>) -> u32 {
 }
 
 fn getValue(node: Node) -> f32 {
-	return values[u32(node.valueAddress)]/values[0u];
+	return values[u32(node.valueAddress)];
 }
 
 // check quadMap level of all is done
@@ -161,7 +160,7 @@ fn set_bit(n: u32, value: bool) {
 		
 		// Alt 1:
 		let minLevel = u32(log2(f32(threadDim.x)) - 1.0);
-		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u + 1u;
+		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x)*16u +1u;
 		let index: u32 = level + threadIndex; 
 
 		var coord = traversal[index].coord;
@@ -197,24 +196,45 @@ fn set_bit(n: u32, value: bool) {
 		var addr = traversal[index].address;
 		if (level == minLevel && addr == 0.0) {
 			// for loop minLevel
-			for (var i = 0u; i < minLevel+2u; i = i + 1u) {
+			for (var i = 0u; i <= minLevel; i = i + 1u) {
 				let dim = u32(pow(2.0, f32(i)));
 				let preQuad = quadFromCoord(coord, vec2<u32>(dim, dim)); 
 				addr = getNode(u32(addr)).children[preQuad];
+				/*
+				let a: u32 = 4u;
+				if (global_id.x == a && global_id.y == a) {
+					result[0u][i+1u] = addr; 
+				}
+				*/
 			}
 			traversal[index].address = addr;
 		}
-		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x) {
-			if (addr < 0.0) {
-				traversal[index].done = 1u;
+		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && get_bit(nodeIndex)) {
+			if (addr <= 0.0) {
+				traversal[0u].coord = vec2<f32>(0.0, 0.0);
+				traversal[index+1u].address = -1;
 				return;
 			}
 			let value = getValue(getNode(u32(addr)));
-			//threadIterations.reference[u32(level-minLevel)] = f32(addr);
-			threadIterations.reference[u32(level-minLevel)] = value / values[0u]; 
+			threadIterations.reference[u32(level-minLevel)] = value;
+			result[0u][u32(level-minLevel)] = f32(level-minLevel);
+			let nextQuad = quadFromCoord(coord, textDim*2u);
+			let node = getNode(u32(addr));
+			let childAddress = node.children[nextQuad];
+			traversal[index+1].address = childAddress;
+			traversal[index+1].coord = coord;
+			let quadCoord = vec2<u32>(nextQuad / 2u, nextQuad % 2u);
+			let childPixCoord = 2u*pixCoord+quadCoord;
+			let childNodeIndex = getNodeIndex(level+1, childPixCoord);
+			set_bit(childNodeIndex, true);
+			return;
 		}else{
 			// TODO should set coord only when it isn't between workgroup pixel area bound
 			//coord = vec2<f32>(global_id.xy) / vec2<f32>(textDim);
+		}
+		// Dont process if reference is not set
+		if (threadIterations.reference[u32(level-minLevel)] == 0.0) {
+			//return;
 		}
 
 		let node = getNode(u32(addr));
@@ -222,7 +242,7 @@ fn set_bit(n: u32, value: bool) {
 		if (addr >= 0.0 && value >= 0.0) {
 			// TODO normalize against parent value
 			let parRef = threadIterations.reference[u32(level-minLevel)];
-			//value = abs(parRef - value);
+			value = 1.0 - abs(parRef - value);
 			//writeTexture(coord, value, level, global_id);
 		}else{
 			// TODO should be parent value
@@ -244,7 +264,7 @@ fn set_bit(n: u32, value: bool) {
 		var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
 		for (var i = 0u; i < 4u; i = i + 1u) {
 			for (var j = i + 1u; j < 4u; j = j + 1u) {
-				if (childValues[i] > childValues[j]) {
+				if (childValues[i] < childValues[j]) {
 					let temp = sortedIndices[i];
 					sortedIndices[i] = sortedIndices[j];
 					sortedIndices[j] = temp;
@@ -297,5 +317,5 @@ fn set_bit(n: u32, value: bool) {
 		traversal[index+1].address = child;
 		traversal[index+1].coord = childCoord;
 		traversal[threadIndex].coord = childCoord;
-		traversal[index+1u].done = 1u;
+		//traversal[index+1u].done = 1u;
 	}

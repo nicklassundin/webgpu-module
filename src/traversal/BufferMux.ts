@@ -74,7 +74,9 @@ class BufferMux {
 		};
 		const mipTextureSize = {
 			width: textureSize.width * 2,
+			// width: textureSize.width * 8,
 			// width: textureSize.width,
+			// height: textureSize.height * 8,
 			height: textureSize.height * 2,
 			// height: textureSize.height,
 		};
@@ -109,6 +111,7 @@ class BufferMux {
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			})
 		}
+		// TODO move mipLevel to travThreadIter
 		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1, mipLevel]);
 		this.traversal = device.createBuffer({
 			size: traversal_values.byteLength * Math.pow(4, mipLevel-level)*number_threads,
@@ -128,7 +131,7 @@ class BufferMux {
 
 		// Evaluation Initialization
 		this.quadTreeMap = device.createBuffer({
-			size: Math.pow(2, 2*mipLevel)*4*4,
+			size: Math.pow(2, 2*mipLevel),
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
 		this.mipTexture = device.createTexture({
