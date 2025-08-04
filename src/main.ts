@@ -259,7 +259,7 @@ async function frame() {
 			// mesure time 
 			// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
 			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
+			await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// TODO Optimization
 	quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 	device.queue.submit([commandEncoder.finish()]);

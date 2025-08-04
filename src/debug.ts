@@ -20,8 +20,8 @@ async function fromBufferToLog(device: GPUDevice, storageBuffer: GPUbuffer,  off
 	await readBuffer.mapAsync(GPUMapMode.READ);
 	const arrayBuffer = readBuffer.getMappedRange();
 	const view = new Float32Array(arrayBuffer);
-
-	console.log('view', view);
+	const string = 	`[${view.join(', ')}]`
+	console.log(string)
 	readBuffer.unmap();
 }
 async function u32fromBufferToLog(device: GPUDevice, storageBuffer: GPUBuffer, offset: number = 0, size: number = storageBuffer.size) {

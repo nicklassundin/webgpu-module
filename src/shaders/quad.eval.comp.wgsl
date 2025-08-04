@@ -184,16 +184,15 @@ const local_size: u32 = 1u;
 			threadDim = textDim;
 		}
 
-		let level = u32(log2(f32(textDim.x)) - 1.0);
+		let level = u32(log2(f32(textDim.x)));
 		
-		// Alt 1:
-		let minLevel = u32(log2(f32(threadDim.x)) - 1.0);
+		let minLevel = u32(log2(f32(threadDim.x)));
 		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x*local_size)*16u +1u;
 		let index: u32 = level + threadIndex; 
 
 		var coord = traversal[index].coord;
 		var pixCoord = vec2<u32>(vec2<f32>(textDim) * coord);
-			
+
 
 		let seedTrav = traversal[0u];
 
@@ -211,14 +210,24 @@ const local_size: u32 = 1u;
 
 		let nodeIndex = getNodeIndex(level, pixCoord);
 
+		// TODO remove
+		/*
+		if(threadIndex != 1u){
+			return;
+		}*/
+			
 		// check if outside traversal bounds (not need for gpu)
 		var addr = traversal[index].address;
 		if (level == minLevel && addr == 0.0) {
 			// for loop minLevel
 			for (var i = 0u; i <= minLevel; i = i + 1u) {
+				if (addr == -1) {
+					continue;
+				}
 				let dim = u32(pow(2.0, f32(i)));
 				let preQuad = quadFromCoord(coord, vec2<u32>(dim, dim)); 
 				addr = getNode(u32(addr)).children[preQuad];
+				//result[0u][i] = addr;
 				/*
 				let a: u32 = 4u;
 				if (global_id.x == a && global_id.y == a) {
@@ -228,23 +237,33 @@ const local_size: u32 = 1u;
 			}
 			traversal[index].address = addr;
 		}
-		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && get_bit(nodeIndex)) {
-			if (addr <= 0.0) {
-				traversal[0u].coord = vec2<f32>(0.0, 0.0);
-				traversal[index+1u].address = -1;
-				return;
-			}
-			let value = getValue(getNode(u32(addr)));
-			threadIterations.reference[u32(level-minLevel)] = value;
+		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && !get_bit(nodeIndex)) {
 			let nextQuad = quadFromCoord(coord, textDim*2u);
 			let node = getNode(u32(addr));
 			let childAddress = node.children[nextQuad];
-			traversal[index+1].address = childAddress;
-			traversal[index+1].coord = coord;
 			let quadCoord = vec2<u32>(nextQuad / 2u, nextQuad % 2u);
 			let childPixCoord = 2u*pixCoord+quadCoord;
 			let childNodeIndex = getNodeIndex(level+1, childPixCoord);
-			set_bit(childNodeIndex, true);
+			if (addr <= 0.0) {
+				//traversal[0u].coord = vec2<f32>(0.0, 0.0);
+				traversal[index+1u].address = -1;
+				set_bit(nodeIndex, true);
+				return;
+			}
+			let value = getValue(node);
+			threadIterations.reference[u32(level-minLevel)] = value;
+			var i = 0u;
+			result[0u][i] = f32(pixCoord.x)-f32(origPixCoord.x);
+			i += 1u;
+			result[0u][i] = f32(pixCoord.y)-f32(origPixCoord.y);
+			i += 1u;
+			result[0u][u32(level-minLevel)+i] = f32(addr); 
+			/*
+			*/
+
+			traversal[index+1].address = childAddress;
+			traversal[index+1].coord = coord;
+			set_bit(nodeIndex, true);
 			return;
 		}
 		// Dont process if reference is not set
