@@ -27,7 +27,7 @@ fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
 			// TODO change back to textureValue
 			//return vec4<f32>(f32(i)/16.0, 0.0, 0.0, 1.0);
 			//return vec4<f32>(uv, 0.0, 1.0);
-			textureValue.g = f32(i) / 16.0;
+			//textureValue.g = f32(i) / 16.0;
 			return textureValue; 	
 		}
 	}
