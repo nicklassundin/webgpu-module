@@ -16,7 +16,9 @@ stats.showPanel(0)
 document.body.appendChild(stats.dom);
 
 // const DEFAULT_COORD = [0.5, 0.6];
-const DEFAULT_COORD = [0.51, 0.51];
+// const DEFAULT_COORD = [0.51, 0.51];
+// const DEFAULT_COORD = [0.59, 0.69];
+const DEFAULT_COORD = [0.41, 0.35];
 // const DEFAULT_COORD = [0.19, 0.14];
 // const DEFAULT_COORD = [0.11, 0.07];
 

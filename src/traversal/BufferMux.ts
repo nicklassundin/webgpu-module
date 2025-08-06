@@ -1,8 +1,10 @@
 
 const WORKGROUPSIZE = 8;
-
-const LOCALSIZE = 4;
 // const WORKGROUPSIZE = 12;
+
+//const LOCALSIZE = 4;
+const LOCALSIZE = 8;
+// const LOCALSIZE = 16;
 class QuadTree {
 	nodes: GPUBuffer;
 	values: GPUBuffer;
@@ -117,14 +119,11 @@ class BufferMux {
 		// TODO move mipLevel to travThreadIter
 		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1]);
 		this.traversal = device.createBuffer({
-			size: traversal_values.byteLength * Math.pow(4, mipLevel-level-Math.log2(LOCALSIZE))*number_threads,
+			size: traversal_values.byteLength * 16 *number_threads,
+			//size: traversal_values.byteLength * Math.pow(4, mipLevel-level-Math.log2(LOCALSIZE))*number_threads,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
-		let groups = Math.pow(level+1,2);
-		for (let i = 0; i < groups; i++) {
-			let offset = i*traversal_values.byteLength*(mipLevel-level);
-			device.queue.writeBuffer(this.traversal, offset, traversal_values.buffer);
-		}
+		device.queue.writeBuffer(this.traversal, 0, traversal_values.buffer);
 
 		this.travThreadIter = device.createBuffer({
 			size: 4*16 + number_threads*4,

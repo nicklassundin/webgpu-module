@@ -12,7 +12,8 @@ coord: vec2<f32>,
 
 struct ThreadInfo {
 		reference: array<f32, 16>,
-		   dimensions: vec2<u32>
+		dimensions: vec2<u32>,
+		maxMipLevel: u32,
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
@@ -151,17 +152,18 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 //@compute @workgroup_size(1)
 //const local_size: u32 = 1u;
 //const local_size: u32 = 2u;
-const local_size: u32 = 4u;
-//const local_size: u32 = 8u;
+//const local_size: u32 = 4u;
+const local_size: u32 = 8u;
 //const local_size: u32 = 16u;
 //@compute @workgroup_size(1)
 //@compute @workgroup_size(2,2)
-@compute @workgroup_size(4,4)
-//@compute @workgroup_size(8,8)
+//@compute @workgroup_size(4,4)
+@compute @workgroup_size(8,8)
 //@compute @workgroup_size(16,16)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
+			@builtin(workgroup_id) workgroup_id : vec3<u32>,
+			@builtin(num_workgroups) num_workgroups : vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
-
 		let textDim = textureDimensions(texture);
 
 		var threadDim = threadIterations.dimensions;
@@ -174,8 +176,29 @@ const local_size: u32 = 4u;
 		let level = u32(log2(f32(textDim.x)));
 		
 		let minLevel = u32(log2(f32(threadDim.x)));
-		let threadIndex: u32 = (global_id.x + global_id.y * threadDim.x*local_size)*16u +1u;
-		let index: u32 = level + threadIndex; 
+		//let threadIndex: u32 =  (global_id.x + global_id.y * threadDim.x) + 1u;
+		let threadIndex: u32 =  ((workgroup_id.x + workgroup_id.y * threadDim.x) * local_size + (local_id.x + local_id.y * threadDim.x))*16u;
+
+
+		let index: u32 = level - minLevel + 1u + threadIndex;
+		
+		let x = 0u;
+		let y = 1u;
+		/*
+		if (workgroup_id.x != 0u || workgroup_id.y != 0u) {
+			return;
+		}
+		if ((local_id.x != x || local_id.y != y) ) {
+			return;
+		}
+		*/
+		result[0u][0u] = f32(threadIndex);
+		result[0u][1u] = f32(index);
+		result[0u][2u] = f32(threadDim.x);
+		result[0u][4u] = f32(local_id.x);
+		result[0u][5u] = f32(local_id.y);
+		result[0u][6u] = f32(global_id.x);
+		result[0u][7u] = f32(global_id.y);
 
 		var coord = traversal[index].coord;
 		var pixCoord = vec2<u32>(vec2<f32>(textDim) * coord);
@@ -211,8 +234,6 @@ const local_size: u32 = 4u;
 			for (var i = 0u; i <= minLevel; i = i + 1u) {
 				let dim = u32(pow(2.0, f32(i)));
 				let preQuad = quadFromCoord(coord, vec2<u32>(dim, dim)); 
-				//result[0u][i] = f32(addr); 
-				//result[0u][i] = f32(dim); 
 				if (addr == -1) {
 					continue;
 				}
@@ -220,12 +241,6 @@ const local_size: u32 = 4u;
 			}
 			traversal[index].address = addr;
 		}
-		result[0u][0u] = f32(pixCoord.x);
-		result[0u][1u] = f32(pixCoord.y);
-		result[0u][2u] = f32(origPixCoord.x);
-		result[0u][3u] = f32(origPixCoord.y);
-		/*
-		*/
 
 		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && !get_bit(nodeIndex)) {
 			let nextQuad = quadFromCoord(coord, textDim*2u);
@@ -246,15 +261,6 @@ const local_size: u32 = 4u;
 			threadIterations.reference[u32(level-minLevel)] = value;
 			let childValue = getValue(childNode);
 			threadIterations.reference[u32(level-minLevel)+1u] = childValue;
-			result[0u][u32(level-minLevel)] = value;
-			/*
-			var i = 0u;
-			result[0u][i] = f32(pixCoord.x)-f32(origPixCoord.x);
-			i += 1u;
-			result[0u][i] = f32(pixCoord.y)-f32(origPixCoord.y);
-			i += 1u;
-			result[0u][u32(level-minLevel)+i] = f32(addr); 
-			*/
 
 			traversal[index+1].address = childAddress;
 			traversal[index+1].coord = coord;
@@ -318,14 +324,6 @@ const local_size: u32 = 4u;
 			}
 			break;
 		}
-		/*
-			if (pixCoord.x != childPixCoord.x/2){
-				result[0u][0u] = f32(pixCoord.x);
-				result[0u][1u] = f32(pixCoord.y);
-				result[0u][2u] = f32(childPixCoord.x/2);
-				result[0u][3u] = f32(childPixCoord.y/2);
-			}
-			*/
 		if (value != 0.0){
 			writeTexture(coord, value, level, global_id, local_id);
 		}
@@ -334,5 +332,5 @@ const local_size: u32 = 4u;
 
 		traversal[index+1].address = child;
 		traversal[index+1].coord = childCoord;
-		traversal[threadIndex].coord = childCoord;
+		traversal[index].coord = childCoord;
 	}
