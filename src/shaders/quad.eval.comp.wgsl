@@ -7,13 +7,11 @@ valueAddress: f32,
 
 struct Traversal {
 coord: vec2<f32>,
-	       address: f32,
-	       done: u32,
-	       maxLevel: f32
+	       address: f32
 };
 
 struct ThreadInfo {
-reference: array<f32, 16>,
+		reference: array<f32, 16>,
 		   dimensions: vec2<u32>
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
@@ -67,7 +65,7 @@ fn getValue(node: Node) -> f32 {
 
 // check quadMap level of all is done
 fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
-	let mipLevelLeft = i32(traversal[0u].maxLevel) - i32(index);
+	let mipLevelLeft = i32(index);
 	if (mipLevelLeft <= 1){
 		return true;
 	}
@@ -151,9 +149,15 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 @group(1) @binding(3) var<storage, read_write> nodes: array<f32>;
 
 //@compute @workgroup_size(1)
+//const local_size: u32 = 1u;
+//const local_size: u32 = 2u;
+const local_size: u32 = 4u;
+//const local_size: u32 = 8u;
 //const local_size: u32 = 16u;
-const local_size: u32 = 1u;
-@compute @workgroup_size(1)
+//@compute @workgroup_size(1)
+//@compute @workgroup_size(2,2)
+@compute @workgroup_size(4,4)
+//@compute @workgroup_size(8,8)
 //@compute @workgroup_size(16,16)
 	fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
@@ -331,5 +335,4 @@ const local_size: u32 = 1u;
 		traversal[index+1].address = child;
 		traversal[index+1].coord = childCoord;
 		traversal[threadIndex].coord = childCoord;
-		//traversal[index+1u].done = 1u;
 	}

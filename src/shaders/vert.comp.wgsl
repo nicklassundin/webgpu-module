@@ -32,7 +32,7 @@ fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
 			//textureValue.g = f32(i) / 16.0;
 			// input from uniform
 			let input = uniforms.input;
-			if (input.x == 1u) {
+			if (input.x <= 1u) {
 				textureValue.y = 0.0;
 				textureValue.z = 0.0;
 			}
@@ -80,8 +80,9 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 
 	//let color = searchMipMapTexture(coord);
 	var color = searchMipMapTexture(coord);
+	let input = uniforms.input;
 	//color = vec4<f32>(color.r, 0.05, 0.05, 1.0);
-	if (local_id.x == 0u || local_id.y == 0u) {
+	if ((local_id.x == 0u || local_id.y == 0u) && input.x == 1u) {
 		color = color*0.8 + vec4<f32>(0.2, 0.2, 0.2, 1.0);
 		// if workgroup_id.x == 0u || workgroup_id.y == 0u color red
 		if (workgroup_id.x == 0u && local_id.x == 0u) {
@@ -93,7 +94,6 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 	}
 	/*
 	*/
-	let input = uniforms.input;
 	if (input.x == 3u) {
 		 color = vec4<f32>(f32(local_id.x)/16.0, f32(local_id.y)/16.0, 0.0, 1.0);
 	}

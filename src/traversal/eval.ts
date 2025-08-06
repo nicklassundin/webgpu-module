@@ -95,7 +95,10 @@ class Eval {
 
 			    this.device = device;
 			    this.bufferMux = bufferMux;
-			    this.startLevel = level;
+			    // this.startLevel = level;
+			    // this.startLevel = level + 2;
+			    let localSize = bufferMux.config.localSize;
+			    this.startLevel = level + Math.log2(localSize);
 
 			    // let workgroupSize = Math.pow(2, level);
 			    // TODO should be integrated with BufferMux constant

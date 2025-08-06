@@ -1,5 +1,7 @@
 
 const WORKGROUPSIZE = 8;
+
+const LOCALSIZE = 4;
 // const WORKGROUPSIZE = 12;
 class QuadTree {
 	nodes: GPUBuffer;
@@ -30,6 +32,8 @@ class BufferMux {
 	config: {
 		textureSize: number;
 		mipLevel: number;
+		localSize: number;
+		workgroupSize: number;
 	};
 	quadTrees: QuadTree[];
 	
@@ -65,20 +69,18 @@ class BufferMux {
 		   level: number,
 		   uv: number[],
 		   data: array[]) {
-		let number_threads = Math.pow(2, level);
+		let number_threads = WORKGROUPSIZE * WORKGROUPSIZE * LOCALSIZE * LOCALSIZE;
 		this.device = device;
 		const divisibleBy = 2*32 * WORKGROUPSIZE;
 		const textureSize = { 
 			width: Math.floor(canvasSize.width / divisibleBy) * divisibleBy,
 			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
 		};
+		console.log('divisibleBy', divisibleBy);
+		console.log('textureSize', textureSize);
 		const mipTextureSize = {
-			width: textureSize.width * 2,
-			// width: textureSize.width * 8,
-			// width: textureSize.width,
-			// height: textureSize.height * 8,
-			height: textureSize.height * 2,
-			// height: textureSize.height,
+			width: textureSize.width * LOCALSIZE,
+			height: textureSize.height * LOCALSIZE,
 		};
 		// calculate mipLevel from mipTextureSize
 		// const mipLevel = Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height));
@@ -92,6 +94,7 @@ class BufferMux {
 			mipTextureSize: mipTextureSize,
 			mipLevel: mipLevel,
 			workgroupSize: WORKGROUPSIZE,
+			localSize: LOCALSIZE,
 		};
 		this.features = [];
 		this.quadTrees = [];
@@ -112,9 +115,9 @@ class BufferMux {
 			})
 		}
 		// TODO move mipLevel to travThreadIter
-		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1, mipLevel]);
+		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1]);
 		this.traversal = device.createBuffer({
-			size: traversal_values.byteLength * Math.pow(4, mipLevel-level)*number_threads,
+			size: traversal_values.byteLength * Math.pow(4, mipLevel-level-Math.log2(LOCALSIZE))*number_threads,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
 		let groups = Math.pow(level+1,2);
@@ -190,24 +193,8 @@ class BufferMux {
 			size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
-		// TODO check if textureSize works
-		// const resolution = new Uint32Array([textureSize.width, textureSize.height]);
-		// const workgroupSize = new Uint32Array([WORKGROUPSIZE, WORKGROUPSIZE]); 
-		const input = new Uint32Array([1, 0]);
+		const input = new Uint32Array([0, 0]);
 		this.updateInput(input)
-		// this.uniform = device.createBuffer({
-		// 	// size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8 + 4*4*4,
-		// 	size: 4*4 + 4*4 * 4*4, 
-		// 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
-		// });
-		// device.queue.writeBuffer(this.uniform, 0, resolution.buffer);
-		// device.queue.writeBuffer(this.uniform, 4*4, workgroupSize.buffer);
-		// device.queue.writeBuffer(this.uniform, 4*4 + 4*4, input.buffer);
-		// this.uniformSize = {
-		// 	resolution: 4*4,
-		// 	workgroupSize: 4*4 + 4*8,
-		// 	input: 4*4 + 4*8 + 4*4,
-		// }
 		// Console log all size of buffers
 		console.log('BufferMux initialized with:');
 		console.log('textureSize:', textureSize);
