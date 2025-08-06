@@ -218,6 +218,8 @@ const gui = new GUI();
 			quadManager.bufferMux.updateInput(input);
 		}
 	})
+	// make mode highlighted on load
+	mode.__li.classList.add('dg-accent');
 }
 
 // Main loop

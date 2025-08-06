@@ -91,28 +91,10 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 
 fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>, local_id: vec3<u32>) {
 	let workgroupsize = f32(threadIterations.dimensions.x);
-	// TODO use workgroup color
-	//let color = vec4<f32>(coord, 0.0, 1.0);
-	//let color = vec4<f32>(coord.x, 0.0, f32(index)/8.0, 1.0);
-	//let color = vec4<f32>(f32(workgroup.x)/workgroupsize, 0.0, 0.0, 1.0);
-	//let color = vec4<f32>(0.0, 0.0, f32(index)/20.0, 1.0);
-	//let color = vec4<f32>(0.0, coord.y, 0.0, 1.0);
-	//let color = vec4<f32>(coord.x, vec2<f32>(workgroup.xy)/workgroupsize, 1.0);
-	//let color = vec4<f32>(vec3<f32>(workgroup)/workgroupsize, 1.0);
-	//let color = vec4<f32>(f32(address%3u)/3.0, 0.5*f32((address+1u)%3u)/3.0, 0.5*f32((address+2u)%3u)/3.0, 1.0);
-	//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
-	//let color = vec4<f32>(vec3<f32>(local_id).xy/vec2<f32>(f32(local_size)*1000, f32(local_size)), 0.0, 1.0);
-	//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 	var color = vec4<f32>(value, f32(workgroup.x)/workgroupsize, f32(workgroup.y)/workgroupsize, 1.0);
 	
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
-	//result[0u][0u] = f32(textCoord.x);
-	//result[0u][1u] = f32(textCoord.y);
-	//result[0u][2u] = coord.x;
-	//result[0u][3u] = coord.y;
-	
-
 	textureStore(texture, textCoord, color);
 }
 
