@@ -130,7 +130,7 @@ fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
 	var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
 	for (var i = 0u; i < 4u; i = i + 1u) {
 		for (var j = i + 1u; j < 4u; j = j + 1u) {
-			if (childValues[i] < childValues[j]) {
+			if (childValues[i] > childValues[j]) {
 				let temp = sortedIndices[i];
 				sortedIndices[i] = sortedIndices[j];
 				sortedIndices[j] = temp;
@@ -184,21 +184,6 @@ const local_size: u32 = 8u;
 		
 		let x = 0u;
 		let y = 1u;
-		/*
-		if (workgroup_id.x != 0u || workgroup_id.y != 0u) {
-			return;
-		}
-		if ((local_id.x != x || local_id.y != y) ) {
-			return;
-		}
-		*/
-		result[0u][0u] = f32(threadIndex);
-		result[0u][1u] = f32(index);
-		result[0u][2u] = f32(threadDim.x);
-		result[0u][4u] = f32(local_id.x);
-		result[0u][5u] = f32(local_id.y);
-		result[0u][6u] = f32(global_id.x);
-		result[0u][7u] = f32(global_id.y);
 
 		var coord = traversal[index].coord;
 		var pixCoord = vec2<u32>(vec2<f32>(textDim) * coord);
@@ -278,7 +263,6 @@ const local_size: u32 = 8u;
 
 		if (addr >= 0.0 && value >= 0.0) {
 			let parRef = threadIterations.reference[u32(level-minLevel)];
-			//value = 1.0 - value;
 			value = 1.0 - abs(parRef - value);
 		}
 		let nextQuad = quadFromCoord(coord, textDim*2u);

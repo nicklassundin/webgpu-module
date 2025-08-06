@@ -29,7 +29,7 @@ fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
 			// TODO change back to textureValue
 			//return vec4<f32>(f32(i)/16.0, 0.0, 0.0, 1.0);
 			//return vec4<f32>(uv, 0.0, 1.0);
-			//textureValue.g = f32(i) / 16.0;
+			//textureValue.r *= (1 - (f32(i))/ 8.0);
 			// input from uniform
 			let input = uniforms.input;
 			if (input.x <= 1u) {
