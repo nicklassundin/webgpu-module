@@ -35,7 +35,7 @@ fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
 			if (input.x != 1u) {
 				textureValue.x = 0.0;
 			}
-			if (input.y != 1u) {
+			if (input.x != 2u) {
 				textureValue.y = 0.0;
 				textureValue.z = 0.0;
 			}
@@ -90,7 +90,10 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>,
 	}
 	/*
 	*/
-	//let color = vec4<f32>(uniforms.resolution.x / f32(texDim), uniforms.resolution.y / 1536, 0.0, 1.0);
+	let input = uniforms.input;
+	if (input.x == 3u) {
+		 color = vec4<f32>(f32(local_id.x)/16.0, f32(local_id.y)/16.0, 0.0, 1.0);
+	}
 	if (color.w > 0.0){
 		textureStore(outTexture, vec2<i32>(coord), color);
 	}else {

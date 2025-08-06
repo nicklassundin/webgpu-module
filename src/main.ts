@@ -205,13 +205,16 @@ const gui = new GUI();
 		}
 	})
 	// switch between workgroup render and result dropdown
-	const mode = gui.add({ value: "result" }, 'value', ["result", "workgroup"]).name("Mode").onChange((value: string) => {
-		if (value === "workgroup") {
-			const input = new Uint32Array([0, 1]);
+	const mode = gui.add({ value: "result" }, 'value', ["result", "traversal Workgroup", "vertex Workgroup"]).name("Mode").onChange((value: string) => {
+		if (value === "traversal Workgroup") {
+			const input = new Uint32Array([2, 0]);
 			quadManager.bufferMux.updateInput(input);
 
 		} else if (value === "result") {
 			const input = new Uint32Array([1, 0]);
+			quadManager.bufferMux.updateInput(input);
+		} else if (value === "vertex Workgroup") {
+			const input = new Uint32Array([3, 0]);
 			quadManager.bufferMux.updateInput(input);
 		}
 	})
