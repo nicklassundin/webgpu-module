@@ -191,21 +191,23 @@ class BufferMux {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
 		// TODO check if textureSize works
-		const resolution = new Float32Array([textureSize.width, textureSize.height]);
-		const workgroupSize = new Uint32Array([WORKGROUPSIZE, WORKGROUPSIZE]); 
-		const input = new Float32Array([0, 0, 0, 0]);
-		this.uniform = device.createBuffer({
-			size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8 + 4*4*4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		});
-		device.queue.writeBuffer(this.uniform, 0, resolution.buffer);
-		device.queue.writeBuffer(this.uniform, 4*4, workgroupSize.buffer);
-		device.queue.writeBuffer(this.uniform, 4*4 + 4*8, input.buffer);
-		this.uniformSize = {
-			resolution: 4*4,
-			workgroupSize: 4*4 + 4*8,
-			input: 4*4 + 4*8 + 4*4,
-		}
+		// const resolution = new Uint32Array([textureSize.width, textureSize.height]);
+		// const workgroupSize = new Uint32Array([WORKGROUPSIZE, WORKGROUPSIZE]); 
+		const input = new Uint32Array([1, 0]);
+		this.updateInput(input)
+		// this.uniform = device.createBuffer({
+		// 	// size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8 + 4*4*4,
+		// 	size: 4*4 + 4*4 * 4*4, 
+		// 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
+		// });
+		// device.queue.writeBuffer(this.uniform, 0, resolution.buffer);
+		// device.queue.writeBuffer(this.uniform, 4*4, workgroupSize.buffer);
+		// device.queue.writeBuffer(this.uniform, 4*4 + 4*4, input.buffer);
+		// this.uniformSize = {
+		// 	resolution: 4*4,
+		// 	workgroupSize: 4*4 + 4*8,
+		// 	input: 4*4 + 4*8 + 4*4,
+		// }
 		// Console log all size of buffers
 		console.log('BufferMux initialized with:');
 		console.log('textureSize:', textureSize);
@@ -225,7 +227,23 @@ class BufferMux {
 
 	}
 	updateInput(input: Float32Array) {
-		this.device.queue.writeBuffer(this.uniform, this.uniformSize.resolution + this.uniformSize.workgroupSize, input.buffer);
+		const resolution = new Uint32Array([this.config.textureSize.width, this.config.textureSize.height]);
+		const workgroupSize = new Uint32Array([WORKGROUPSIZE, WORKGROUPSIZE]);
+		if (!this.uniform) {
+			this.uniform = this.device.createBuffer({
+				// size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8 + 4*4*4,
+				size: 4*4 + 4*4 * 4*4, 
+				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
+			});
+			this.uniformSize = {
+				resolution: 4*4,
+				workgroupSize: 4*4 + 4*8,
+				input: 4*4 + 4*8 + 4*4,
+			}
+		}
+		this.device.queue.writeBuffer(this.uniform, 0, resolution.buffer);
+		this.device.queue.writeBuffer(this.uniform, 4*4, workgroupSize.buffer);
+		this.device.queue.writeBuffer(this.uniform, 4*4 + 4*4, input.buffer);
 	}
 	// copy texture to readback buffer
 	async copyTextureToReadback() {

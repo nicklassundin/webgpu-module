@@ -1,7 +1,9 @@
 struct Uniforms {
-resolution: vec2<f32>,
-_pad: vec2<f32>,
-workgroupSize: vec2<u32>,
+	resolution: vec2<u32>,
+	_pad0: vec2<u32>,
+	workgroupSize: vec2<u32>,
+	_pad1: vec2<u32>,
+	input: vec2<u32>,
 };
 
 
@@ -28,6 +30,15 @@ fn searchMipMapTexture(coord: vec2<u32>) -> vec4<f32> {
 			//return vec4<f32>(f32(i)/16.0, 0.0, 0.0, 1.0);
 			//return vec4<f32>(uv, 0.0, 1.0);
 			//textureValue.g = f32(i) / 16.0;
+			// input from uniform
+			let input = uniforms.input;
+			if (input.x != 1u) {
+				textureValue.x = 0.0;
+			}
+			if (input.y != 1u) {
+				textureValue.y = 0.0;
+				textureValue.z = 0.0;
+			}
 			return textureValue; 	
 		}
 	}

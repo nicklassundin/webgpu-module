@@ -93,10 +93,6 @@ vertexBuffer.unmap();
 // Load Textures
 const image = await loadImageBitmap(textureList[0]);
 
-// TODO fix so mipLevel trasfers into structure
-// print image size
-// const mipLevel = Math.floor(Math.log2(Math.max(image.width, image.height)));
-
 // print byte size of image
 // Upload image data to texture level 0
 const imageBitmap = image;
@@ -144,7 +140,6 @@ let render = new Render(device, context, canvas, presentationFormat, depthSample
 
 await device.queue.onSubmittedWorkDone();
 
-// Create Depth Texture TODO
 class Params {
 	travelValues: number[];
 	change: boolean = false;
@@ -163,15 +158,15 @@ function updateTravBufferCoord(uv: number[], commandEncoder?: GPUCommandEncoder,
 	// const mipLevel = travBuffer.length; 
 
 	const values = new Float32Array([uv[0], uv[1], 0, 1]);
-		const stagingBuffer = device.createBuffer({
-			size: values.byteLength,
-			usage: GPUBufferUsage.COPY_SRC,
-			mappedAtCreation: true
-		});
-		const arrayBuffer = stagingBuffer.getMappedRange();
-		(new Float32Array(arrayBuffer)).set(values);
-		commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffer, 0, values.byteLength);
-		stagingBuffer.unmap();
+	const stagingBuffer = device.createBuffer({
+		size: values.byteLength,
+		usage: GPUBufferUsage.COPY_SRC,
+		mappedAtCreation: true
+	});
+	const arrayBuffer = stagingBuffer.getMappedRange();
+	(new Float32Array(arrayBuffer)).set(values);
+	commandEncoder.copyBufferToBuffer(stagingBuffer, 0, travBuffer, 0, values.byteLength);
+	stagingBuffer.unmap();
 }
 
 
@@ -180,18 +175,18 @@ async function updateUniformBuffer(values: number[]) {
 	device.queue.writeBuffer(quadManager.bufferMux.uniform, 0, floatArray);
 	await device.queue.onSubmittedWorkDone();
 }
-// TODO GUe
 
 
 // time intervall 10, 100, 1000 ms
-var timeInterval = [10, 100, 1000];
+const TIMEINTERVAL = [10, 100, 1000, 5000, 10000, 100000, 20000];
+var timeInterval = TIMEINTERVAL;
 const params = new Params(DEFAULT_COORD);
 const gui = new GUI();
 {
 	// const folder = gui.addFolder("Mipmap");
 	// folder.add({ value: mipLevel}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
-		// const resolution = new Float32Array([canvasOrigSize.width, canvasOrigSize.height, value]);
-		// await updateUniformBuffer(resolution);
+	// const resolution = new Float32Array([canvasOrigSize.width, canvasOrigSize.height, value]);
+	// await updateUniformBuffer(resolution);
 	// });
 	// folder.open();
 	// Add folder for uv coordinates
@@ -202,11 +197,22 @@ const gui = new GUI();
 	uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
 	uvFolder.open();
 	// check box for output
-	const checkbox = gui.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
+	const checkbox = gui.add({ value: true }, 'value').name("Output to console").onChange((value: boolean) => {
 		params.output = value;
 		if (value) {
 			// reset timeInterval
-			timeInterval = [10, 100, 1000];
+			timeInterval = TIMEINTERVAL;
+		}
+	})
+	// switch between workgroup render and result dropdown
+	const mode = gui.add({ value: "result" }, 'value', ["result", "workgroup"]).name("Mode").onChange((value: string) => {
+		if (value === "workgroup") {
+			const input = new Uint32Array([0, 1]);
+			quadManager.bufferMux.updateInput(input);
+
+		} else if (value === "result") {
+			const input = new Uint32Array([1, 0]);
+			quadManager.bufferMux.updateInput(input);
 		}
 	})
 }
@@ -225,7 +231,14 @@ let current_mipLevel = 0;
 var reference = true;
 
 
+// TODO change when retrying
+let startTime = 0; 
+let nameIndex = 1;
+
 async function frame() {
+	if (startTime === 0) {
+		startTime = Date.now();
+	}
 	stats.begin();
 	const currentTime = Date.now();
 	const commandEncoder = device.createCommandEncoder();
@@ -249,22 +262,22 @@ async function frame() {
 		requestAnimationFrame(frame);
 		// clear browser console
 		return;
-	// }else if(16*2 > frameCount){
+		// }else if(16*2 > frameCount){
 	}
 	current_mipLevel++;
 	await quadManager.eval.pass(frameCount, commandEncoder);
 	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
-			// mesure time 
-			// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
-			await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
-			// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
-		// TODO Optimization
+	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
+	// mesure time 
+	// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
+	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
+	// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
+	// await dbug_mngr.u32fromBufferToLog(quadManager.bufferMux.uniform, 0, 32);
 	quadManager.genVertex.pass(current_mipLevel, commandEncoder);
 	device.queue.submit([commandEncoder.finish()]);
-	
+
 	// renderpass locked 30 fps
 	if (currentTime - lastFrameTime > 1000 / 30) {
 		const renderCommandEncoder = device.createCommandEncoder();
@@ -276,6 +289,18 @@ async function frame() {
 	}
 	frameCount++;
 	stats.end();
+	
+	if (timeInterval.length > 0 && !params.output && currentTime - startTime >= timeInterval[0]) {
+		// save and download canvas
+		const link = document.createElement('a');
+		link.download = `snapshot_${nameIndex}_${currentTime - startTime}_${timeInterval[0]}.png`;
+		nameIndex++;
+		link.href = canvas.toDataURL('image/png');
+		//link.click();
+		linksContainer.appendChild(link);
+		// remove timeInterval[0]
+		timeInterval.shift();
+	}
 
 	requestAnimationFrame(frame);
 }
@@ -328,6 +353,6 @@ canvas.addEventListener('click', async (event) => {
 window.addEventListener('beforeunload', async () => {
 	await device.queue.onSubmittedWorkDone();
 	quadManager.unmap();
-});
+})
 
 

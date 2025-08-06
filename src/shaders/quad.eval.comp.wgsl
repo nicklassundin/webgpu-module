@@ -102,7 +102,8 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>,
 	//let color = vec4<f32>(f32(address%3u)/3.0, 0.5*f32((address+1u)%3u)/3.0, 0.5*f32((address+2u)%3u)/3.0, 1.0);
 	//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
 	//let color = vec4<f32>(vec3<f32>(local_id).xy/vec2<f32>(f32(local_size)*1000, f32(local_size)), 0.0, 1.0);
-	let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+	//let color = vec4<f32>(value, 0.0, 0.0, 1.0);
+	var color = vec4<f32>(value, f32(workgroup.x)/workgroupsize, f32(workgroup.y)/workgroupsize, 1.0);
 	
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
@@ -275,13 +276,14 @@ const local_size: u32 = 1u;
 			return;
 		}
 		
+		let node = getNode(u32(addr));
+		var value = getValue(node);
+
 		// Dont process if reference is not set
 		if (threadIterations.reference[u32(level-minLevel)] == 0.0) {
 			return;
 		}
 
-		let node = getNode(u32(addr));
-		var value = getValue(node);
 		if (addr >= 0.0 && value >= 0.0) {
 			let parRef = threadIterations.reference[u32(level-minLevel)];
 			//value = 1.0 - value;
