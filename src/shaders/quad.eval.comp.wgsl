@@ -13,7 +13,6 @@ coord: vec2<f32>,
 struct ThreadInfo {
 		reference: array<f32, 16>,
 		dimensions: vec2<u32>,
-		maxMipLevel: u32,
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
@@ -177,6 +176,7 @@ const local_size: u32 = 8u;
 		
 		let minLevel = u32(log2(f32(threadDim.x)));
 		//let threadIndex: u32 =  (global_id.x + global_id.y * threadDim.x) + 1u;
+		// TODO make 16u be replaced with accually number of levels
 		let threadIndex: u32 =  ((workgroup_id.x + workgroup_id.y * threadDim.x) * local_size + (local_id.x + local_id.y * threadDim.x))*16u;
 
 

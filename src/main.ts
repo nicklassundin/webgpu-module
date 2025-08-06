@@ -148,7 +148,7 @@ class Params {
 	constructor(travelValues: number[]) {
 		this.travelValues = travelValues;
 	}
-	updateTravelValues(travelValues: number[]) {
+	updateTravelValues(travelValues: number[] = [this.travelValues[0], this.travelValues[1]]) {
 		this.change = true;
 		this.travelValues = [travelValues[0], travelValues[1]];
 	}
@@ -199,15 +199,19 @@ const gui = new GUI();
 	uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
 	uvFolder.open();
 	// check box for output
-	const checkbox = gui.add({ value: true }, 'value').name("Output to console").onChange((value: boolean) => {
+	
+	const debugFolder = gui.addFolder("Debug");
+	debugFolder.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
 		params.output = value;
 		if (value) {
 			// reset timeInterval
 			timeInterval = TIMEINTERVAL;
+			params.output = value;
+			params.updateTravelValues();
 		}
 	})
 	// switch between workgroup render and result dropdown
-	const mode = gui.add({ value: "result" }, 'value', ["result",  "result - lines", "traversal Workgroup", "vertex Workgroup"]).name("Mode").onChange((value: string) => {
+	debugFolder.add({ value: "result" }, 'value', ["result",  "result - lines", "traversal Workgroup", "vertex Workgroup"]).name("Mode").onChange((value: string) => {
 		if (value === "traversal Workgroup") {
 			const input = new Uint32Array([2, 0]);
 			quadManager.bufferMux.updateInput(input);
@@ -224,6 +228,7 @@ const gui = new GUI();
 			quadManager.bufferMux.updateInput(input);
 		}
 	})
+	debugFolder.open();
 }
 
 // Main loop
@@ -298,17 +303,25 @@ async function frame() {
 	}
 	frameCount++;
 	stats.end();
-	
-	if (timeInterval.length > 0 && !params.output && currentTime - startTime >= timeInterval[0]) {
+	if (timeInterval.length > 0 && params.output && currentTime - startTime >= timeInterval[0] ) {
 		// save and download canvas
 		const link = document.createElement('a');
+		const commandEncoder = device.createCommandEncoder();
+		quadManager.genVertex.pass(current_mipLevel, commandEncoder);
+		device.queue.submit([commandEncoder.finish()]);
+		// wait for commandEncoder to finish
+		await device.queue.onSubmittedWorkDone();
+		// wait for document to be ready
+		await new Promise(resolve => setTimeout(resolve, 100));
+
 		link.download = `snapshot_${nameIndex}_${currentTime - startTime}_${timeInterval[0]}.png`;
 		nameIndex++;
 		link.href = canvas.toDataURL('image/png');
-		//link.click();
+		// link.click();
 		linksContainer.appendChild(link);
 		// remove timeInterval[0]
 		timeInterval.shift();
+		params.updateTravelValues()
 	}
 
 	requestAnimationFrame(frame);
