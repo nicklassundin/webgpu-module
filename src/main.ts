@@ -147,7 +147,7 @@ window.addEventListener('load', async function() {
 	class Params {
 		travelValues: number[];
 		change: boolean = false;
-		output: boolean = true;
+		output: boolean = false;
 		constructor(travelValues: number[]) {
 			this.travelValues = travelValues;
 		}
@@ -205,7 +205,7 @@ window.addEventListener('load', async function() {
 		// check box for output
 
 		const debugFolder = gui.addFolder("Debug");
-		debugFolder.add({ value: true }, 'value').name("Output to console").onChange((value: boolean) => {
+		debugFolder.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
 			params.output = value;
 			startTime = 0;
 			if (value) {
@@ -292,6 +292,7 @@ window.addEventListener('load', async function() {
 		}
 		current_mipLevel++;
 		await quadManager.eval.pass(frameCount, commandEncoder);
+		// quadManager.genVertex.pass(frameCount, commandEncoder);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
@@ -304,9 +305,9 @@ window.addEventListener('load', async function() {
 		device.queue.submit([commandEncoder.finish()]);
 
 		// renderpass locked 30 fps
-		if (currentTime - lastFrameTime > 1000 / 120) {
+		if (currentTime - lastFrameTime > 1000 / 30) {
 			const renderCommandEncoder = device.createCommandEncoder();
-			for (let i = 0; i < 10; i++) {
+			for (let i = 0; i < 1; i++) {
 				quadManager.genVertex.pass(i, renderCommandEncoder);
 			}
 			render.pass(frameCount, renderCommandEncoder)
@@ -336,14 +337,6 @@ window.addEventListener('load', async function() {
 			// save and download canvas
 			const interval = timeInterval[0];
 			const link = document.createElement('a');
-			const commandEncoder = device.createCommandEncoder();
-			quadManager.genVertex.pass(current_mipLevel, commandEncoder);
-			device.queue.submit([commandEncoder.finish()]);
-
-			// wait for commandEncoder to finish
-			await device.queue.onSubmittedWorkDone();
-			// wait for document to be ready
-			await new Promise(resolve => setTimeout(resolve, 100));
 
 			link.download = `snapshot_${nameIndex}_${interval}.png`;
 			nameIndex++;
