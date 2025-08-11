@@ -6,21 +6,31 @@
 		<title>WebGPU Project</title>
 		<style type="text/css">
 html, body {
-	height: 95vh;
-	margin: 0;
-	aspectRatio: 1;
+	height: 100vh;
+	width: 100vw;
 
+	display: flex;
+	justify-content: center;
+	margin: 0;
+}
+#canvas {
+	min-height: 95vh;
+	aspect-ratio: 1;
+}
+.linksContainer {
+	position: fixed; 
+	top: 50%; 
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: rgba(255, 255, 255, 0.8);
 }
 
-	#canvas {
-		min-height: 95vh;
-		aspect-ratio: 1;
-	}
+
 		</style>
 	</head>
 	<body>
 		<canvas id="canvas"></canvas>
-		<div id="linksContainer"></div>
+		<div id="linksContainer" class="linksContainer"></div>
 		<script type="module" src="./src/main.ts"></script>
 	</body>
 </html>

@@ -317,8 +317,14 @@ async function frame() {
 		link.download = `snapshot_${nameIndex}_${currentTime - startTime}_${timeInterval[0]}.png`;
 		nameIndex++;
 		link.href = canvas.toDataURL('image/png');
+		// link text/value
+		link.textContent = `Download snapshot ${nameIndex} (${currentTime - startTime} ms)`;
 		// link.click();
 		linksContainer.appendChild(link);
+
+		// make link visible
+		// linksContainer.style.display = 'flex';
+		link.style.display = 'block'
 		// remove timeInterval[0]
 		timeInterval.shift();
 		params.updateTravelValues()
