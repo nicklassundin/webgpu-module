@@ -72,6 +72,8 @@ class BufferMux {
 		   uv: number[],
 		   data: array[]) {
 		let number_threads = WORKGROUPSIZE * WORKGROUPSIZE * LOCALSIZE * LOCALSIZE;
+
+
 		this.device = device;
 		const divisibleBy = 2*32 * WORKGROUPSIZE;
 		const textureSize = { 
@@ -86,8 +88,8 @@ class BufferMux {
 		};
 		// calculate mipLevel from mipTextureSize
 		// const mipLevel = Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height));
-		const mipLevel = Math.floor(Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height))) + 1;
-		// console.log('TmipLevel', TmipLevel);
+		const mipLevel = Math.floor(Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height))) +1;
+		const minLevel = Math.floor(Math.log2(number_threads)) +1;
 		// const mipLevel = 10;
 
 
@@ -112,7 +114,7 @@ class BufferMux {
 			});
 			this.features.push(features);
 			const travThreadIter = device.createBuffer({
-				size: Float32Array.BYTES_PER_ELEMENT*Math.pow(4, mipLevel),
+				size: Float32Array.BYTES_PER_ELEMENT*(16 + 4),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			})
 		}
@@ -132,8 +134,11 @@ class BufferMux {
 
 
 		// Evaluation Initialization
+		let quadTreeMapSize = Math.floor(Math.pow(4, mipLevel))/3 - Math.floor(Math.pow(4, minLevel))/3;
+		// floor to largest multiple of 4
+		quadTreeMapSize = Math.floor(quadTreeMapSize / 4) * 4;
 		this.quadTreeMap = device.createBuffer({
-			size: Math.pow(2, 2*mipLevel),
+			size: quadTreeMapSize,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
 		this.mipTexture = device.createTexture({
@@ -143,8 +148,10 @@ class BufferMux {
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
 			mipLevelCount: mipLevel,
 		})
+		
 		this.evalThreadIter = device.createBuffer({
-			size: 4*16 + number_threads*4,
+			size: 4*16 + number_threads*4 + 4*4,
+			// size: 4*16 + number_threads*4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
 		this.result = device.createBuffer({
@@ -196,9 +203,11 @@ class BufferMux {
 		this.updateInput(input)
 		// Console log all size of buffers
 		console.log('BufferMux initialized with:');
+		console.log('Number of threads:', number_threads);
 		console.log('textureSize:', textureSize);
 		console.log('mipTextureSize:', mipTextureSize);
 		console.log('mipLevel:', mipLevel);
+		console.log('minLevel:', minLevel);
 		console.log('quadTreeMap size:', this.quadTreeMap.size);
 		console.log('evalThreadIter size:', this.evalThreadIter.size);
 		console.log('result size:', this.result.size);
@@ -261,7 +270,6 @@ class BufferMux {
 		const arrayBuffer = this.textureReadback.getMappedRange();
 		const data = new Uint8Array(arrayBuffer);
 		// return data;
-		// console.log(data)	
 		return data;
 	}
 	unmap() {

@@ -13,6 +13,7 @@ coord: vec2<f32>,
 struct ThreadInfo {
 		reference: array<f32, 16>,
 		dimensions: vec2<u32>,
+		minLevel: u32
 };
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
@@ -56,7 +57,12 @@ fn getNodeIndex(level: u32, coord: vec2<u32>) -> u32 {
 	let x = coord[1];
 
 	let index = coord[0] * grid_size + coord[1];
-	return parentIndex+index;
+
+	
+	let minLevel = threadIterations.minLevel;
+	let offset = u32(pow(4.0, f32(minLevel)));	
+
+	return parentIndex+index - offset;
 }
 
 fn getValue(node: Node) -> f32 {
@@ -174,7 +180,9 @@ const local_size: u32 = 8u;
 
 		let level = u32(log2(f32(textDim.x)));
 		
+		// TODO place into threadIterations
 		let minLevel = u32(log2(f32(threadDim.x)));
+		threadIterations.minLevel = minLevel;
 		//let threadIndex: u32 =  (global_id.x + global_id.y * threadDim.x) + 1u;
 		// TODO make 16u be replaced with accually number of levels
 		let threadIndex: u32 =  ((workgroup_id.x + workgroup_id.y * threadDim.x) * local_size + (local_id.x + local_id.y * threadDim.x))*16u;
