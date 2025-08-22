@@ -15,7 +15,31 @@ struct ThreadInfo {
 		dimensions: vec2<u32>,
 		minLevel: u32
 };
+
+fn normalizeArray16(arr: array<f32, 16>) -> array<f32, 16> {
+	var normalized: array<f32, 16>;
+	var maxVal = arr[0];
+	for (var i = 1u; i < 16u; i = i + 1u) {
+		if (arr[i] > maxVal) {
+			maxVal = arr[i];
+		}
+	}
+	for (var i = 0u; i < 16u; i = i + 1u) {
+		normalized[i] = arr[i] / maxVal;
+	}
+	return normalized;
+}
+
 @group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
+
+fn setReference(level: u32, value: f32) {
+	if (level < 16u) {
+		threadIterations.reference[level] = value;
+	}
+	// reference vector
+	threadIterations.reference = normalizeArray16(threadIterations.reference);
+}
+
 
 fn getNode(index: u32) -> Node {
 	let node: Node = Node(nodes[index * 6u],
@@ -128,11 +152,68 @@ fn set_bit(n: u32, value: bool) {
 	}
 }
 
-fn orderChildren(children: vec4<f32>, reference: f32) -> array<u32, 4u> {
-	let childValues = vec4<f32>(getValue(getNode(u32(children[0u]))), 
-		getValue(getNode(u32(children[1u]))), 
-		getValue(getNode(u32(children[2u]))), 
-		getValue(getNode(u32(children[3u])))) - reference;
+fn getFeatArray(index: u32, minLevel: u32) -> array<f32, 16> {
+	// empty array 
+	var featArray = array<f32, 16>(0.0, 0.0, 0.0, 0.0, 
+		0.0, 0.0, 0.0, 0.0, 
+		0.0, 0.0, 0.0, 0.0, 
+		0.0, 0.0, 0.0, 0.0);
+	for (var i = 0u; i < 16u; i = i + 1u) {
+		// TODO get value from level to index
+		if (i32(minLevel) + i32(i) > i32(index)-i32(minLevel)) {
+			break;
+		};
+		let address = u32(traversal[minLevel + i].address);
+		featArray[i] = getValue(getNode(address));
+	};
+	return normalizeArray16(featArray);
+}
+// distance between two vectors
+fn distance(a: array<f32, 16>, b: array<f32, 16>) -> f32 {
+	var dist = 0.0;
+	for (var i = 0u; i < 16u; i = i + 1u) {
+		let diff = a[i] - b[i];
+		dist += diff * diff;
+	}
+	return sqrt(dist);
+}
+
+
+fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -> array<u32, 4u> {
+	let reference = threadIterations.reference;
+	
+	var childArray1 = parentArray;
+	childArray1[level] = getValue(getNode(u32(children[0u])));
+	childArray1 = normalizeArray16(childArray1);
+	var childArray2 = parentArray;
+	childArray2[level] = getValue(getNode(u32(children[1u])));
+	childArray2 = normalizeArray16(childArray2);
+	var childArray3 = parentArray;
+	childArray3[level] = getValue(getNode(u32(children[2u])));
+	childArray3 = normalizeArray16(childArray3);
+	var childArray4 = parentArray;
+	childArray4[level] = getValue(getNode(u32(children[3u])));
+	childArray4 = normalizeArray16(childArray4);
+
+
+	/*
+	let childValues = vec4<f32>(childArray1[level] - reference[level],
+		childArray2[level] - reference[level], 
+		childArray3[level] - reference[level], 
+		childArray4[level] - reference[level]);
+	*/
+	let childValues = vec4<f32>(distance(childArray1, reference), 
+		distance(childArray2, reference), 
+		distance(childArray3, reference), 
+		distance(childArray4, reference));
+	/*
+	result[0u][0u] = childArray1[0u];
+	result[0u][1u] = childArray1[1u];
+	result[0u][2u] = childArray1[2u];
+	result[0u][3u] = childArray1[3u];
+	result[0u][4u] = childArray2[0u];
+	*/
+
 	var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
 	for (var i = 0u; i < 4u; i = i + 1u) {
 		for (var j = i + 1u; j < 4u; j = j + 1u) {
@@ -251,9 +332,11 @@ const local_size: u32 = 8u;
 			let childNode = getNode(u32(childAddress));
 
 			let value = getValue(node);
-			threadIterations.reference[u32(level-minLevel)] = value;
+			//threadIterations.reference[u32(level-minLevel)] = value;
+			setReference(u32(level-minLevel), value);
 			let childValue = getValue(childNode);
-			threadIterations.reference[u32(level-minLevel)+1u] = childValue;
+			//threadIterations.reference[u32(level-minLevel)+1u] = childValue;
+			setReference(u32(level-minLevel)+1u, childValue);
 
 			traversal[index+1].address = childAddress;
 			traversal[index+1].coord = coord;
@@ -283,7 +366,8 @@ const local_size: u32 = 8u;
 		
 		// order children based on priority
 		let refer = threadIterations.reference[u32(level-minLevel)+1u];
-		let sortedIndices = orderChildren(children, refer);
+		let parentArray = getFeatArray(level, minLevel);
+		let sortedIndices = orderChildren(children, level, parentArray);
 
 /*
 		if (global_id.x != 3u || global_id.y != 3u){
@@ -310,14 +394,14 @@ const local_size: u32 = 8u;
 			let quadBool = get_bit(childNodeIndex); 
 			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
-				writeTexture(tempCoord, value, level, global_id, local_id);
+				let childValue = getValue(childNode);
+				if (childValue != 0.0) {
+					writeTexture(tempCoord, value, level, global_id, local_id);
+				}
 				set_bit(childNodeIndex, true);
 				continue;
 			}
 			break;
-		}
-		if (value != 0.0){
-			writeTexture(coord, value, level, global_id, local_id);
 		}
 		set_bit(childNodeIndex, true);
 		//quadMap[childNodeIndex] = 1u;

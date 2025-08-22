@@ -2,6 +2,12 @@
   "files": [
     "./data/obs/heatmap_Phylloscopus_collybita.png",
     "./data/obs/heatmap_Phylloscopus_trochilus.png",
+    "./data/obs/heatmap_debug_data.png",
+    "./data/obs/heatmap_debug_dia_X.png",
+    "./data/obs/heatmap_debug_dia_tl.png",
+    "./data/obs/heatmap_debug_dia_tr.png",
+    "./data/obs/heatmap_debug_hori.png",
+    "./data/obs/heatmap_debug_vert.png",
     "./data/obs/quadtree_Phylloscopus_collybita.json",
     "./data/obs/quadtree_Phylloscopus_trochilus.json",
     "./data/obs/quadtree_debug_data.json",

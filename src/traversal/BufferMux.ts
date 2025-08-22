@@ -64,7 +64,17 @@ class BufferMux {
 		workgroupSize: number;
 		input: number;
 	}
-		
+	maxMipLevel(mipLevel: number, minLevel: number, maxBufferSize: number) {
+		let size = Math.floor(Math.pow(4, mipLevel))/3 - Math.floor(Math.pow(4, minLevel))/3;
+		if (size > maxBufferSize) {
+			return this.maxMipLevel(mipLevel - 1, minLevel, maxBufferSize);
+		}
+		return {
+			size: size,
+			mipLevel: mipLevel,
+			minLevel: minLevel,
+		}
+	}
 	constructor(device: GPUDevice, 
 		    canvasSize: number, 
 		    // mipLevel: number,
@@ -72,24 +82,36 @@ class BufferMux {
 		   uv: number[],
 		   data: array[]) {
 		let number_threads = WORKGROUPSIZE * WORKGROUPSIZE * LOCALSIZE * LOCALSIZE;
-
+		console.log(device.limits)
+		const maxBufferSize = device.limits.maxStorageBufferBindingSize;
 
 		this.device = device;
 		const divisibleBy = 2*32 * WORKGROUPSIZE;
+		let textureMaxSize = device.limits.maxTextureDimension2D;	
 		const textureSize = { 
 			width: Math.floor(canvasSize.width / divisibleBy) * divisibleBy,
+			// width: Math.floor(textureMaxSize / divisibleBy) * divisibleBy,
 			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
+			// height: Math.floor(textureMaxSize / divisibleBy) * divisibleBy,
 		};
 		console.log('divisibleBy', divisibleBy);
 		console.log('textureSize', textureSize);
 		const mipTextureSize = {
-			width: textureSize.width * LOCALSIZE,
-			height: textureSize.height * LOCALSIZE,
+			// width: textureSize.width * LOCALSIZE,
+			// width: textureSize.width,
+			width: textureMaxSize, 
+			// height: textureSize.height * LOCALSIZE,
+			height: textureMaxSize,
+			// height: textureSize.height,
 		};
 		// calculate mipLevel from mipTextureSize
 		// const mipLevel = Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height));
-		const mipLevel = Math.floor(Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height))) +1;
+		let mipLevel = Math.floor(Math.log2(Math.max(mipTextureSize.width, mipTextureSize.height))) +1;
 		const minLevel = Math.floor(Math.log2(number_threads)) +1;
+
+		const limits = this.maxMipLevel(mipLevel, minLevel, maxBufferSize);
+		mipLevel = limits.mipLevel;
+
 		// const mipLevel = 10;
 
 
@@ -137,6 +159,7 @@ class BufferMux {
 		let quadTreeMapSize = Math.floor(Math.pow(4, mipLevel))/3 - Math.floor(Math.pow(4, minLevel))/3;
 		// floor to largest multiple of 4
 		quadTreeMapSize = Math.floor(quadTreeMapSize / 4) * 4;
+		console.log(quadTreeMapSize, mipLevel, minLevel)
 		this.quadTreeMap = device.createBuffer({
 			size: quadTreeMapSize,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
@@ -173,8 +196,12 @@ class BufferMux {
 		});
 		this.sampler = device.createSampler({
 			minFilter: 'nearest',
-			magFilter: 'nearest',
+			magFilter: 'linear',
 			mipmapFilter: 'nearest',
+		
+			// minFilter: 'linear',
+			// magFilter: 'nearest',
+			// mipmapFilter: 'linear',
 		});
 		const verticeValues = new Float32Array([
 			0, 0, 0, 1, 0, 0, 0, 1,
