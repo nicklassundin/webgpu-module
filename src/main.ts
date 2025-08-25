@@ -26,6 +26,7 @@ window.addEventListener('load', async function() {
 	// const DEFAULT_COORD = [0.51, 0.51];
 	// const DEFAULT_COORD = [0.59, 0.69];
 	const DEFAULT_COORD = [0.41, 0.35];
+	// const DEFAULT_COORD = [1.0 - 0.35, 0.41];
 	// const DEFAULT_COORD = [0.19, 0.14];
 	// const DEFAULT_COORD = [0.11, 0.07];
 
@@ -184,7 +185,15 @@ window.addEventListener('load', async function() {
 
 	// time intervall 10, 100, 1000 ms
 	// const TIMEINTERVAL = [10, 100, 1000, 5000, 10000, 15000, 20000];
-	const TIMEINTERVAL = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 50000];
+	// const TIMEINTERVAL = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 50000];
+	// generate TIMEINTERVAL with 50 steps between 10 and 6000
+	const TIMEINTERVAL = []; 
+	for (let i = 0; i < 80; i++) {
+		TIMEINTERVAL.push(Math.floor(10 + (6000 - 10) * (i / 49)));
+	}
+	let numSample = 5;
+	let opTime = 0;
+
 	var timeInterval = TIMEINTERVAL;
 	const params = new Params(DEFAULT_COORD);
 	const gui = new GUI();
@@ -257,16 +266,16 @@ window.addEventListener('load', async function() {
 	// TODO change when retrying
 	let startTime = 0; 
 	let nameIndex = 1;
-	
+
 	async function frame() {
 		if (startTime === 0) {
 			await device.queue.onSubmittedWorkDone();
 			// wait 1 second before starting the timer
 			await new Promise(resolve => setTimeout(resolve, 1000));
-			startTime = Date.now();
+			startTime = Date.now() - opTime;;
 		}
 		stats.begin();
-		const currentTime = Date.now();
+		const currentTime = Date.now() - opTime;
 		const commandEncoder = device.createCommandEncoder();
 		// Update the stats panel
 		if (params.change) {
@@ -292,24 +301,24 @@ window.addEventListener('load', async function() {
 		}
 		current_mipLevel++;
 		await quadManager.eval.pass(frameCount, commandEncoder);
-		// quadManager.genVertex.pass(frameCount, commandEncoder);
+		quadManager.genVertex.pass(frameCount, commandEncoder);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
+		await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
 		// mesure time 
 		// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
-		await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
+		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// await dbug_mngr.u32fromBufferToLog(quadManager.bufferMux.uniform, 0, 32);
 		device.queue.submit([commandEncoder.finish()]);
 
 		// renderpass locked 30 fps
 		if (currentTime - lastFrameTime > 1000 / 30) {
 			const renderCommandEncoder = device.createCommandEncoder();
-			for (let i = 0; i < 1; i++) {
-				quadManager.genVertex.pass(i, renderCommandEncoder);
-			}
+			// for (let i = 0; i < 1; i++) {
+				// quadManager.genVertex.pass(i, renderCommandEncoder);
+			// }
 			render.pass(frameCount, renderCommandEncoder)
 			device.queue.submit([renderCommandEncoder.finish()]);
 			lastFrameTime = currentTime;
@@ -319,12 +328,17 @@ window.addEventListener('load', async function() {
 		frameCount++;
 		stats.end();
 		if (timeInterval.length > 0 && params.output && currentTime - startTime >= timeInterval[0] ) {
-			for (let i = 0; i < 1000; i++) {
-				current_mipLevel++;
-				const waitCommandEncoder = device.createCommandEncoder();
-				quadManager.genVertex.pass(current_mipLevel, waitCommandEncoder);
-			}
+			const opBeforeTime = Date.now();
+			// for (let i = 0; i < 10; i++) {
+			// 	current_mipLevel++;
+			// 	const waitCommandEncoder = device.createCommandEncoder();
+			// 	quadManager.genVertex.pass(1, waitCommandEncoder);
+			// 	// quadManager.genVertex.pass(current_mipLevel, waitCommandEncoder);
+			// 	device.queue.submit([waitCommandEncoder.finish()]);
+			// }
+
 			await device.queue.onSubmittedWorkDone();
+			// opTime += Date.now() - opBeforeTime;
 			// await for queue to finish
 			const renderCommandEncoder = device.createCommandEncoder();
 			render.pass(frameCount, renderCommandEncoder)
@@ -332,7 +346,7 @@ window.addEventListener('load', async function() {
 			lastFrameTime = currentTime;
 			await device.queue.onSubmittedWorkDone();
 
-		
+
 
 			// save and download canvas
 			const interval = timeInterval[0];
@@ -343,6 +357,17 @@ window.addEventListener('load', async function() {
 			link.href = canvas.toDataURL('image/png');
 			// link text/value
 			link.textContent = `Download snapshot ${nameIndex} (${interval} ms) (actual time: ${currentTime - startTime} ms)`;
+			// hide all other links
+			const links = linksContainer.querySelectorAll('a');
+			if (links.length === 0) {
+				link.textContent = `Download snapshot ${nameIndex} (${interval} ms) (actual time: ${currentTime - startTime} ms) (first)`;
+			}else{
+				for (const l of links) {
+					l.style.display = 'none';
+				}
+			}
+			link.style.display = 'visible'
+
 			// link.click();
 			linksContainer.appendChild(link);
 
@@ -351,17 +376,23 @@ window.addEventListener('load', async function() {
 			link.style.display = 'block'
 			// remove timeInterval[0]
 			timeInterval.shift();
-			params.updateTravelValues()
-			startTime = 0;
+			// params.updateTravelValues()
+			// startTime = 0;
 			if (timeInterval.length === 0) {
 				// package all links in a zip file
 				const zip = new JSZip();
 				const links = linksContainer.querySelectorAll('a');
+				// make directory snapshot_{numSample}
+				const dir = zip.folder(`snapshots_${numSample}`);
 				for (const link of links) {
 					const response = await fetch(link.href);
 					const blob = await response.blob();
-					zip.file(link.download, blob);
+					// add to zip file in the directory
+					dir?.file(link.download, blob);
+					// zip.file(link.download, blob);
 				}
+				numSample--;
+				
 				// create zip file
 				const content = await zip.generateAsync({ type: 'blob' });
 				const zipLink = document.createElement('a');

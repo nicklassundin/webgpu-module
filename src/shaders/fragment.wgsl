@@ -20,7 +20,7 @@ fn main(input: FragInput) -> @location(0) vec4f {
 	var uv = pos;
 	// turn uv counter clockwise
 	// TODO fix but should be form data
-	uv = vec2<f32>(1.0 - uv.y, uv.x);
+	//uv = vec2<f32>(1.0 - uv.y, uv.x);
 	return textureSample(texture, textureSampler, uv);
 	//return fragCoord;
 }
