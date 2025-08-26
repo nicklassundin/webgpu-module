@@ -313,16 +313,16 @@ class BufferMux {
 		this.quadTreeMap.unmap();
 		this.quadTreeMap.destroy();
 		this.mipTexture.destroy();
-		this.evalThreadIter.destroy();
 		this.result.destroy();
 		this.texture.destroy();
 		for (let i = 0; i < this.features.length; i++) {
+			this.evalThreadIters[i].destroy();
 			this.features[i].destroy();
 			this.quadTrees[i].nodes.destroy();
 			this.quadTrees[i].values.destroy();
 			this.quadTrees[i].unbind();
+			this.travThreadIters[i].destroy();
 		}
-		this.travThreadIter.destroy();
 	}
 }
 export default BufferMux;

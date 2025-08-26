@@ -50,6 +50,19 @@ fn getNode0(index: u32) -> Node {
 	return node;
 }
 
+fn getNode1(index: u32) -> Node {
+	let node: Node = Node(nodes1[index * 6u],
+			vec4<f32>(nodes1[index * 6u + 1u], nodes1[index * 6u + 2u], nodes1[index * 6u + 3u], nodes1[index * 6u + 4u]),
+			nodes1[index * 6u + 5u]
+			);
+	
+	return node;
+}
+
+fn getNodes(i: u32, j: u32) -> array<Node, 2> {
+	return array<Node, 2>(getNode0(i), getNode1(j));
+}
+
 fn quadFromCoord(uv: vec2<f32>, textDim: vec2<u32>) -> u32 {
 	if(textDim.x == 1u && textDim.y == 1u) {
 		return 0u;
@@ -92,6 +105,13 @@ fn getNodeIndex(level: u32, coord: vec2<u32>) -> u32 {
 
 fn getValue0(node: Node) -> f32 {
 	return values0[u32(node.valueAddress)];
+}
+
+fn getValue1(node: Node) -> f32 {
+	return values1[u32(node.valueAddress)];
+}
+fn getValues(node0: Node, node1: Node) -> vec2<f32> {
+	return vec2<f32>(getValue0(node0), getValue1(node1));
 }
 
 // check quadMap level of all is done

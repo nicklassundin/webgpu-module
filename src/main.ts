@@ -133,7 +133,7 @@ window.addEventListener('load', async function() {
 	const quadTreeData1 = await fetch(quadTreeList[1]);
 	const quadTreeJsonString1 = await quadTreeData1.json();
 	let quadTreeJson1 = JSON.parse(quadTreeJsonString1);
-	let quadTrees = [quadTreeJson0, quadTreeJson1];
+	let quadTrees = [quadTreeJson1, quadTreeJson0];
 
 	// let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
 	let quadManager = new QuadManager(device, canvasOrigSize);
@@ -304,7 +304,7 @@ window.addEventListener('load', async function() {
 		await quadManager.eval.pass(frameCount, commandEncoder);
 		quadManager.genVertex.pass(frameCount, commandEncoder);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
-		await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
+		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
 		// mesure time 
