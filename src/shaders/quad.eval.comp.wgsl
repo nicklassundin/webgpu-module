@@ -7,7 +7,8 @@ valueAddress: f32,
 
 struct Traversal {
 coord: vec2<f32>,
-	       address: f32
+	       address0: f32,
+	       address1: f32
 };
 
 struct ThreadInfo {
@@ -40,11 +41,12 @@ fn setReference(level: u32, value: f32) {
 }
 
 
-fn getNode(index: u32) -> Node {
-	let node: Node = Node(nodes[index * 6u],
-			vec4<f32>(nodes[index * 6u + 1u], nodes[index * 6u + 2u], nodes[index * 6u + 3u], nodes[index * 6u + 4u]),
-			nodes[index * 6u + 5u]
+fn getNode0(index: u32) -> Node {
+	let node: Node = Node(nodes0[index * 6u],
+			vec4<f32>(nodes0[index * 6u + 1u], nodes0[index * 6u + 2u], nodes0[index * 6u + 3u], nodes0[index * 6u + 4u]),
+			nodes0[index * 6u + 5u]
 			);
+	
 	return node;
 }
 
@@ -88,8 +90,8 @@ fn getNodeIndex(level: u32, coord: vec2<u32>) -> u32 {
 	return parentIndex+index - offset;
 }
 
-fn getValue(node: Node) -> f32 {
-	return values[u32(node.valueAddress)];
+fn getValue0(node: Node) -> f32 {
+	return values0[u32(node.valueAddress)];
 }
 
 // check quadMap level of all is done
@@ -162,8 +164,8 @@ fn getFeatArray(index: u32, minLevel: u32) -> array<f32, 16> {
 		if (i32(minLevel) + i32(i) > i32(index)-i32(minLevel)) {
 			break;
 		};
-		let address = u32(traversal[minLevel + i].address);
-		featArray[i] = getValue(getNode(address));
+		let address = u32(traversal[minLevel + i].address0);
+		featArray[i] = getValue0(getNode0(address));
 	};
 	return normalizeArray16(featArray);
 }
@@ -182,16 +184,16 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 	let reference = threadIterations.reference;
 	
 	var childArray1 = parentArray;
-	childArray1[level] = getValue(getNode(u32(children[0u])));
+	childArray1[level] = getValue0(getNode0(u32(children[0u])));
 	childArray1 = normalizeArray16(childArray1);
 	var childArray2 = parentArray;
-	childArray2[level] = getValue(getNode(u32(children[1u])));
+	childArray2[level] = getValue0(getNode0(u32(children[1u])));
 	childArray2 = normalizeArray16(childArray2);
 	var childArray3 = parentArray;
-	childArray3[level] = getValue(getNode(u32(children[2u])));
+	childArray3[level] = getValue0(getNode0(u32(children[2u])));
 	childArray3 = normalizeArray16(childArray3);
 	var childArray4 = parentArray;
-	childArray4[level] = getValue(getNode(u32(children[3u])));
+	childArray4[level] = getValue0(getNode0(u32(children[3u])));
 	childArray4 = normalizeArray16(childArray4);
 
 
@@ -230,8 +232,12 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 @group(0) @binding(3) var texture: texture_storage_2d<rgba8unorm, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 @group(1) @binding(0) var<storage, read_write> threadIterations: ThreadInfo; 
-@group(2) @binding(0) var<storage, read_write> values: array<f32>;
-@group(2) @binding(1) var<storage, read_write> nodes: array<f32>;
+
+@group(2) @binding(0) var<storage, read_write> values0: array<f32>;
+@group(2) @binding(1) var<storage, read_write> nodes0: array<f32>;
+
+@group(3) @binding(0) var<storage, read_write> values1: array<f32>;
+@group(3) @binding(1) var<storage, read_write> nodes1: array<f32>;
 
 //@compute @workgroup_size(1)
 //const local_size: u32 = 1u;
@@ -300,7 +306,7 @@ const local_size: u32 = 8u;
 		*/
 			
 		// check if outside traversal bounds (not need for gpu)
-		var addr = traversal[index].address;
+		var addr = traversal[index].address0;
 		if (level == minLevel && addr == 0.0) {
 			// for loop minLevel
 			for (var i = 0u; i <= minLevel; i = i + 1u) {
@@ -309,41 +315,39 @@ const local_size: u32 = 8u;
 				if (addr == -1) {
 					continue;
 				}
-				addr = getNode(u32(addr)).children[preQuad];
+				addr = getNode0(u32(addr)).children[preQuad];
 			}
-			traversal[index].address = addr;
+			traversal[index].address0 = addr;
 		}
 
 		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && !get_bit(nodeIndex)) {
 			let nextQuad = quadFromCoord(coord, textDim*2u);
-			let node = getNode(u32(addr));
+			let node = getNode0(u32(addr));
 			let childAddress = node.children[nextQuad];
 			let quadCoord = vec2<u32>(nextQuad / 2u, nextQuad % 2u);
 			let childPixCoord = 2u*pixCoord+quadCoord;
 			let childNodeIndex = getNodeIndex(level+1, childPixCoord);
 			if (addr < 0.0) {
-				//traversal[0u].coord = vec2<f32>(0.0, 0.0);
-				//traversal[index+1u].address = -1;
 				set_bit(nodeIndex, true);
 				return;
 			}
-			let childNode = getNode(u32(childAddress));
+			let childNode = getNode0(u32(childAddress));
 
-			let value = getValue(node);
+			let value = getValue0(node);
 			//threadIterations.reference[u32(level-minLevel)] = value;
 			setReference(u32(level-minLevel), value);
-			let childValue = getValue(childNode);
+			let childValue = getValue0(childNode);
 			//threadIterations.reference[u32(level-minLevel)+1u] = childValue;
 			setReference(u32(level-minLevel)+1u, childValue);
 
-			traversal[index+1].address = childAddress;
+			traversal[index+1].address0 = childAddress;
 			traversal[index+1].coord = coord;
 			set_bit(nodeIndex, true);
 			return;
 		}
 		
-		let node = getNode(u32(addr));
-		var value = getValue(node);
+		let node = getNode0(u32(addr));
+		var value = getValue0(node);
 
 		// Dont process if reference is not set
 		if (threadIterations.reference[u32(level-minLevel)] == 0.0) {
@@ -387,12 +391,12 @@ const local_size: u32 = 8u;
 			if (q != nextQuad){
 				childCoord = vec2<f32>(f32(childPixCoord.x) / f32(textDim.x*2u), f32(childPixCoord.y) / f32(textDim.y*2u));
 			}
-			let childNode = getNode(u32(child));
+			let childNode = getNode0(u32(child));
 			
 			let quadBool = get_bit(childNodeIndex); 
-			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values[u32(child)] == 0.0) || child <= 0.0) {
+			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values0[u32(child)] == 0.0) || child <= 0.0) {
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
-				let childValue = getValue(childNode);
+				let childValue = getValue0(childNode);
 				if (childValue != 0.0) {
 					writeTexture(tempCoord, value, level, global_id, local_id);
 				}
@@ -404,7 +408,7 @@ const local_size: u32 = 8u;
 		set_bit(childNodeIndex, true);
 		//quadMap[childNodeIndex] = 1u;
 
-		traversal[index+1].address = child;
+		traversal[index+1].address0 = child;
 		traversal[index+1].coord = childCoord;
 		traversal[index].coord = childCoord;
 	}

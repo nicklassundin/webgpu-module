@@ -144,7 +144,7 @@ class BufferMux {
 		// TODO should possible expand to multiple features
 		this.features.push(features);
 		// TODO move mipLevel to travThreadIter
-		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1]);
+		const traversal_values = new Float32Array([uv[0], uv[1], 0, 0]);
 		this.traversal = device.createBuffer({
 			size: traversal_values.byteLength * 16 *number_threads,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
