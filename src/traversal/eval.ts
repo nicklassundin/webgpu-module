@@ -64,13 +64,6 @@ const READ_BGL = {
 				type: 'storage'
 			}
 		},
-		{
-			binding: 2,
-			visibility: GPUShaderStage.COMPUTE,
-			buffer: {
-				type: 'storage'
-			}
-		},
 	],
 }
 
@@ -199,12 +192,12 @@ class Eval {
 				    layout: this.bindGroupLayouts.eval,
 				    entries: [
 					    {
-						    binding: 0,	
+						    binding: 0,
 						    resource: {
-							    buffer: this.bufferMux.features[0],
+							    buffer: this.bufferMux.evalThreadIters[0],
 							    offset: 0,
-							    size: this.bufferMux.features[0].size,
-						    },
+							    size: this.bufferMux.evalThreadIters[0].size,
+						    }
 					    },
 					]			    
 			    });
@@ -215,21 +208,13 @@ class Eval {
 					    {
 						    binding: 0,
 						    resource: {
-							    buffer: this.bufferMux.evalThreadIters[0],
-							    offset: 0,
-							    size: this.bufferMux.evalThreadIters[0].size,
-						    }
-					    },
-					    {
-						    binding: 1,
-						    resource: {
 							    buffer: this.bufferMux.quadTrees[0].values,
 							    offset: 0,
 							    size: this.bufferMux.quadTrees[0].values.size,
 						    }
 					    },
 					    {
-						    binding: 2,
+						    binding: 1,
 						    resource: {
 							    buffer: this.bufferMux.quadTrees[0].nodes,
 							    offset: 0,
