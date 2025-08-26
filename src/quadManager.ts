@@ -1,5 +1,5 @@
 import Eval from './traversal/eval';
-import QuadTreeTraversal from './traversal/traversal';
+// import QuadTreeTraversal from './traversal/traversal';
 import VertexGen from './genVertex';
 import BufferMux from './traversal/BufferMux';
 
@@ -14,7 +14,7 @@ const LEVEL = 4;
 class QuadManager {
 	device: GPUDevice;
 	originalCanvasSize: number;
-	quadTree: QuadTreeTraversal;
+	// quadTree: QuadTreeTraversal;
 	eval: Eval;
 	bufferMux: BufferMux;
 	constructor(device: GPUDevice, originalCanvasSize: number) {
@@ -22,11 +22,10 @@ class QuadManager {
 
 		this.originalCanvasSize = originalCanvasSize;
 	}
-	init(quadTree: QuadTree, uv: number[], data: array[]) {
-		// this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, this.mipLevel, LEVEL, uv, data);
+	init(uv: number[], data: array[]) {
 		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, LEVEL, uv, data);
 
-		this.quadTree = new QuadTreeTraversal(this.device, this.bufferMux)
+		// this.quadTree = new QuadTreeTraversal(this.device, this.bufferMux)
 		
 		this.eval = new Eval(this.device, this.bufferMux, LEVEL);
 		this.genVertex = new VertexGen(this.device, this.bufferMux)

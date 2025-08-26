@@ -36,6 +36,18 @@ const WRITE_BGL = {
 		}
 	],
 }
+const INFO_BGL = {
+	entries: [
+		{
+			binding: 0,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			}
+		},
+	],
+}
+
 const READ_BGL = {
 	entries: [
 		{
@@ -59,13 +71,6 @@ const READ_BGL = {
 				type: 'storage'
 			}
 		},
-		{
-			binding: 3,
-			visibility: GPUShaderStage.COMPUTE,
-			buffer: {
-				type: 'storage',
-			}
-		}
 	],
 }
 
@@ -112,11 +117,12 @@ class Eval {
 
 			    this.bindGroupLayouts = {
 				    quadTree: device.createBindGroupLayout(READ_BGL),
+				    eval: device.createBindGroupLayout(INFO_BGL),
 				    texture: device.createBindGroupLayout(WRITE_BGL),
 			    }
 			    // create bindGroup for quadTree
 			    const pipelineLayoutQuadTree = device.createPipelineLayout({
-				    bindGroupLayouts: [this.bindGroupLayouts.texture, this.bindGroupLayouts.quadTree],
+				    bindGroupLayouts: [this.bindGroupLayouts.texture, this.bindGroupLayouts.eval,  this.bindGroupLayouts.quadTree],
 			    });
 			    // create compute pipeline for quad traversal
 			    const pipeline = device.createComputePipeline({
@@ -140,7 +146,8 @@ class Eval {
 			    const computePass = commandEncoder.beginComputePass();
 			    computePass.setPipeline(this.pipeline);
 			    computePass.setBindGroup(0, this.bindGroups.texture);
-			    computePass.setBindGroup(1, this.bindGroups.quadTree);
+			    computePass.setBindGroup(1, this.bindGroups.eval);
+			    computePass.setBindGroup(2, this.bindGroups.quadTree);
 			    // computePass.dispatchWorkgroups(1)
 			    //
 			    computePass.dispatchWorkgroups(this.wgS.x, this.wgS.y, this.wgS.z)
@@ -187,8 +194,9 @@ class Eval {
 					    }
 				    ],
 			    });
-			    const bindGroupQuadTree = this.device.createBindGroup({
-				    layout: this.bindGroupLayouts.quadTree, 
+
+			    const bindGroupEval = this.device.createBindGroup({
+				    layout: this.bindGroupLayouts.eval,
 				    entries: [
 					    {
 						    binding: 0,	
@@ -198,16 +206,22 @@ class Eval {
 							    size: this.bufferMux.features[0].size,
 						    },
 					    },
+					]			    
+			    });
+
+			    const bindGroupQuadTree = this.device.createBindGroup({
+				    layout: this.bindGroupLayouts.quadTree, 
+				    entries: [
 					    {
-						    binding: 1,
+						    binding: 0,
 						    resource: {
-							    buffer: this.bufferMux.evalThreadIter,
+							    buffer: this.bufferMux.evalThreadIters[0],
 							    offset: 0,
-							    size: this.bufferMux.evalThreadIter.size,
+							    size: this.bufferMux.evalThreadIters[0].size,
 						    }
 					    },
 					    {
-						    binding: 2,
+						    binding: 1,
 						    resource: {
 							    buffer: this.bufferMux.quadTrees[0].values,
 							    offset: 0,
@@ -215,7 +229,7 @@ class Eval {
 						    }
 					    },
 					    {
-						    binding: 3,
+						    binding: 2,
 						    resource: {
 							    buffer: this.bufferMux.quadTrees[0].nodes,
 							    offset: 0,
@@ -226,6 +240,7 @@ class Eval {
 			    });
 			    this.bindGroups = {
 				    texture: bindGroupQuadTreeTexture,
+				    eval: bindGroupEval, 
 				    quadTree: bindGroupQuadTree,
 			    }
 		    }

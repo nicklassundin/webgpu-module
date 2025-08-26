@@ -126,17 +126,18 @@ window.addEventListener('load', async function() {
 	});
 
 	// console print file name
-	// const quadTreeData = await fetch(quadTreeList[0]);
+	const quadTreeData0 = await fetch(quadTreeList[0]);
+	const quadTreeJsonString0 = await quadTreeData0.json();
+	let quadTreeJson0 = JSON.parse(quadTreeJsonString0);
 	console.log("Loading QuadTree from:", quadTreeList[1]);
-	const quadTreeData = await fetch(quadTreeList[1]);
-	const quadTreeJsonString = await quadTreeData.json();
-	let quadTreeJson = JSON.parse(quadTreeJsonString);
-	const quadTree = new QuadTree(device, quadTreeJson)
-	quadTreeJson = [quadTreeJson];
+	const quadTreeData1 = await fetch(quadTreeList[1]);
+	const quadTreeJsonString1 = await quadTreeData1.json();
+	let quadTreeJson1 = JSON.parse(quadTreeJsonString1);
+	let quadTrees = [quadTreeJson0, quadTreeJson1];
 
 	// let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
 	let quadManager = new QuadManager(device, canvasOrigSize);
-	quadManager.init(quadTree, DEFAULT_COORD, quadTreeJson);
+	quadManager.init(DEFAULT_COORD, quadTrees);
 
 	const textureSize = quadManager.bufferMux.config.textureSize;
 
@@ -287,7 +288,7 @@ window.addEventListener('load', async function() {
 			await quadManager.unmap();
 			// quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
 			quadManager = new QuadManager(device, textureSize, params.travelValues);
-			quadManager.init(quadTree, params.travelValues, quadTreeJson);
+			quadManager.init(params.travelValues, quadTrees);
 			render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager.bufferMux);
 			const commandEncoderArg = device.createCommandEncoder();
 			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.bufferMux.traversal);

@@ -124,35 +124,37 @@ class BufferMux {
 		};
 		this.features = [];
 		this.quadTrees = [];
+		this.travThreadIters = []
 		// Data Initialization and Traversal of data
 		for (let i = 0; i < data.length; i++) {
 			const quadTree = new QuadTree(device, data[i]);
 			this.quadTrees.push(quadTree);
-			const features = device.createBuffer({
-				// TODO Large not in use
-				// size: Float32Array.BYTES_PER_ELEMENT*Math.pow(4, mipLevel), // TODO remove
-				size: 4, 
-				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-			});
-			this.features.push(features);
 			const travThreadIter = device.createBuffer({
-				size: Float32Array.BYTES_PER_ELEMENT*(16 + 4),
+				size: 4*16 + number_threads*4,
+				// size: Float32Array.BYTES_PER_ELEMENT*(16 + 4),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 			})
+			this.travThreadIters.push(travThreadIter);
 		}
+		const features = device.createBuffer({
+			// one feature per dataset
+			size: 32*4*this.quadTrees.length, 
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		});
+		// TODO should possible expand to multiple features
+		this.features.push(features);
 		// TODO move mipLevel to travThreadIter
 		const traversal_values = new Float32Array([uv[0], uv[1], 0, 1]);
 		this.traversal = device.createBuffer({
 			size: traversal_values.byteLength * 16 *number_threads,
-			//size: traversal_values.byteLength * Math.pow(4, mipLevel-level-Math.log2(LOCALSIZE))*number_threads,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		})
 		device.queue.writeBuffer(this.traversal, 0, traversal_values.buffer);
 
-		this.travThreadIter = device.createBuffer({
-			size: 4*16 + number_threads*4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		})
+		// this.travThreadIter = device.createBuffer({
+			// size: 4*16 + number_threads*4,
+			// usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		// })
 
 
 		// Evaluation Initialization
@@ -172,11 +174,15 @@ class BufferMux {
 			mipLevelCount: mipLevel,
 		})
 		
-		this.evalThreadIter = device.createBuffer({
-			size: 4*16 + number_threads*4 + 4*4,
-			// size: 4*16 + number_threads*4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		})
+		this.evalThreadIters = []
+		for (let i = 0; i < data.length; i++) {
+			const evalThreadIter = device.createBuffer({
+				size: 4*16 + number_threads*4 + 4*4,
+				// size: 4*16 + number_threads*4,
+				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+			})
+			this.evalThreadIters.push(evalThreadIter);
+		}
 		this.result = device.createBuffer({
 			size: this.features[0].size*4*4,
 			offset: 0,
@@ -236,7 +242,6 @@ class BufferMux {
 		console.log('mipLevel:', mipLevel);
 		console.log('minLevel:', minLevel);
 		console.log('quadTreeMap size:', this.quadTreeMap.size);
-		console.log('evalThreadIter size:', this.evalThreadIter.size);
 		console.log('result size:', this.result.size);
 		console.log('texture size:', this.texture.size);
 		console.log('vertices size:', this.vertices.size);
@@ -244,7 +249,11 @@ class BufferMux {
 		console.log('uniform size:', this.uniform.size);
 		console.log('state size:', this.state.size);
 		console.log('traversal size:', this.traversal.size);
-		console.log('travThreadIter size:', this.travThreadIter.size);
+		for (let i = 0; i < this.features.length; i++) {
+			console.log('evalThreadIter size:', this.evalThreadIters[i].size);
+			console.log('travThreadIter size:', this.travThreadIters[i].size);
+		}
+		// console.log('travThreadIter size:', this.travThreadIters.size);
 		console.log('quadTrees:', this.quadTrees.length);
 
 	}

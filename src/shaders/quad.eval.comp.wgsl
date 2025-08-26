@@ -30,7 +30,6 @@ fn normalizeArray16(arr: array<f32, 16>) -> array<f32, 16> {
 	return normalized;
 }
 
-@group(1) @binding(1) var<storage, read_write> threadIterations: ThreadInfo; 
 
 fn setReference(level: u32, value: f32) {
 	if (level < 16u) {
@@ -231,9 +230,9 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 @group(0) @binding(3) var texture: texture_storage_2d<rgba8unorm, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 @group(1) @binding(0) var<storage, read_write> levelValues: array<array<f32, 16>>;
-
-@group(1) @binding(2) var<storage, read_write> values: array<f32>;
-@group(1) @binding(3) var<storage, read_write> nodes: array<f32>;
+@group(2) @binding(0) var<storage, read_write> threadIterations: ThreadInfo; 
+@group(2) @binding(1) var<storage, read_write> values: array<f32>;
+@group(2) @binding(2) var<storage, read_write> nodes: array<f32>;
 
 //@compute @workgroup_size(1)
 //const local_size: u32 = 1u;
