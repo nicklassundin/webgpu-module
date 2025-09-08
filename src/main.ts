@@ -51,11 +51,35 @@ window.addEventListener('load', async function() {
 		throw new Error("Failed to get canvas element.");
 	}
 	const adapter = await navigator.gpu?.requestAdapter();
-	const device = await adapter?.requestDevice();
+	if (!adapter) throw new Error("No WebGPU adapter.");
+	if (!adapter.features.has("timestamp-query")) {
+		  throw new Error("This device/browser doesn't support timestamp-query.");
+		  
+	}
+	const device = await adapter?.requestDevice({
+		requiredFeatures: ["timestamp-query"],
+	});
 	if (!device) {
-		console.error("Failed to get WebGPU device.");
 		throw new Error("Failed to get WebGPU device.");
 	}
+	
+	// Query set
+	// const sampleCount = 5
+	// const querySet = device.createQuerySet({
+		  // type: "timestamp",
+		    // count: sampleCount
+	// });
+	// const queryBuffer = device.createBuffer({
+		  // size: 8*sampleCount,
+		  // usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
+	// });
+	// Read buffer from sample
+	// const readSampleBuffer = device.createBuffer({
+		  // size: 8*sampleCount,
+		  // usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+	// });
+
+	// debug manager
 	const dbug_mngr = new Debugger(device);
 
 
@@ -247,6 +271,11 @@ window.addEventListener('load', async function() {
 				quadManager.bufferMux.updateInput(input);
 			}
 		})
+
+		// button that saves dbug_mngr.data to file
+		debugFolder.add({ save: () => {
+			dbug_mngr.saveToFile();
+		}}, 'save').name("Save debug data to file");
 		debugFolder.open();
 	}
 
@@ -277,7 +306,16 @@ window.addEventListener('load', async function() {
 		}
 		stats.begin();
 		const currentTime = Date.now() - opTime;
-		const commandEncoder = device.createCommandEncoder();
+		// const commandEncoder = device.createCommandEncoder();
+		const commandEncoder = device.createCommandEncoder({
+			timestampWrites: {
+				querySet: dbug_mngr.querySet,
+				beginningOfPassWriteIndex: 0,
+				endOfPassWriteIndex: dbug_mngr.sampleCount - 1,
+			},
+		});
+		// commandEncoder.writeTimestamp(querySet, 0);
+		dbug_mngr.addTimestamp(commandEncoder)
 		// Update the stats panel
 		if (params.change) {
 			frameCount = 0;
@@ -302,6 +340,8 @@ window.addEventListener('load', async function() {
 		}
 		current_mipLevel++;
 		await quadManager.eval.pass(frameCount, commandEncoder);
+		// commandEncoder.writeTimestamp(querySet, 1)
+		dbug_mngr.addTimestamp(commandEncoder)
 		quadManager.genVertex.pass(frameCount, commandEncoder);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
@@ -312,8 +352,23 @@ window.addEventListener('load', async function() {
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
 		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
 		// await dbug_mngr.u32fromBufferToLog(quadManager.bufferMux.uniform, 0, 32);
+		// commandEncoder.writeTimestamp(querySet, 2);
+		dbug_mngr.addTimestamp(commandEncoder)
+		// resolve query TODO check such deltaNs not zero
+		// commandEncoder.resolveQuerySet(querySet, 0, 2, queryBuffer, 0);
+		// commandEncoder.copyBufferToBuffer(queryBuffer, 0, readSampleBuffer, 0, 8*sampleCount);
+		dbug_mngr.end(commandEncoder)
+		
 		device.queue.submit([commandEncoder.finish()]);
+		dbug_mngr.saveSample(commandEncoder)
+		// await device.queue.onSubmittedWorkDone();	
+		// await readSampleBuffer.mapAsync(GPUMapMode.READ);
+		// const timestamps = new BigUint64Array(readSampleBuffer.getMappedRange());
+		// const deltaNs = Number(timestamps[1] - timestamps[0]);
 
+		// console.log("GPU time (ns):", deltaNs);
+		// console.log("GPU time (ms):", deltaNs / 1e6);
+		// readSampleBuffer.unmap();
 		// renderpass locked 30 fps
 		if (currentTime - lastFrameTime > 1000 / 30) {
 			const renderCommandEncoder = device.createCommandEncoder();
@@ -402,6 +457,7 @@ window.addEventListener('load', async function() {
 				zipLink.textContent = `Download all snapshots`;
 				zipLink.style.display = 'block';
 				linksContainer.appendChild(zipLink);
+				dbug_mngr.saveToFile();
 			}
 			current_mipLevel = 0;
 		}

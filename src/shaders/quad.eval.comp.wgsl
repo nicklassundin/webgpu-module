@@ -274,6 +274,7 @@ const local_size: u32 = 8u;
 			@builtin(workgroup_id) workgroup_id : vec3<u32>,
 			@builtin(num_workgroups) num_workgroups : vec3<u32>,
 			@builtin(local_invocation_id) local_id: vec3<u32>) {
+
 		let textDim = textureDimensions(texture);
 
 		var threadDim = threadIterations.dimensions;
