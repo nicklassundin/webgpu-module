@@ -54,6 +54,7 @@ class Debugger {
 	sampleIndex: number = 0;
 	data: number[] = [];
 	sampleCount: number = 5;
+	label: string = '0';
 	constructor(device: GPUDevice) {
 		this.device = device;
 		this.querySet = device.createQuerySet({
@@ -91,8 +92,14 @@ class Debugger {
 		await this.readSampleBuffer.mapAsync(GPUMapMode.READ);
 		const timestamps = new BigUint64Array(this.readSampleBuffer.getMappedRange());
 		// convert to array
-		const ts = Array.from(timestamps);
-		this.data.push(...ts)
+		const ts = Array.from(timestamps).filter(v => v != BigInt(0)).map(v => Number(v));
+		
+		this.data.push(...ts.map(v => {
+			return {
+				label: this.label,
+				timestamp: v
+			}
+		}))
 		for (let i = 1; i < ts.length; i++){
 			// console.log(this.data)
 			// console.log('time:', Number(ts[i]))
@@ -104,17 +111,22 @@ class Debugger {
 		this.sampleIndex = 0;
 		this.data = [];
 	}
+	incrementLabel() {
+		this.label = (Number(this.label) + 1).toString();
+	}
 	// Save this.data to file
-	saveToFile() {
-		let result = this.data
+	saveToFile(filename: string = 'debug.json') {
+		let result = {
+			'data': this.data
+		};
+		let json = JSON.stringify(result, null, 2);
 		// filter out 0
-		result = result.filter((v) => v != BigInt(0))
 		// console.log('result', result);
-		const blob = new Blob([result.join('\n')], {type: 'text/plain'});
+		const blob = new Blob([json], {type: 'application/json'});
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = 'debug.txt';
+		a.download = filename;
 		a.click();
 		URL.revokeObjectURL(url);
 	}

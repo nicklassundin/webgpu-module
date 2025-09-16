@@ -119,6 +119,7 @@ class BufferMux {
 			textureSize: textureSize,
 			mipTextureSize: mipTextureSize,
 			mipLevel: mipLevel,
+			minMipLevel: minLevel,
 			workgroupSize: WORKGROUPSIZE,
 			localSize: LOCALSIZE,
 		};

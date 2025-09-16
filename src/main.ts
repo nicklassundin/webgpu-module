@@ -17,6 +17,41 @@ import QuadTree from './data'
 import QuadManager from "./quadManager";
 import Eval from "./eval";
 import Render from "./render";
+
+let TIMEINTERVAL = []
+let initializeTimeInterval = function(s: number = 5) {
+	TIMEINTERVAL = []; 
+	for (let i = 0; i < s; i++) {
+		// random time between 0 and 6000 
+		let time = Math.floor(10 + (6000 - 10) * Math.random());
+		TIMEINTERVAL.push(time);
+		// TIMEINTERVAL.push(Math.floor(10 + (6000 - 10) * (i / 49)));
+	}
+	// sort TIMEINTERVAL
+	TIMEINTERVAL = TIMEINTERVAL.sort((a, b) => a - b);
+}
+initializeTimeInterval();
+
+
+class OutputManager {
+	zip: JSZip;
+	files: { [key: string]: JSZip | null } = {};
+
+	constructor() {
+		this.zip = new JSZip();
+	}
+	get content() {
+		return this.zip.generateAsync({ type: 'blob' }); 
+	}
+	async addDirectory(name: string) {
+		await this.content;
+		return this.zip.folder(name);
+	}
+}
+const outputMngr = new OutputManager();
+
+
+
 window.addEventListener('load', async function() {
 	const stats = new Stats();
 	stats.showPanel(0)
@@ -174,6 +209,7 @@ window.addEventListener('load', async function() {
 		travelValues: number[];
 		change: boolean = false;
 		output: boolean = false;
+		numSample: number = 2;
 		constructor(travelValues: number[]) {
 			this.travelValues = travelValues;
 		}
@@ -208,15 +244,7 @@ window.addEventListener('load', async function() {
 	}
 
 
-	// time intervall 10, 100, 1000 ms
-	// const TIMEINTERVAL = [10, 100, 1000, 5000, 10000, 15000, 20000];
-	// const TIMEINTERVAL = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 50000];
-	// generate TIMEINTERVAL with 50 steps between 10 and 6000
-	const TIMEINTERVAL = []; 
-	for (let i = 0; i < 80; i++) {
-		TIMEINTERVAL.push(Math.floor(10 + (6000 - 10) * (i / 49)));
-	}
-	let numSample = 5;
+	let iterations = 0; 
 	let opTime = 0;
 
 	var timeInterval = TIMEINTERVAL;
@@ -237,8 +265,16 @@ window.addEventListener('load', async function() {
 		uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
 		uvFolder.open();
 		// check box for output
-
+		
 		const debugFolder = gui.addFolder("Debug");
+		// number of sample times
+		const NUMSAMPLE = 2
+		debugFolder.add({ value: NUMSAMPLE }, 'value', 1, 50, 1).name("Number of samples").onChange((value: number) => {
+			params.numSample = value;
+		})
+		params.numSample = NUMSAMPLE;
+		
+
 		debugFolder.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
 			params.output = value;
 			startTime = 0;
@@ -274,7 +310,7 @@ window.addEventListener('load', async function() {
 
 		// button that saves dbug_mngr.data to file
 		debugFolder.add({ save: () => {
-			dbug_mngr.saveToFile();
+			dbug_mngr.saveToFile("manualTimeLine.json");
 		}}, 'save').name("Save debug data to file");
 		debugFolder.open();
 	}
@@ -289,7 +325,7 @@ window.addEventListener('load', async function() {
 	await device.queue.onSubmittedWorkDone();
 
 
-	let current_mipLevel = 0;
+	// let current_mipLevel = 0;
 	var reference = true;
 
 
@@ -318,8 +354,9 @@ window.addEventListener('load', async function() {
 		dbug_mngr.addTimestamp(commandEncoder)
 		// Update the stats panel
 		if (params.change) {
+			initializeTimeInterval();
 			frameCount = 0;
-			current_mipLevel = 0;
+			// current_mipLevel = 0;
 			params.change = false;
 			reference = true
 
@@ -338,7 +375,7 @@ window.addEventListener('load', async function() {
 			return;
 			// }else if(16*2 > frameCount){
 		}
-		current_mipLevel++;
+		// current_mipLevel++;
 		await quadManager.eval.pass(frameCount, commandEncoder);
 		// commandEncoder.writeTimestamp(querySet, 1)
 		dbug_mngr.addTimestamp(commandEncoder)
@@ -385,13 +422,13 @@ window.addEventListener('load', async function() {
 		stats.end();
 		if (timeInterval.length > 0 && params.output && currentTime - startTime >= timeInterval[0] ) {
 			const opBeforeTime = Date.now();
-			// for (let i = 0; i < 10; i++) {
-			// 	current_mipLevel++;
-			// 	const waitCommandEncoder = device.createCommandEncoder();
-			// 	quadManager.genVertex.pass(1, waitCommandEncoder);
-			// 	// quadManager.genVertex.pass(current_mipLevel, waitCommandEncoder);
-			// 	device.queue.submit([waitCommandEncoder.finish()]);
-			// }
+			for (let i = 0; i < 100; i++) {
+				// current_mipLevel++;
+				const waitCommandEncoder = device.createCommandEncoder();
+				quadManager.genVertex.pass(0, waitCommandEncoder);
+				// quadManager.genVertex.pass(current_mipLevel, waitCommandEncoder);
+				device.queue.submit([waitCommandEncoder.finish()]);
+			}
 
 			await device.queue.onSubmittedWorkDone();
 			// opTime += Date.now() - opBeforeTime;
@@ -436,30 +473,41 @@ window.addEventListener('load', async function() {
 			// startTime = 0;
 			if (timeInterval.length === 0) {
 				// package all links in a zip file
-				const zip = new JSZip();
+				// const zip = new JSZip();
 				const links = linksContainer.querySelectorAll('a');
-				// make directory snapshot_{numSample}
-				const dir = zip.folder(`snapshots_${numSample}`);
+				let name = `snapshots_${iterations}`;
+				let dir = await outputMngr.addDirectory(name);
 				for (const link of links) {
 					const response = await fetch(link.href);
 					const blob = await response.blob();
 					// add to zip file in the directory
+					// dir?.file(link.download, blob);
 					dir?.file(link.download, blob);
 					// zip.file(link.download, blob);
 				}
-				numSample--;
-				
-				// create zip file
-				const content = await zip.generateAsync({ type: 'blob' });
-				const zipLink = document.createElement('a');
-				zipLink.download = `snapshots.zip`;
-				zipLink.href = URL.createObjectURL(content);
-				zipLink.textContent = `Download all snapshots`;
-				zipLink.style.display = 'block';
-				linksContainer.appendChild(zipLink);
-				dbug_mngr.saveToFile();
+
+				if (iterations == params.numSample) {
+					console.log("Finished all iterations.");
+					// create zip file
+					// const content = await zip.generateAsync({ type: 'blob' });
+					const zipLink = document.createElement('a');
+					zipLink.download = `snapshots.zip`;
+					let content = await outputMngr.content;
+					zipLink.href = URL.createObjectURL(content);
+					zipLink.textContent = `Download all snapshots`;
+					zipLink.style.display = 'block';
+					linksContainer.appendChild(zipLink);
+					dbug_mngr.saveToFile("timeline.json");
+					params.output = false;
+				}else{
+					iterations++;
+					initializeTimeInterval();
+					timeInterval = TIMEINTERVAL;
+					params.change = true;
+				}
 			}
-			current_mipLevel = 0;
+			dbug_mngr.incrementLabel();
+			// current_mipLevel = 0;
 		}
 
 		requestAnimationFrame(frame);

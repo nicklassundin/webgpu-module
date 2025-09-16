@@ -106,7 +106,7 @@ class Eval {
 				    y: workgroupSize,
 				    z: 1,
 			    };
-			    console.log(this.wgS)
+			    // console.log(this.wgS)
 
 			    this.bindGroupLayouts = {
 				    quadTree: device.createBindGroupLayout(READ_BGL),
@@ -131,11 +131,11 @@ class Eval {
 			    this.layout = pipelineLayoutQuadTree;
 		    }
 
-		    async pass(mipLevel, commandEncoder: GPUCommandEncoder){
+		    async pass(frame: number, commandEncoder: GPUCommandEncoder){
 			    await this.device.queue.onSubmittedWorkDone();
 			    const device = this.device;
 			    // update bindGroup
-			    this.createBindGroups(mipLevel);
+			    this.createBindGroups(frame);
 			    const computePass = commandEncoder.beginComputePass();
 			    computePass.setPipeline(this.pipeline);
 			    computePass.setBindGroup(0, this.bindGroups.texture);
@@ -152,6 +152,9 @@ class Eval {
 			    const mipLevel = this.bufferMux.config.mipLevel;
 			    // console.log(mipLevel, level % mipLevel, this.startLevel, level)
 			    let currentMipLevel = (mipLevel) - level % (mipLevel - this.startLevel) - this.startLevel;
+			    // console.log("startlevel", this.startLevel)
+			    // console.log("currentLevel", currentMipLevel)
+			    // console.log("mipLevel", mipLevel)
 			    const bindGroupQuadTreeTexture = this.device.createBindGroup({
 				    layout: this.bindGroupLayouts.texture,
 				    entries: [

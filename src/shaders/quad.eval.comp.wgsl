@@ -227,13 +227,6 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 		distance(childArray2, reference), 
 		distance(childArray3, reference), 
 		distance(childArray4, reference));
-	/*
-	result[0u][0u] = childArray1[0u];
-	result[0u][1u] = childArray1[1u];
-	result[0u][2u] = childArray1[2u];
-	result[0u][3u] = childArray1[3u];
-	result[0u][4u] = childArray2[0u];
-	*/
 
 	var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
 	for (var i = 0u; i < 4u; i = i + 1u) {
