@@ -19,11 +19,10 @@ import Eval from "./eval";
 import Render from "./render";
 
 let TIMEINTERVAL = []
-let initializeTimeInterval = function(s: number = 5) {
+let initializeTimeInterval = function(s: number = 80) {
 	TIMEINTERVAL = []; 
 	for (let i = 0; i < s; i++) {
-		// random time between 0 and 6000 
-		let time = Math.floor(10 + (6000 - 10) * Math.random());
+		let time = Math.floor(10 + (10000 - 10) * Math.random());
 		TIMEINTERVAL.push(time);
 		// TIMEINTERVAL.push(Math.floor(10 + (6000 - 10) * (i / 49)));
 	}
@@ -268,7 +267,7 @@ window.addEventListener('load', async function() {
 		
 		const debugFolder = gui.addFolder("Debug");
 		// number of sample times
-		const NUMSAMPLE = 2
+		const NUMSAMPLE = 5
 		debugFolder.add({ value: NUMSAMPLE }, 'value', 1, 50, 1).name("Number of samples").onChange((value: number) => {
 			params.numSample = value;
 		})
@@ -443,7 +442,8 @@ window.addEventListener('load', async function() {
 
 			// save and download canvas
 			const interval = timeInterval[0];
-			const link = document.createElement('a');
+			let link = document.createElement('a');
+			link.classList.add('active')
 
 			link.download = `snapshot_${nameIndex}_${interval}.png`;
 			nameIndex++;
@@ -474,7 +474,11 @@ window.addEventListener('load', async function() {
 			if (timeInterval.length === 0) {
 				// package all links in a zip file
 				// const zip = new JSZip();
-				const links = linksContainer.querySelectorAll('a');
+				let links = linksContainer.querySelectorAll('a');
+				// keep only class active
+				links = Array.from(links).filter(link => link.classList.contains('active'));
+
+				// filter out all not containing 'snapshots_${iterations}' in name
 				let name = `snapshots_${iterations}`;
 				let dir = await outputMngr.addDirectory(name);
 				for (const link of links) {
@@ -487,7 +491,6 @@ window.addEventListener('load', async function() {
 				}
 
 				if (iterations == params.numSample) {
-					console.log("Finished all iterations.");
 					// create zip file
 					// const content = await zip.generateAsync({ type: 'blob' });
 					const zipLink = document.createElement('a');
@@ -504,6 +507,10 @@ window.addEventListener('load', async function() {
 					initializeTimeInterval();
 					timeInterval = TIMEINTERVAL;
 					params.change = true;
+					const LINKS = linksContainer.querySelectorAll('a');
+					for (const l of LINKS) {
+						l.classList.remove('active');
+					}
 				}
 			}
 			dbug_mngr.incrementLabel();
