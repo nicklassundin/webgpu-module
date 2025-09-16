@@ -309,7 +309,13 @@ window.addEventListener('load', async function() {
 
 		// button that saves dbug_mngr.data to file
 		debugFolder.add({ save: () => {
-			dbug_mngr.saveToFile("manualTimeLine.json");
+			const blob =dbug_mngr.saveToFile("manualTimeLine.json");
+			const link = document.createElement('a');
+			link.download = `manualTimeLine.json`;
+			if (blob) {
+				link.href = URL.createObjectURL(blob);
+				link.click();
+			}
 		}}, 'save').name("Save debug data to file");
 		debugFolder.open();
 	}
