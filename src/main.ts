@@ -19,7 +19,7 @@ import Eval from "./eval";
 import Render from "./render";
 
 let TIMEINTERVAL = []
-let initializeTimeInterval = function(s: number = 80) {
+let initializeTimeInterval = function(s: number = 30) {
 	TIMEINTERVAL = []; 
 	for (let i = 0; i < s; i++) {
 		let time = Math.floor(10 + (10000 - 10) * Math.random());
@@ -489,7 +489,11 @@ window.addEventListener('load', async function() {
 					dir?.file(link.download, blob);
 					// zip.file(link.download, blob);
 				}
-
+				const timelineBlob = dbug_mngr.saveToFile("timeline.json");
+				if (timelineBlob) {
+					dir?.file(`timeline.json`, timelineBlob);
+				}
+				
 				if (iterations == params.numSample) {
 					// create zip file
 					// const content = await zip.generateAsync({ type: 'blob' });
@@ -500,7 +504,6 @@ window.addEventListener('load', async function() {
 					zipLink.textContent = `Download all snapshots`;
 					zipLink.style.display = 'block';
 					linksContainer.appendChild(zipLink);
-					dbug_mngr.saveToFile("timeline.json");
 					params.output = false;
 				}else{
 					iterations++;
