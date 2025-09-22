@@ -392,14 +392,16 @@ const local_size: u32 = 8u;
 			let childNode = getNode0(u32(child));
 			
 			let quadBool = get_bit(childNodeIndex); 
-			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values0[u32(child)] == 0.0) || child <= 0.0) {
+			//if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values0[u32(child)] == 0.0) || child <= 0.0) {
+			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || child <= 0.0) {
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
 				let childValue = getValue0(childNode);
 				// TODO switch to || statement
 				//if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) && (pixCoord.x != origPixCoord.x))) {
-				if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) || (pixCoord.x != origPixCoord.x))) {
-					writeTexture(tempCoord, value, level, global_id, local_id);
-				}
+				//if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) || (pixCoord.x != origPixCoord.x))) {
+				//if (((pixCoord.y != origPixCoord.y) || (pixCoord.x != origPixCoord.x))) {
+				writeTexture(tempCoord, value, level, global_id, local_id);
+				//}
 				set_bit(childNodeIndex, true);
 				continue;
 			}

@@ -30,6 +30,22 @@ let initializeTimeInterval = function(s: number = 30) {
 	TIMEINTERVAL = TIMEINTERVAL.sort((a, b) => a - b);
 }
 initializeTimeInterval();
+function addMarker(x: number, y: number) {
+	console.log(x, y)
+	// remove all markers
+	const markers = document.querySelectorAll('.marker');
+	markers.forEach(marker => marker.remove());
+	const marker = document.createElement('div');
+	// add class marker
+	marker.classList.add('marker');
+	// position marker
+	marker.style.left = `${x}px`;
+	marker.style.top = `${y}px`;
+	// add marker to body	
+	document.body.appendChild(marker);
+
+	return marker;
+}
 
 
 class OutputManager {
@@ -66,6 +82,7 @@ window.addEventListener('load', async function() {
 	// const DEFAULT_COORD = [0.19, 0.14];
 	// const DEFAULT_COORD = [0.11, 0.07];
 
+
 	// import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
 	// Make list of all .png files in public/data/obs
@@ -89,8 +106,8 @@ window.addEventListener('load', async function() {
 	const adapter = await navigator.gpu?.requestAdapter();
 	if (!adapter) throw new Error("No WebGPU adapter.");
 	if (!adapter.features.has("timestamp-query")) {
-		  throw new Error("This device/browser doesn't support timestamp-query.");
-		  
+		throw new Error("This device/browser doesn't support timestamp-query.");
+
 	}
 	const device = await adapter?.requestDevice({
 		requiredFeatures: ["timestamp-query"],
@@ -98,22 +115,6 @@ window.addEventListener('load', async function() {
 	if (!device) {
 		throw new Error("Failed to get WebGPU device.");
 	}
-	
-	// Query set
-	// const sampleCount = 5
-	// const querySet = device.createQuerySet({
-		  // type: "timestamp",
-		    // count: sampleCount
-	// });
-	// const queryBuffer = device.createBuffer({
-		  // size: 8*sampleCount,
-		  // usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
-	// });
-	// Read buffer from sample
-	// const readSampleBuffer = device.createBuffer({
-		  // size: 8*sampleCount,
-		  // usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-	// });
 
 	// debug manager
 	const dbug_mngr = new Debugger(device);
@@ -139,24 +140,14 @@ window.addEventListener('load', async function() {
 		device,
 		format: presentationFormat,
 	});
-	// Vertex Buffer
-	const Vertices = new Float32Array([
-		-1.0, 1.0,   // Vertex 1 (x, y)
-		-1.0, -1.0, // Vertex 2 (x, y)
-		1.0, -1.0,  // Vertex 3 (x, y)
-		-1.0, 1.0,   // Vertex 1 (x, y)
-		1.0, -1.0,  // Vertex 2 (x, y)
-		1.0, 1.0    // Vertex 3 (x, y)
-	])
 
-	const vertexBuffer = device.createBuffer({
-		size: Vertices.byteLength,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-		mappedAtCreation: true,
-	});
-	const mapping = new Float32Array(vertexBuffer.getMappedRange());
-	mapping.set(Vertices);
-	vertexBuffer.unmap();
+	// get screen pixel from DEFAULT_COORD
+	let rect = canvas.getBoundingClientRect();
+	let canvas_pixel = [DEFAULT_COORD[0] * canvas.width + rect.left, DEFAULT_COORD[1] * canvas.clientHeight]
+	// device pixel
+	console.log(canvas_pixel)
+	addMarker(canvas_pixel[0], canvas_pixel[1]);
+
 
 	// Mipmap pipeline
 	// load image
@@ -198,6 +189,7 @@ window.addEventListener('load', async function() {
 	// let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
 	let quadManager = new QuadManager(device, canvasOrigSize);
 	quadManager.init(DEFAULT_COORD, quadTrees);
+
 
 	const textureSize = quadManager.bufferMux.config.textureSize;
 
@@ -266,7 +258,7 @@ window.addEventListener('load', async function() {
 		uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
 		uvFolder.open();
 		// check box for output
-		
+
 		const debugFolder = gui.addFolder("Debug");
 		// number of sample times
 		const NUMSAMPLE = 5
@@ -274,7 +266,7 @@ window.addEventListener('load', async function() {
 			params.numSample = value;
 		})
 		params.numSample = NUMSAMPLE;
-		
+
 
 		debugFolder.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
 			params.output = value;
@@ -402,7 +394,7 @@ window.addEventListener('load', async function() {
 		// commandEncoder.resolveQuerySet(querySet, 0, 2, queryBuffer, 0);
 		// commandEncoder.copyBufferToBuffer(queryBuffer, 0, readSampleBuffer, 0, 8*sampleCount);
 		dbug_mngr.end(commandEncoder)
-		
+
 		device.queue.submit([commandEncoder.finish()]);
 		dbug_mngr.saveSample(commandEncoder)
 		// await device.queue.onSubmittedWorkDone();	
@@ -417,7 +409,7 @@ window.addEventListener('load', async function() {
 		if (currentTime - lastFrameTime > 1000 / 30) {
 			const renderCommandEncoder = device.createCommandEncoder();
 			// for (let i = 0; i < 1; i++) {
-				// quadManager.genVertex.pass(i, renderCommandEncoder);
+			// quadManager.genVertex.pass(i, renderCommandEncoder);
 			// }
 			render.pass(frameCount, renderCommandEncoder)
 			device.queue.submit([renderCommandEncoder.finish()]);
@@ -502,7 +494,7 @@ window.addEventListener('load', async function() {
 				if (timelineBlob) {
 					dir?.file(`timeline.json`, timelineBlob);
 				}
-				
+
 				if (iterations == params.numSample) {
 					// create zip file
 					// const content = await zip.generateAsync({ type: 'blob' });
@@ -556,8 +548,10 @@ window.addEventListener('load', async function() {
 		return createImageBitmap(blob);
 
 	}
+
 	// listen and find uv coordinates of mouse on click
 	canvas.addEventListener('click', async (event) => {
+		// reset frameCount
 		frameCount = 0;
 		// get x and y coordinates on the canvas
 		let x = event.clientX - canvas.getBoundingClientRect().left;
@@ -568,9 +562,11 @@ window.addEventListener('load', async function() {
 		// gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 		gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 		gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
+
+		addMarker(event.clientX, event.clientY);
+
 		params.updateTravelValues([uv[0], uv[1]]);
-		// await updateTravBufferCoord(uv);
-		// requestAnimationFrame(frame);
+
 	}, { passive: true  })
 
 	window.addEventListener('beforeunload', async () => {
