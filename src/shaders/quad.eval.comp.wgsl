@@ -396,8 +396,8 @@ const local_size: u32 = 8u;
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
 				let childValue = getValue0(childNode);
 				// TODO switch to || statement
-				if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) && (pixCoord.x != origPixCoord.x))) {
-				//if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) || (pixCoord.x != origPixCoord.x))) {
+				//if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) && (pixCoord.x != origPixCoord.x))) {
+				if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) || (pixCoord.x != origPixCoord.x))) {
 					writeTexture(tempCoord, value, level, global_id, local_id);
 				}
 				set_bit(childNodeIndex, true);

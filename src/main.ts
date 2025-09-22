@@ -59,7 +59,9 @@ window.addEventListener('load', async function() {
 	// const DEFAULT_COORD = [0.5, 0.6];
 	// const DEFAULT_COORD = [0.51, 0.51];
 	// const DEFAULT_COORD = [0.59, 0.69];
-	const DEFAULT_COORD = [0.41, 0.35];
+	// const DEFAULT_COORD = [0.41, 0.35];
+	// const DEFAULT_COORD = [0.15838509316770186, 0.6583850931677019]
+	const DEFAULT_COORD = [0.14389233954451347, 0.6169772256728778]
 	// const DEFAULT_COORD = [1.0 - 0.35, 0.41];
 	// const DEFAULT_COORD = [0.19, 0.14];
 	// const DEFAULT_COORD = [0.11, 0.07];
@@ -561,6 +563,8 @@ window.addEventListener('load', async function() {
 		let x = event.clientX - canvas.getBoundingClientRect().left;
 		let y = event.clientY - canvas.getBoundingClientRect().top;
 		const uv = [x / canvas.width, y / canvas.height];
+
+		console.log("UV", uv)
 		// gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 		gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
 		gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
