@@ -14,7 +14,7 @@ coord: vec2<f32>,
 struct ThreadInfo {
 		reference: array<f32, 16>,
 		dimensions: vec2<u32>,
-		minLevel: u32
+		minLevel: u32,
 };
 
 fn normalizeArray16(arr: array<f32, 16>) -> array<f32, 16> {
@@ -67,19 +67,11 @@ fn quadFromCoord(uv: vec2<f32>, textDim: vec2<u32>) -> u32 {
 	if(textDim.x == 1u && textDim.y == 1u) {
 		return 0u;
 	}
-	let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(uv.x, uv.y));
+	//let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(uv.x, uv.y));
+	let pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(1.0 - uv.y, uv.x));
 	let quadCoord = pixCoord % 2u;
 	let quad = quadCoord.x *2u + quadCoord.y;
 	return u32(quad);
-}
-fn coordFromQuad(uv_s: vec2<f32>, textDim: vec2<u32>, quad: u32) -> vec2<f32> {
-	let uv = uv_s;
-	let quadCoord = vec2<u32>(quad % 2u, quad / 2 );
-	var pixCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(uv.x, uv.y));
-	pixCoord = pixCoord + quadCoord;
-
-	let coord = vec2<f32>(pixCoord) / vec2<f32>(textDim*2u);
-	return coord; 
 }
 
 fn getLevelIndex(level: u32) -> u32 {
@@ -147,14 +139,10 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>,
 	textureStore(texture, textCoord, color);
 }
 
-@group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
-@group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
 
 struct BitArray {
 	data: array<u32>
 };
-@group(0) @binding(2) var<storage, read_write> quadMap: BitArray; 
-//@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
 fn get_bit(n: u32) -> bool {
 	let word = n / 32u;
@@ -241,6 +229,10 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 	return sortedIndices;
 }
 
+@group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
+@group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
+@group(0) @binding(2) var<storage, read_write> quadMap: BitArray; 
+//@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
 @group(0) @binding(3) var texture: texture_storage_2d<rgba8unorm, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
@@ -312,12 +304,6 @@ const local_size: u32 = 8u;
 
 		let nodeIndex = getNodeIndex(level, pixCoord);
 
-		// TODO remove
-		/*
-		if(threadIndex != 1u+16u*36){
-			return;
-		}
-		*/
 			
 		// check if outside traversal bounds (not need for gpu)
 		var addr = traversal[index].address0;
@@ -335,6 +321,9 @@ const local_size: u32 = 8u;
 		}
 
 		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && !get_bit(nodeIndex)) {
+			//let color = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+			//textureStore(texture, pixCoord, color);
+
 			let nextQuad = quadFromCoord(coord, textDim*2u);
 			let node = getNode0(u32(addr));
 			let childAddress = node.children[nextQuad];
@@ -357,6 +346,7 @@ const local_size: u32 = 8u;
 			traversal[index+1].address0 = childAddress;
 			traversal[index+1].coord = coord;
 			set_bit(nodeIndex, true);
+
 			return;
 		}
 		
@@ -385,12 +375,6 @@ const local_size: u32 = 8u;
 		let parentArray = getFeatArray(level, minLevel);
 		let sortedIndices = orderChildren(children, level, parentArray);
 
-/*
-		if (global_id.x != 3u || global_id.y != 3u){
-			return;
-		}
-		*/
-
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
 
@@ -411,7 +395,9 @@ const local_size: u32 = 8u;
 			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values0[u32(child)] == 0.0) || child <= 0.0) {
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
 				let childValue = getValue0(childNode);
-				if (childValue != 0.0) {
+				// TODO switch to || statement
+				if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) && (pixCoord.x != origPixCoord.x))) {
+				//if (childValue != 0.0 && ((pixCoord.y != origPixCoord.y) || (pixCoord.x != origPixCoord.x))) {
 					writeTexture(tempCoord, value, level, global_id, local_id);
 				}
 				set_bit(childNodeIndex, true);

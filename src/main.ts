@@ -496,6 +496,7 @@ window.addEventListener('load', async function() {
 					// zip.file(link.download, blob);
 				}
 				const timelineBlob = dbug_mngr.saveToFile("timeline.json");
+				dbug_mngr.reset();
 				if (timelineBlob) {
 					dir?.file(`timeline.json`, timelineBlob);
 				}
@@ -556,14 +557,9 @@ window.addEventListener('load', async function() {
 	// listen and find uv coordinates of mouse on click
 	canvas.addEventListener('click', async (event) => {
 		frameCount = 0;
-		console.clear();
-		let rect = canvas.getBoundingClientRect();
-		const x = (event.clientX - rect.left);
-		const y = (event.clientY - rect.top);
-		// const pixRat = {
-		// 	x: canvas.width / HEIGHT * devicePixelRatio,
-		// 	y: canvas.height / WIDTH * devicePixelRatio 
-		// }
+		// get x and y coordinates on the canvas
+		let x = event.clientX - canvas.getBoundingClientRect().left;
+		let y = event.clientY - canvas.getBoundingClientRect().top;
 		const uv = [x / canvas.width, y / canvas.height];
 		// gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
 		gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
