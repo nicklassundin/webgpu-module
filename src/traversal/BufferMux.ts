@@ -43,15 +43,14 @@ class BufferMux {
 	travThreadIter: GPUBuffer;
 	traversal: GPUBuffer;
 	features: GPUBuffer[];
-	
+	// Config
+	configBuffer: GPUBuffer;
+
 	// Evaluation
 	quadTreeMap: GPUBuffer;
 	evalThreadIter: GPUBuffer;
 	// Result Texture
 	mipTexture: GPUTexture;
-	// Result Buffer
-	result: GPUBuffer; 
-
 	// Render
 	texture: GPUTexture;
 	sampler: GPUSampler;
@@ -80,7 +79,8 @@ class BufferMux {
 		    // mipLevel: number,
 		   level: number,
 		   uv: number[],
-		   data: array[]) {
+		   data: array[],
+		   strategy: string = 'closest') {
 		let number_threads = WORKGROUPSIZE * WORKGROUPSIZE * LOCALSIZE * LOCALSIZE;
 		console.log(device.limits)
 		const maxBufferSize = device.limits.maxStorageBufferBindingSize;
@@ -184,12 +184,6 @@ class BufferMux {
 			})
 			this.evalThreadIters.push(evalThreadIter);
 		}
-		this.result = device.createBuffer({
-			size: this.features[0].size*4*4,
-			offset: 0,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-	
-		})
 		// Render Initialization
 		this.texture = device.createTexture({
 			size: [textureSize.width, textureSize.height],
@@ -233,6 +227,24 @@ class BufferMux {
 			size: 4*WORKGROUPSIZE*WORKGROUPSIZE + 8*8,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
 		});
+		// Config Buffer
+		// size is number of threads
+		let configBufferSize = number_threads * 4 * 2
+		this.configBuffer = device.createBuffer({
+			size: configBufferSize,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		});
+		if (strategy === 'random'){
+			// copy [u32 = 1, u32 = Random number]
+			// for each thread
+			for (let i = 0; i < number_threads; i++) {
+				const array = new Uint32Array([1, Math.floor(Math.random() * 100000)]);
+				device.queue.writeBuffer(this.configBuffer, i * 8, array.buffer);
+			}
+		}
+
+
+
 		const input = new Uint32Array([0, 0]);
 		this.updateInput(input)
 		// Console log all size of buffers
@@ -243,13 +255,13 @@ class BufferMux {
 		console.log('mipLevel:', mipLevel);
 		console.log('minLevel:', minLevel);
 		console.log('quadTreeMap size:', this.quadTreeMap.size);
-		console.log('result size:', this.result.size);
 		console.log('texture size:', this.texture.size);
 		console.log('vertices size:', this.vertices.size);
 		console.log('indices size:', this.indices.size);
 		console.log('uniform size:', this.uniform.size);
 		console.log('state size:', this.state.size);
 		console.log('traversal size:', this.traversal.size);
+		console.log('Config size:', this.configBuffer.size);
 		for (let i = 0; i < this.features.length; i++) {
 			console.log('evalThreadIter size:', this.evalThreadIters[i].size);
 			console.log('travThreadIter size:', this.travThreadIters[i].size);
@@ -314,7 +326,6 @@ class BufferMux {
 		this.quadTreeMap.unmap();
 		this.quadTreeMap.destroy();
 		this.mipTexture.destroy();
-		this.result.destroy();
 		this.texture.destroy();
 		for (let i = 0; i < this.features.length; i++) {
 			this.evalThreadIters[i].destroy();

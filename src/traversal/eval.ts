@@ -5,28 +5,21 @@ import QuadTreeTraversal from './traversal';
 const NUM_THREADS = 1;
 const WRITE_BGL = {
 	entries: [
-		{
+		{ 
 			binding: 0,
 			visibility: GPUShaderStage.COMPUTE,
 			buffer: {
 				type: 'storage'
 			}
 		},
-		{ 
+		{
 			binding: 1,
 			visibility: GPUShaderStage.COMPUTE,
 			buffer: {
 				type: 'storage'
 			}
-		},
-		{
-			binding: 2,
-			visibility: GPUShaderStage.COMPUTE,
-			buffer: {
-				type: 'storage'
-			}
 		},{
-			binding: 3,
+			binding: 2,
 			visibility: GPUShaderStage.COMPUTE,
 			storageTexture: {
 				format: 'rgba8unorm',
@@ -45,6 +38,13 @@ const INFO_BGL = {
 				type: 'storage'
 			}
 		},
+		{
+			binding: 1,
+			visibility: GPUShaderStage.COMPUTE,
+			buffer: {
+				type: 'storage'
+			}
+		}
 	],
 }
 
@@ -161,21 +161,13 @@ class Eval {
 					    {
 						    binding: 0,
 						    resource: {
-							    buffer: this.bufferMux.result,
-							    offset: 0,
-							    size: this.bufferMux.result.size,
-						    }
-					    },
-					    {
-						    binding: 1,
-						    resource: {
 							    buffer: this.bufferMux.traversal,
 							    offset: 0,
 							    size: this.bufferMux.traversal.size,
 						    }
 					    },
 					    {
-						    binding: 2,
+						    binding: 1,
 						    resource: {
 							    buffer: this.bufferMux.quadTreeMap,
 							    offset: 0,
@@ -183,7 +175,7 @@ class Eval {
 						    }
 					    },
 					    {
-						    binding: 3,
+						    binding: 2,
 						    resource: this.bufferMux.mipTexture.createView({
 							    baseMipLevel: currentMipLevel, 
 							    mipLevelCount: 1,
@@ -203,6 +195,14 @@ class Eval {
 							    size: this.bufferMux.evalThreadIters[0].size,
 						    }
 					    },
+					    {
+						    binding: 1,
+						    resource: {
+							    buffer: this.bufferMux.configBuffer,
+							    offset: 0,
+							    size: this.bufferMux.configBuffer.size,
+						    }
+					    }
 					]			    
 			    });
 

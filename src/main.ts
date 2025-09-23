@@ -230,6 +230,7 @@ window.addEventListener('load', async function() {
 	}
 
 
+
 	async function updateUniformBuffer(values: number[]) {
 		const floatArray = new Float32Array(values);
 		device.queue.writeBuffer(quadManager.bufferMux.uniform, 0, floatArray);

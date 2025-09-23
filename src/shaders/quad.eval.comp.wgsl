@@ -6,9 +6,10 @@ valueAddress: f32,
 };
 
 struct Traversal {
-coord: vec2<f32>,
-	       address0: f32,
-	       address1: f32
+	coord: vec2<f32>,
+	address0: f32,
+	address1: f32,
+
 };
 
 struct ThreadInfo {
@@ -229,12 +230,11 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 	return sortedIndices;
 }
 
-@group(0) @binding(0) var<storage, read_write> result: array<array<f32, 16>>;
-@group(0) @binding(1) var<storage, read_write> traversal: array<Traversal>; 
-@group(0) @binding(2) var<storage, read_write> quadMap: BitArray; 
+@group(0) @binding(0) var<storage, read_write> traversal: array<Traversal>; 
+@group(0) @binding(1) var<storage, read_write> quadMap: BitArray; 
 //@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
-@group(0) @binding(3) var texture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(2) var texture: texture_storage_2d<rgba8unorm, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 @group(1) @binding(0) var<storage, read_write> threadIterations: ThreadInfo; 
 
