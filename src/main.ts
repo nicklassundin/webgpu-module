@@ -47,6 +47,20 @@ function addMarker(x: number, y: number) {
 	return marker;
 }
 
+class Params {
+	travelValues: number[];
+	change: boolean = false;
+	output: boolean = false;
+	numSample: number = 2;
+	constructor(travelValues: number[]) {
+		this.travelValues = travelValues;
+	}
+	updateTravelValues(travelValues: number[] = [this.travelValues[0], this.travelValues[1]]) {
+		this.change = true;
+		this.travelValues = [travelValues[0], travelValues[1]];
+	}
+}
+
 
 class OutputManager {
 	zip: JSZip;
@@ -67,20 +81,21 @@ const outputMngr = new OutputManager();
 
 
 
+// const DEFAULT_COORD = [0.5, 0.6];
+// const DEFAULT_COORD = [0.51, 0.51];
+// const DEFAULT_COORD = [0.59, 0.69];
+// const DEFAULT_COORD = [0.41, 0.35];
+// const DEFAULT_COORD = [0.15838509316770186, 0.6583850931677019]
+const DEFAULT_COORD = [0.14389233954451347, 0.6169772256728778]
+// const DEFAULT_COORD = [1.0 - 0.35, 0.41];
+// const DEFAULT_COORD = [0.19, 0.14];
+// const DEFAULT_COORD = [0.11, 0.07];
+
+const params = new Params(DEFAULT_COORD);
 window.addEventListener('load', async function() {
 	const stats = new Stats();
 	stats.showPanel(0)
 	document.body.appendChild(stats.dom);
-
-	// const DEFAULT_COORD = [0.5, 0.6];
-	// const DEFAULT_COORD = [0.51, 0.51];
-	// const DEFAULT_COORD = [0.59, 0.69];
-	// const DEFAULT_COORD = [0.41, 0.35];
-	// const DEFAULT_COORD = [0.15838509316770186, 0.6583850931677019]
-	const DEFAULT_COORD = [0.14389233954451347, 0.6169772256728778]
-	// const DEFAULT_COORD = [1.0 - 0.35, 0.41];
-	// const DEFAULT_COORD = [0.19, 0.14];
-	// const DEFAULT_COORD = [0.11, 0.07];
 
 
 	// import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
@@ -88,8 +103,85 @@ window.addEventListener('load', async function() {
 	// Make list of all .png files in public/data/obs
 	const response = await fetch('/data/obs/fileList.json');
 	const files = (await response.json()).files
-	const textureList = files.filter((file: string) => file.endsWith('.png'));
+	// const textureList = files.filter((file: string) => file.endsWith('.png'));
 	const quadTreeList = files.filter((file: string) => file.endsWith('.json'));
+	console.log(quadTreeList)
+	const gui = new GUI();
+	{
+		const userFolder = gui.addFolder("User");
+		// dropdown with search
+		
+		userFolder.open();
+
+		const uvFolder = gui.addFolder("UV Coordinates");
+		uvFolder.add({ value: DEFAULT_COORD[0] }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
+			params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
+		})
+		uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
+		// uvFolder.open();
+		// check box for output
+
+		const debugFolder = gui.addFolder("Debug");
+		// number of sample times
+		const NUMSAMPLE = 5
+		debugFolder.add({ value: NUMSAMPLE }, 'value', 1, 50, 1).name("Number of samples").onChange((value: number) => {
+			params.numSample = value;
+		})
+		params.numSample = NUMSAMPLE;
+
+
+		debugFolder.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
+			params.output = value;
+			startTime = 0;
+			if (value) {
+				// reset timeInterval
+				timeInterval = TIMEINTERVAL;
+				params.output = value;
+				params.updateTravelValues();
+			}else{
+				timeInterval = [];
+				params.output = value;
+				params.updateTravelValues();
+			}
+		})
+		// switch between workgroup render and result dropdown
+		debugFolder.add({ value: "result" }, 'value', ["result",  "result - lines", "traversal Workgroup", "vertex Workgroup"]).name("Mode").onChange((value: string) => {
+			if (value === "traversal Workgroup") {
+				const input = new Uint32Array([2, 0]);
+				quadManager.bufferMux.updateInput(input);
+
+			} else if (value === "result") {
+				const input = new Uint32Array([0, 0]);
+				quadManager.bufferMux.updateInput(input);
+
+			} else if (value === "result - lines") {
+				const input = new Uint32Array([1, 0]);
+				quadManager.bufferMux.updateInput(input);
+			} else if (value === "vertex Workgroup") {
+				const input = new Uint32Array([3, 0]);
+				quadManager.bufferMux.updateInput(input);
+			}
+		})
+
+		// button that saves dbug_mngr.data to file
+		debugFolder.add({ save: () => {
+			const blob =dbug_mngr.saveToFile("manualTimeLine.json");
+			const link = document.createElement('a');
+			link.download = `manualTimeLine.json`;
+			if (blob) {
+				link.href = URL.createObjectURL(blob);
+				link.click();
+			}
+		}}, 'save').name("Save debug data to file");
+
+		// add strategy dropdown
+		debugFolder.add({ value: 'closest' }, 'value', ['closest', 'random']).name("Traversal Strategy").onChange((value: string) => {
+			// params.change = true;
+			params.strategy = value;
+		});
+
+		// debugFolder.open();
+	}
 
 	if (!navigator.gpu) {
 		console.error("WebGPU is not supported in your browser.");
@@ -152,11 +244,11 @@ window.addEventListener('load', async function() {
 	// Mipmap pipeline
 	// load image
 	// Load Textures
-	const image = await loadImageBitmap(textureList[0]);
+	// const image = await loadImageBitmap(textureList[0]);
 
 	// print byte size of image
 	// Upload image data to texture level 0
-	const imageBitmap = image;
+	// const imageBitmap = image;
 	// const imageCanvas = document.createElement('canvas');
 	const imageCanvas = document.createElement('canvas');
 	const ctx = imageCanvas.getContext('2d');
@@ -170,7 +262,7 @@ window.addEventListener('load', async function() {
 		throw new Error("Failed to get 2d context.");
 	}
 
-	ctx.drawImage(imageBitmap, 0, 0);
+	// ctx.drawImage(imageBitmap, 0, 0);
 	// depth Sampler
 	const depthSampler = device.createSampler({
 		compare: undefined,
@@ -188,7 +280,7 @@ window.addEventListener('load', async function() {
 
 	// let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
 	let quadManager = new QuadManager(device, canvasOrigSize);
-	quadManager.init(DEFAULT_COORD, quadTrees);
+	quadManager.init(DEFAULT_COORD, quadTrees, params?.strategy || 'closest');
 
 
 	const textureSize = quadManager.bufferMux.config.textureSize;
@@ -197,20 +289,6 @@ window.addEventListener('load', async function() {
 	let render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager.bufferMux);
 
 	await device.queue.onSubmittedWorkDone();
-
-	class Params {
-		travelValues: number[];
-		change: boolean = false;
-		output: boolean = false;
-		numSample: number = 2;
-		constructor(travelValues: number[]) {
-			this.travelValues = travelValues;
-		}
-		updateTravelValues(travelValues: number[] = [this.travelValues[0], this.travelValues[1]]) {
-			this.change = true;
-			this.travelValues = [travelValues[0], travelValues[1]];
-		}
-	}
 
 
 	let calls = 0;
@@ -242,78 +320,6 @@ window.addEventListener('load', async function() {
 	let opTime = 0;
 
 	var timeInterval = TIMEINTERVAL;
-	const params = new Params(DEFAULT_COORD);
-	const gui = new GUI();
-	{
-		// const folder = gui.addFolder("Mipmap");
-		// folder.add({ value: mipLevel}, 'value', 0, mipLevel, 1).name("Mip Level").onChange(async (value: number) => {
-		// const resolution = new Float32Array([canvasOrigSize.width, canvasOrigSize.height, value]);
-		// await updateUniformBuffer(resolution);
-		// });
-		// folder.open();
-		// Add folder for uv coordinates
-		const uvFolder = gui.addFolder("UV Coordinates");
-		uvFolder.add({ value: DEFAULT_COORD[0] }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
-			params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
-		})
-		uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
-		uvFolder.open();
-		// check box for output
-
-		const debugFolder = gui.addFolder("Debug");
-		// number of sample times
-		const NUMSAMPLE = 5
-		debugFolder.add({ value: NUMSAMPLE }, 'value', 1, 50, 1).name("Number of samples").onChange((value: number) => {
-			params.numSample = value;
-		})
-		params.numSample = NUMSAMPLE;
-
-
-		debugFolder.add({ value: false }, 'value').name("Output to console").onChange((value: boolean) => {
-			params.output = value;
-			startTime = 0;
-			if (value) {
-				// reset timeInterval
-				timeInterval = TIMEINTERVAL;
-				params.output = value;
-				params.updateTravelValues();
-			}else{
-				timeInterval = [];
-				params.output = value;
-				params.updateTravelValues();
-			}
-		})
-		// switch between workgroup render and result dropdown
-		debugFolder.add({ value: "result" }, 'value', ["result",  "result - lines", "traversal Workgroup", "vertex Workgroup"]).name("Mode").onChange((value: string) => {
-			if (value === "traversal Workgroup") {
-				const input = new Uint32Array([2, 0]);
-				quadManager.bufferMux.updateInput(input);
-
-			} else if (value === "result") {
-				const input = new Uint32Array([0, 0]);
-				quadManager.bufferMux.updateInput(input);
-
-			} else if (value === "result - lines") {
-				const input = new Uint32Array([1, 0]);
-				quadManager.bufferMux.updateInput(input);
-			} else if (value === "vertex Workgroup") {
-				const input = new Uint32Array([3, 0]);
-				quadManager.bufferMux.updateInput(input);
-			}
-		})
-
-		// button that saves dbug_mngr.data to file
-		debugFolder.add({ save: () => {
-			const blob =dbug_mngr.saveToFile("manualTimeLine.json");
-			const link = document.createElement('a');
-			link.download = `manualTimeLine.json`;
-			if (blob) {
-				link.href = URL.createObjectURL(blob);
-				link.click();
-			}
-		}}, 'save').name("Save debug data to file");
-		debugFolder.open();
-	}
 
 	// Main loop
 	let frameCount = 0;
@@ -362,8 +368,8 @@ window.addEventListener('load', async function() {
 
 			await quadManager.unmap();
 			// quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
-			quadManager = new QuadManager(device, textureSize, params.travelValues);
-			quadManager.init(params.travelValues, quadTrees);
+			quadManager = new QuadManager(device, textureSize);
+			quadManager.init(params.travelValues, quadTrees, params?.strategy || 'closest');
 			render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager.bufferMux);
 			const commandEncoderArg = device.createCommandEncoder();
 			updateTravBufferCoord(params.travelValues, commandEncoderArg, quadManager.bufferMux.traversal);
@@ -500,7 +506,7 @@ window.addEventListener('load', async function() {
 					// create zip file
 					// const content = await zip.generateAsync({ type: 'blob' });
 					const zipLink = document.createElement('a');
-					zipLink.download = `snapshots.zip`;
+					zipLink.download = `snapshots_${params.strategy}.zip`;
 					let content = await outputMngr.content;
 					zipLink.href = URL.createObjectURL(content);
 					zipLink.textContent = `Download all snapshots`;

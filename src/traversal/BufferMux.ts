@@ -248,6 +248,7 @@ class BufferMux {
 		const input = new Uint32Array([0, 0]);
 		this.updateInput(input)
 		// Console log all size of buffers
+		console.log('Strategy:', strategy)
 		console.log('BufferMux initialized with:');
 		console.log('Number of threads:', number_threads);
 		console.log('textureSize:', textureSize);

@@ -22,8 +22,8 @@ class QuadManager {
 
 		this.originalCanvasSize = originalCanvasSize;
 	}
-	init(uv: number[], data: array[]) {
-		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, LEVEL, uv, data);
+	init(uv: number[], data: array[], strategy: string = 'default') {
+		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, LEVEL, uv, data, strategy);
 
 		// this.quadTree = new QuadTreeTraversal(this.device, this.bufferMux)
 		

@@ -230,6 +230,11 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 	return sortedIndices;
 }
 
+struct config {
+	strategy: u32,
+	randomSeed: u32
+};
+
 @group(0) @binding(0) var<storage, read_write> traversal: array<Traversal>; 
 @group(0) @binding(1) var<storage, read_write> quadMap: BitArray; 
 //@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
@@ -237,6 +242,7 @@ fn orderChildren(children: vec4<f32>, level: u32, parentArray: array<f32, 16>) -
 @group(0) @binding(2) var texture: texture_storage_2d<rgba8unorm, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 @group(1) @binding(0) var<storage, read_write> threadIterations: ThreadInfo; 
+@group(1) @binding(1) var<storage, read_write> threadConfig: array<config>; 
 
 @group(2) @binding(0) var<storage, read_write> values0: array<f32>;
 @group(2) @binding(1) var<storage, read_write> nodes0: array<f32>;
@@ -373,7 +379,20 @@ const local_size: u32 = 8u;
 		// order children based on priority
 		let refer = threadIterations.reference[u32(level-minLevel)+1u];
 		let parentArray = getFeatArray(level, minLevel);
-		let sortedIndices = orderChildren(children, level, parentArray);
+
+		
+		//let sortedIndices = orderChildren(children, level, parentArray);
+		let strategy = threadConfig[threadIndex].strategy;
+		var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
+		if (strategy == 0u) {
+			sortedIndices = orderChildren(children, level, parentArray);
+		}else{
+			var rand = u32((1664525u * (threadConfig[threadIndex].randomSeed + global_id.x*global_id.y) + 1013904223u));
+			sortedIndices = array<u32, 4u>(rand % 4u, (rand / 4u) % 4u, (rand / 16u) % 4u, (rand / 64u) % 4u);
+		}
+		/*
+		*/
+
 
 		var childCoord = coord; 
 		for (var j = 0u; j < 4u; j = j + 1u) {
