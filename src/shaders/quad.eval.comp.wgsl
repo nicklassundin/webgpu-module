@@ -358,8 +358,9 @@ const local_size: u32 = 8u;
 		
 		let node = getNode0(u32(addr));
 		
-		// TODO remove jut for debug
-		let val = getValue0(node);
+		// TODO should be 0-1 need for normalizing heat map
+		// subtract min and divid by (max - min)
+		let val = (getValue0(node)-(values0[0u]/f32(textDim.x*textDim.y)/2.0))/(values0[0u]/f32(textDim.x*textDim.y));
 		var value = getValue0(node);
 
 		// Dont process if reference is not set
@@ -416,6 +417,7 @@ const local_size: u32 = 8u;
 			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || child <= 0.0) {
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
 				let childValue = getValue0(childNode);
+				
 				writeTexture(tempCoord, val, level, global_id, local_id);
 				//writeTexture(tempCoord, value, level, global_id, local_id);
 				set_bit(childNodeIndex, true);
