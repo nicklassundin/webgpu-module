@@ -8,7 +8,8 @@ import fixedvertexShaderCode from "./shaders/fixed.vert.wgsl?raw";
 
 import depthFragmentShaderCode from "./shaders/depth.frag.wgsl?raw";
 
-import { GUI } from 'dat.gui';
+// import { GUI } from 'dat.gui';
+import { GUI } from 'lil-gui'
 import Debugger from "./debug";
 import Stats from 'stats.js'
 
@@ -19,7 +20,7 @@ import Eval from "./eval";
 import Render from "./render";
 
 let TIMEINTERVAL = []
-let initializeTimeInterval = function(s: number = 30) {
+let initializeTimeInterval = function(s: number = 100) {
 	TIMEINTERVAL = []; 
 	for (let i = 0; i < s; i++) {
 		let time = Math.floor(10 + (10000 - 10) * Math.random());
@@ -47,11 +48,18 @@ function addMarker(x: number, y: number) {
 	return marker;
 }
 
+class Datasets {
+	first: string = "";
+	second: string = "";
+}
+
+
 class Params {
 	travelValues: number[];
 	change: boolean = false;
 	output: boolean = false;
 	numSample: number = 2;
+	datasets: Datasets = new Datasets();
 	constructor(travelValues: number[]) {
 		this.travelValues = travelValues;
 	}
@@ -92,33 +100,63 @@ const DEFAULT_COORD = [0.14389233954451347, 0.6169772256728778]
 // const DEFAULT_COORD = [0.11, 0.07];
 
 const params = new Params(DEFAULT_COORD);
+
+let getQuadTreeData = async function() {
+	const quadTreeData0 = await fetch(params.datasets.first || quadTreeList[0]);
+	const quadTreeJsonString0 = await quadTreeData0.json();
+	let quadTreeJson0 = JSON.parse(quadTreeJsonString0);
+	console.log(quadTreeJson0);
+	const quadTreeData1 = await fetch(params.datasets.second || quadTreeList[1]);
+	const quadTreeJsonString1 = await quadTreeData1.json();
+	let quadTreeJson1 = JSON.parse(quadTreeJsonString1);
+	console.log(quadTreeJson1);
+	return [quadTreeJson0, quadTreeJson1];
+}
+
+let quadTrees = [];
 window.addEventListener('load', async function() {
 	const stats = new Stats();
 	stats.showPanel(0)
 	document.body.appendChild(stats.dom);
-
-
-	// import quadtestfragmentShaderCode from "./shaders/quad.test.frag.wgsl?raw";
 
 	// Make list of all .png files in public/data/obs
 	const response = await fetch('/data/obs/fileList.json');
 	const files = (await response.json()).files
 	// const textureList = files.filter((file: string) => file.endsWith('.png'));
 	const quadTreeList = files.filter((file: string) => file.endsWith('.json'));
-	console.log(quadTreeList)
+	params.datasets.first = quadTreeList[0];
+	params.datasets.second = quadTreeList[1];
+
+
 	const gui = new GUI();
 	{
 		const userFolder = gui.addFolder("User");
-		// dropdown with search
+		// dropdown
+		const obj = { file: params.datasets.first }; 
+		userFolder.add(obj, 'file', quadTreeList).name("QuadTree").onChange(async (value: string) => {
+			params.datasets.first = value;
+			params.change = true;
+		});
+		const obj2 = { file: params.datasets.second };
+		userFolder.add(obj2, 'file', quadTreeList).name("QuadTree 2").onChange(async (value: string) => {
+			params.datasets.second = value;
+			params.change = true;
+		});
+		
 		
 		userFolder.open();
 
 		const uvFolder = gui.addFolder("UV Coordinates");
 		uvFolder.add({ value: DEFAULT_COORD[0] }, 'value', 0, 1, 0.01).name("U").onChange(async (value: number) => {
-			params.updateTravelValues([value, uvFolder.__controllers[1].object.value]);	
+			let uv = [value, params.travelValues[1]];
+			params.updateTravelValues([value, params.travelValues[1]]); 
 		})
-		uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V");
+		uvFolder.add({ value: DEFAULT_COORD[1] }, 'value', 0, 1, 0.01).name("V").onChange(async (value: number) => {
+			let uv = [params.travelValues[0], value];
+			params.travelValues = [params.travelValues[0], value];
+		})
 		// uvFolder.open();
+		uvFolder.close();
 		// check box for output
 
 		const debugFolder = gui.addFolder("Debug");
@@ -181,6 +219,7 @@ window.addEventListener('load', async function() {
 		});
 
 		// debugFolder.open();
+		debugFolder.close();
 	}
 
 	if (!navigator.gpu) {
@@ -269,14 +308,8 @@ window.addEventListener('load', async function() {
 	});
 
 	// console print file name
-	const quadTreeData0 = await fetch(quadTreeList[0]);
-	const quadTreeJsonString0 = await quadTreeData0.json();
-	let quadTreeJson0 = JSON.parse(quadTreeJsonString0);
-	console.log("Loading QuadTree from:", quadTreeList[1]);
-	const quadTreeData1 = await fetch(quadTreeList[1]);
-	const quadTreeJsonString1 = await quadTreeData1.json();
-	let quadTreeJson1 = JSON.parse(quadTreeJsonString1);
-	let quadTrees = [quadTreeJson1, quadTreeJson0];
+	// const quadTreeData0 = await fetch(quadTreeList[0]);
+	quadTrees = await getQuadTreeData(); 
 
 	// let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
 	let quadManager = new QuadManager(device, canvasOrigSize);
@@ -360,6 +393,7 @@ window.addEventListener('load', async function() {
 		dbug_mngr.addTimestamp(commandEncoder)
 		// Update the stats panel
 		if (params.change) {
+			quadTrees = await getQuadTreeData();
 			initializeTimeInterval();
 			frameCount = 0;
 			// current_mipLevel = 0;
@@ -567,8 +601,14 @@ window.addEventListener('load', async function() {
 
 		console.log("UV", uv)
 		// gui.__folders["Mipmap"].__controllers[0].setValue(mipLevel);
-		gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
-		gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
+		console.log(gui)
+
+		gui.folders.filter((f: any) => f._title === "UV Coordinates").forEach((f: any) => {
+			f.controllers[0].setValue(uv[0]);
+			f.controllers[1].setValue(uv[1]);
+		})
+		// gui.__folders["UV Coordinates"].__controllers[0].setValue(uv[0]);
+		// gui.__folders["UV Coordinates"].__controllers[1].setValue(uv[1]);
 
 		addMarker(event.clientX, event.clientY);
 

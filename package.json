@@ -8,6 +8,7 @@
     "@webgpu/glslang": "^0.0.15",
     "dat.gui": "^0.7.9",
     "jszip": "^3.10.1",
+    "lil-gui": "^0.20.0",
     "stats.js": "^0.17.0"
   },
   "scripts": {
