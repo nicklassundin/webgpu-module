@@ -26,6 +26,14 @@ const WRITE_BGL = {
 				viewDimension: '2d',
 				accessMode: 'write-only',
 			}
+		},{
+			binding: 3,
+			visibility: GPUShaderStage.COMPUTE,
+			storageTexture: {
+				format: 'r32float',
+				viewDimension: '2d',
+				accessMode: 'write-only'
+			}
 		}
 	],
 }
@@ -180,6 +188,10 @@ class Eval {
 							    baseMipLevel: currentMipLevel, 
 							    mipLevelCount: 1,
 						    }),
+					    },
+					    {
+						    binding: 3,
+						    resource: this.bufferMux.depthTexture.createView()
 					    }
 				    ],
 			    });

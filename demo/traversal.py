@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
-JSON_FILE = "../public/data/obs/quadtree_Phylloscopus_collybita.json"
+JSON_FILE = "./public/data/obs/quadtree_Phylloscopus_collybita.json"
 # read the JSON file
 with open(JSON_FILE, "r") as file:
     raw = json.load(file)
@@ -41,7 +41,7 @@ class Trav:
 MAX_DIMENSION = 512
 # MAX_DIMENSION = MAX_DIMENSION / 4
 # MAX_DIMENSION = MAX_DIMENSION / 8
-# MAX_DIMENSION = MAX_DIMENSION / 32
+MAX_DIMENSION = MAX_DIMENSION / 32
 # MAX_DIMENSION = MAX_DIMENSION / 64
 MAX_DIMENSION = int(MAX_DIMENSION)
 maxMipMapLevel = int(math.log2(MAX_DIMENSION));

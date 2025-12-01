@@ -174,6 +174,18 @@ class BufferMux {
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
 			mipLevelCount: mipLevel,
 		})
+
+		// TODO devision test remove
+		// let div = 4.0
+		this.depthTexture = device.createTexture({
+			size: [mipTextureSize.width, mipTextureSize.height],
+			// size: [textureSize.width/div, textureSize.height/div],
+			// size: [WORKGROUPSIZE*LOCALSIZE*4, WORKGROUPSIZE*LOCALSIZE*4],
+
+			format: 'r32float',
+			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
+		})
+
 		
 		this.evalThreadIters = []
 		for (let i = 0; i < data.length; i++) {
@@ -197,7 +209,8 @@ class BufferMux {
 		});
 		this.sampler = device.createSampler({
 			minFilter: 'nearest',
-			magFilter: 'linear',
+			// magFilter: 'linear',
+			magFilter: 'nearest',
 			mipmapFilter: 'nearest',
 		
 			// minFilter: 'linear',

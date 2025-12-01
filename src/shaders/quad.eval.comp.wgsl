@@ -131,13 +131,34 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 	return true;
 }
 
-fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>, local_id: vec3<u32>) {
+fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>, local_id: vec3<u32>, quadtreeIndex: u32) {
 	let workgroupsize = f32(threadIterations.dimensions.x);
 	var color = vec4<f32>(value, f32(workgroup.x)/workgroupsize, f32(workgroup.y)/workgroupsize, 1.0);
 	
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
 	textureStore(texture, textCoord, color);
+
+	let depthDim = textureDimensions(depthTexture);
+	//let depthCoord = vec2<u32>(vec2<f32>(depthDim) * vec2<f32>(coord.x, coord.y));
+	//textureStore(depthTexture, depthCoord, vec4<f32>(color.g, 0.0, 0.0, 0.0));
+	
+	let grid = vec2<u32>(vec2<f32>(depthDim) / vec2<f32>(textDim));
+	let depthCoord = vec2<u32>(vec2<f32>(textCoord) / vec2<f32>(textDim) * vec2<f32>(depthDim));
+
+	//textureStore(depthTexture, depthCoord, vec4<f32>(depth, 0.0, 0.0, 1.0));
+	//let level = u32(log2(f32(depthDim.x)));
+	//let depth: f32 = f32(index)/f32(level);
+	let depth: f32 = f32(index)/16.0;
+	for (var y = 0u; y < grid.y; y += 1u) {
+		for (var x = 0u; x < grid.x; x += 1u) {
+			// TODO should align with center point and just write around it
+			// TODO should also just write if not writen before
+			if (!get_bit(quadtreeIndex)) {
+				textureStore(depthTexture, depthCoord + vec2<u32>(x,y), vec4<f32>(depth, 0.0, 0.0, 1.0));
+			};
+		};
+	};
 }
 
 
@@ -240,6 +261,7 @@ struct config {
 //@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
 @group(0) @binding(2) var texture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(3) var depthTexture: texture_storage_2d<r32float, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 @group(1) @binding(0) var<storage, read_write> threadIterations: ThreadInfo; 
 @group(1) @binding(1) var<storage, read_write> threadConfig: array<config>; 
@@ -418,7 +440,7 @@ const local_size: u32 = 8u;
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
 				let childValue = getValue0(childNode);
 				
-				writeTexture(tempCoord, val, level, global_id, local_id);
+				writeTexture(tempCoord, val, level, global_id, local_id, childNodeIndex);
 				//writeTexture(tempCoord, value, level, global_id, local_id);
 				set_bit(childNodeIndex, true);
 				continue;

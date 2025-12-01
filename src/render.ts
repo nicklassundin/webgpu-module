@@ -20,6 +20,20 @@ const BGL_UNIFORM = {
 				viewDimension: '2d',
 				sampleType: 'float',
 			},
+		},{
+			binding: 3,
+			visibility: GPUShaderStage.FRAGMENT,
+			texture: {
+				viewDimension: '2d',
+				sampleType: 'unfilterable-float',
+			}
+		},{
+			binding: 4,
+			visibility: GPUShaderStage.FRAGMENT,
+			texture: {
+				viewDimension: '2d',
+				sampletype: 'float'
+			}
 		}],
 }
 const uniformBufferSize = (4 * 2 + 4 * 2)*Float32Array.BYTES_PER_ELEMENT;
@@ -39,17 +53,19 @@ class Render {
 		// Resolution 4 * 2; Mipmap level 4 * 1
 		// Sampler
 		const sampler = device.createSampler({ 
-			minFilter: 'linear',
-			magFilter: 'linear',
-			mipmapFilter: 'linear',
-			// minFilter: 'nearest',
-			// magFilter: 'nearest',
-			// mipmapFilter: 'nearest',
+			// TODO old version
+			// minFilter: 'linear',
+			// magFilter: 'linear',
+			// mipmapFilter: 'linear',
+			// maxAnisotropy: 16,
+			// TODO new version
+			minFilter: 'nearest',
+			magFilter: 'nearest',
+			mipmapFilter: 'nearest',
 			// addressModeU: 'clamp-to-edge',
 			// addressModeV: 'clamp-to-edge',
 			// addressModeW: 'clamp-to-edge',
-			// compare: 'less-equal',
-			maxAnisotropy: 16,
+			//compare: 'less-equal',
 		});
 		this.buffers = {
 			sampler: sampler,
@@ -180,7 +196,13 @@ class Render {
 					{
 						binding: 2,
 						resource: this.bufferMux.texture.createView(),
-					},
+					},{
+						binding: 3,
+						resource: this.bufferMux.depthTexture.createView()
+					},{
+						binding: 4,
+						resource: this.bufferMux.mipTexture.createView()
+					}
 				],
 			}),
 		}
