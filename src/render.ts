@@ -25,7 +25,8 @@ const BGL_UNIFORM = {
 			visibility: GPUShaderStage.FRAGMENT,
 			texture: {
 				viewDimension: '2d',
-				sampleType: 'unfilterable-float',
+				sampleType: 'uint',
+				// sampleType: 'unfilterable-float',
 			}
 		},{
 			binding: 4,

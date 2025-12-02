@@ -121,7 +121,8 @@ fn checkQuadMapLevelDone(index: u32, coord: vec2<u32>, node: Node) -> bool {
 		let quad = vec2<u32>(i / 2u, i % 2u);
 		let pixCoord = 2u * vec2<u32>(coord) + quad;
 		let nodeIndex = getNodeIndex(index+1, pixCoord);
-		let quadBool = get_bit(nodeIndex);
+		//let quadBool = get_bit(nodeIndex);
+		let quadBool = get_bit(nodeIndex*2u);
 		//if quadMap[nodeIndex] == 0u {
 		if !quadBool {
 			return false;
@@ -139,27 +140,33 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>,
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
 	textureStore(texture, textCoord, color);
 
-	let depthDim = textureDimensions(depthTexture);
-	//let depthCoord = vec2<u32>(vec2<f32>(depthDim) * vec2<f32>(coord.x, coord.y));
-	//textureStore(depthTexture, depthCoord, vec4<f32>(color.g, 0.0, 0.0, 0.0));
 	
-	let grid = vec2<u32>(vec2<f32>(depthDim) / vec2<f32>(textDim));
-	let depthCoord = vec2<u32>(vec2<f32>(textCoord) / vec2<f32>(textDim) * vec2<f32>(depthDim));
 
 	//textureStore(depthTexture, depthCoord, vec4<f32>(depth, 0.0, 0.0, 1.0));
 	//let level = u32(log2(f32(depthDim.x)));
 	//let depth: f32 = f32(index)/f32(level);
-	let depth: f32 = f32(index)/16.0;
+	writeDepthTexture(coord, index, quadtreeIndex);
+}
+fn writeDepthTexture(coord: vec2<f32>, index: u32, quadtreeIndex: u32) {
+	let textDim = textureDimensions(texture);
+	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
+	let depthDim = textureDimensions(depthTexture);
+	let grid = vec2<u32>(vec2<f32>(depthDim) / vec2<f32>(textDim));
+	let depthCoord = vec2<u32>(vec2<f32>(textCoord) / vec2<f32>(textDim) * vec2<f32>(depthDim));
+	//let depth: u32 = index%2u*10u +4u;
+	let depth: u32 = index;
 	for (var y = 0u; y < grid.y; y += 1u) {
 		for (var x = 0u; x < grid.x; x += 1u) {
 			// TODO should align with center point and just write around it
 			// TODO should also just write if not writen before
-			if (!get_bit(quadtreeIndex)) {
-				textureStore(depthTexture, depthCoord + vec2<u32>(x,y), vec4<f32>(depth, 0.0, 0.0, 1.0));
+			//if (!get_bit(quadtreeIndex)) {
+			if (!get_bit(quadtreeIndex*2u+1u) && !get_bit(quadtreeIndex*2u)) {
+				textureStore(depthTexture, depthCoord + vec2<u32>(x,y), vec4<u32>(depth, 0u, 0u, 1u));
 			};
 		};
 	};
 }
+
 
 
 struct BitArray {
@@ -261,7 +268,7 @@ struct config {
 //@group(0) @binding(2) var<storage, read_write> quadMap: array<u32>;
 
 @group(0) @binding(2) var texture: texture_storage_2d<rgba8unorm, write>;
-@group(0) @binding(3) var depthTexture: texture_storage_2d<r32float, write>;
+@group(0) @binding(3) var depthTexture: texture_storage_2d<r32uint, write>;
 //@group(1) @binding(0) var<storage, read> levelValues: array<array<f32, 16>>;
 @group(1) @binding(0) var<storage, read_write> threadIterations: ThreadInfo; 
 @group(1) @binding(1) var<storage, read_write> threadConfig: array<config>; 
@@ -348,7 +355,8 @@ const local_size: u32 = 8u;
 			traversal[index].address0 = addr;
 		}
 
-		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && !get_bit(nodeIndex)) {
+		if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && !get_bit(nodeIndex*2u)) {
+		//if (pixCoord.y == origPixCoord.y && pixCoord.x == origPixCoord.x && !get_bit(nodeIndex)) {
 			//let color = vec4<f32>(1.0, 1.0, 1.0, 1.0);
 			//textureStore(texture, pixCoord, color);
 
@@ -359,7 +367,8 @@ const local_size: u32 = 8u;
 			let childPixCoord = 2u*pixCoord+quadCoord;
 			let childNodeIndex = getNodeIndex(level+1, childPixCoord);
 			if (addr < 0.0) {
-				set_bit(nodeIndex, true);
+				//set_bit(nodeIndex, true);
+				set_bit(nodeIndex*2u, true);
 				return;
 			}
 			let childNode = getNode0(u32(childAddress));
@@ -373,7 +382,8 @@ const local_size: u32 = 8u;
 
 			traversal[index+1].address0 = childAddress;
 			traversal[index+1].coord = coord;
-			set_bit(nodeIndex, true);
+			//set_bit(nodeIndex, true);
+			set_bit(nodeIndex*2u, true);
 
 			return;
 		}
@@ -434,7 +444,8 @@ const local_size: u32 = 8u;
 			}
 			let childNode = getNode0(u32(child));
 			
-			let quadBool = get_bit(childNodeIndex); 
+			//let quadBool = get_bit(childNodeIndex); 
+			let quadBool = get_bit(childNodeIndex*2u); 
 			//if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values0[u32(child)] == 0.0) || child <= 0.0) {
 			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || child <= 0.0) {
 				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
@@ -442,12 +453,14 @@ const local_size: u32 = 8u;
 				
 				writeTexture(tempCoord, val, level, global_id, local_id, childNodeIndex);
 				//writeTexture(tempCoord, value, level, global_id, local_id);
-				set_bit(childNodeIndex, true);
+				//set_bit(childNodeIndex, true);
+				set_bit(childNodeIndex*2u, true);
 				continue;
 			}
 			break;
 		}
-		set_bit(childNodeIndex, true);
+		//set_bit(childNodeIndex, true);
+		set_bit(childNodeIndex*2u, true);
 		//quadMap[childNodeIndex] = 1u;
 
 		traversal[index+1].address0 = child;

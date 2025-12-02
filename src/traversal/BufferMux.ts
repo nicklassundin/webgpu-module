@@ -182,7 +182,8 @@ class BufferMux {
 			// size: [textureSize.width/div, textureSize.height/div],
 			// size: [WORKGROUPSIZE*LOCALSIZE*4, WORKGROUPSIZE*LOCALSIZE*4],
 
-			format: 'r32float',
+			// format: 'r32float',
+			format: 'r32uint',
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
 		})
 

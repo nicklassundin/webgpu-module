@@ -30,7 +30,8 @@ const WRITE_BGL = {
 			binding: 3,
 			visibility: GPUShaderStage.COMPUTE,
 			storageTexture: {
-				format: 'r32float',
+				// format: 'r32float',
+				format: 'r32uint',
 				viewDimension: '2d',
 				accessMode: 'write-only'
 			}
