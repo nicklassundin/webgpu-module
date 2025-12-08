@@ -108,14 +108,12 @@ class Eval {
 			    this.startLevel = level + Math.log2(localSize);
 
 			    // let workgroupSize = Math.pow(2, level);
-			    // TODO should be integrated with BufferMux constant
-			    let workgroupSize = 8;
 			    this.wgS = {
-				    x: workgroupSize,
-				    y: workgroupSize,
+				    x: this.bufferMux.config.workgroupSize,
+				    y: this.bufferMux.config.workgroupSize,
 				    z: 1,
 			    };
-			    // console.log(this.wgS)
+			    console.log('wgS', this.wgS)
 
 			    this.bindGroupLayouts = {
 				    quadTree: device.createBindGroupLayout(READ_BGL),
@@ -151,8 +149,6 @@ class Eval {
 			    computePass.setBindGroup(1, this.bindGroups.eval);
 			    computePass.setBindGroup(2, this.bindGroups.quadTree[0]);
 			    computePass.setBindGroup(3, this.bindGroups.quadTree[1]);
-			    // computePass.dispatchWorkgroups(1)
-			    //
 			    computePass.dispatchWorkgroups(this.wgS.x, this.wgS.y, this.wgS.z)
 			    computePass.end();
 		    }

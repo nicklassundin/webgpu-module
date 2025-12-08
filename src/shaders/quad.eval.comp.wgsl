@@ -139,12 +139,6 @@ fn writeTexture(coord: vec2<f32>, value: f32, index : u32, workgroup: vec3<u32>,
 	let textDim = textureDimensions(texture);
 	let textCoord = vec2<u32>(vec2<f32>(textDim) * vec2<f32>(coord.x, coord.y));
 	textureStore(texture, textCoord, color);
-
-	
-
-	//textureStore(depthTexture, depthCoord, vec4<f32>(depth, 0.0, 0.0, 1.0));
-	//let level = u32(log2(f32(depthDim.x)));
-	//let depth: f32 = f32(index)/f32(level);
 	writeDepthTexture(coord, index, quadtreeIndex);
 }
 fn writeDepthTexture(coord: vec2<f32>, index: u32, quadtreeIndex: u32) {
@@ -165,6 +159,7 @@ fn writeDepthTexture(coord: vec2<f32>, index: u32, quadtreeIndex: u32) {
 			};
 		};
 	};
+	set_bit(quadtreeIndex*2u+1, true);
 }
 
 
@@ -297,6 +292,8 @@ const local_size: u32 = 8u;
 
 		let textDim = textureDimensions(texture);
 
+		let invTextDim = 1.0 / vec2<f32>(textDim);
+		
 		var threadDim = threadIterations.dimensions;
 		if (threadDim.x == 0u && threadDim.y == 0u && threadIterations.dimensions.y == 0u) {
 			// initialize thread info
@@ -304,7 +301,8 @@ const local_size: u32 = 8u;
 			threadDim = textDim;
 		}
 
-		let level = u32(log2(f32(textDim.x)));
+		//let level = u32(log2(f32(textDim.x)));
+		let level = firstLeadingBit(textDim.x);
 		
 		// TODO place into threadIterations
 		let minLevel = u32(log2(f32(threadDim.x)));
@@ -331,7 +329,7 @@ const local_size: u32 = 8u;
 		if (textDim.x == threadDim.x) {
 			//pixCoord = global_id.xy*local_size + local_id.xy;
 			pixCoord = global_id.xy;
-			coord = (vec2<f32>(pixCoord)) / vec2<f32>(textDim);	
+			coord = (vec2<f32>(pixCoord)) * invTextDim;
 			traversal[index].coord = coord;
 		}
 
@@ -342,7 +340,7 @@ const local_size: u32 = 8u;
 			
 		// check if outside traversal bounds (not need for gpu)
 		var addr = traversal[index].address0;
-		if (level == minLevel && addr == 0.0) {
+		if (level == minLevel && addr == 0.0 && !get_bit(nodeIndex*2u)) {
 			// for loop minLevel
 			for (var i = 0u; i <= minLevel; i = i + 1u) {
 				let dim = u32(pow(2.0, f32(i)));
@@ -384,7 +382,6 @@ const local_size: u32 = 8u;
 			traversal[index+1].coord = coord;
 			//set_bit(nodeIndex, true);
 			set_bit(nodeIndex*2u, true);
-
 			return;
 		}
 		
@@ -418,6 +415,7 @@ const local_size: u32 = 8u;
 
 		
 		//let sortedIndices = orderChildren(children, level, parentArray);
+		/*
 		let strategy = threadConfig[threadIndex].strategy;
 		var sortedIndices = array<u32, 4u>(0u, 1u, 2u, 3u);
 		if (strategy == 0u) {
@@ -426,6 +424,7 @@ const local_size: u32 = 8u;
 			var rand = u32((1664525u * (threadConfig[threadIndex].randomSeed + global_id.x*global_id.y) + 1013904223u));
 			sortedIndices = array<u32, 4u>(rand % 4u, (rand / 4u) % 4u, (rand / 16u) % 4u, (rand / 64u) % 4u);
 		}
+		*/
 
 
 		var childCoord = coord; 
@@ -448,7 +447,7 @@ const local_size: u32 = 8u;
 			let quadBool = get_bit(childNodeIndex*2u); 
 			//if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || (values0[u32(child)] == 0.0) || child <= 0.0) {
 			if ((quadBool && checkQuadMapLevelDone(level+1, childPixCoord, childNode)) || child <= 0.0) {
-				var tempCoord = vec2<f32>(pixCoord)/vec2<f32>(textDim);
+				var tempCoord = vec2<f32>(pixCoord) * invTextDim;
 				let childValue = getValue0(childNode);
 				
 				writeTexture(tempCoord, val, level, global_id, local_id, childNodeIndex);

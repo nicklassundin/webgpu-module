@@ -75,8 +75,6 @@ class BufferMux {
 		}
 	}
 	constructor(device: GPUDevice, 
-		    canvasSize: number, 
-		    // mipLevel: number,
 		   level: number,
 		   uv: number[],
 		   data: array[],
@@ -88,12 +86,19 @@ class BufferMux {
 		this.device = device;
 		const divisibleBy = 2*32 * WORKGROUPSIZE;
 		let textureMaxSize = device.limits.maxTextureDimension2D;	
+
+
+		const resolution = {
+			width: 1024.0*2.0,
+			height: 1024.4*2.0
+		}	
 		const textureSize = { 
-			width: Math.floor(canvasSize.width / divisibleBy) * divisibleBy,
+			width: Math.floor(resolution.width / divisibleBy) * divisibleBy,
 			// width: Math.floor(textureMaxSize / divisibleBy) * divisibleBy,
-			height: Math.floor(canvasSize.height / divisibleBy) * divisibleBy,
+			height: Math.floor(resolution.height / divisibleBy) * divisibleBy,
 			// height: Math.floor(textureMaxSize / divisibleBy) * divisibleBy,
 		};
+		console.log('resolution', resolution);
 		console.log('divisibleBy', divisibleBy);
 		console.log('textureSize', textureSize);
 		const mipTextureSize = {

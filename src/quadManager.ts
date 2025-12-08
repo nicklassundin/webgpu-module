@@ -17,13 +17,13 @@ class QuadManager {
 	// quadTree: QuadTreeTraversal;
 	eval: Eval;
 	bufferMux: BufferMux;
-	constructor(device: GPUDevice, originalCanvasSize: number) {
+	constructor(device: GPUDevice) {
 		this.device = device;
 
-		this.originalCanvasSize = originalCanvasSize;
+		// this.originalCanvasSize = originalCanvasSize;
 	}
 	init(uv: number[], data: array[], strategy: string = 'default') {
-		this.bufferMux = new BufferMux(this.device, this.originalCanvasSize, LEVEL, uv, data, strategy);
+		this.bufferMux = new BufferMux(this.device, LEVEL, uv, data, strategy);
 
 		// this.quadTree = new QuadTreeTraversal(this.device, this.bufferMux)
 		
@@ -42,9 +42,6 @@ class QuadManager {
 	}
 	async unmap(){
 		this.bufferMux.unmap();
-	}
-	get updatedCanvasSize() {
-		return this.bufferMux.updatedCanvasSize;
 	}
 }
 export default QuadManager;

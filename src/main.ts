@@ -183,7 +183,7 @@ window.addEventListener('load', async function() {
 			}
 		})
 		// switch between workgroup render and result dropdown
-		debugFolder.add({ value: "result" }, 'value', ["result",  "result - lines", "traversal Workgroup", "vertex Workgroup"]).name("Mode").onChange((value: string) => {
+		debugFolder.add({ value: "result" }, 'value', ["result",  "result - lines", "traversal Workgroup", "Depth Texture"]).name("Mode").onChange((value: string) => {
 			if (value === "traversal Workgroup") {
 				const input = new Uint32Array([2, 0]);
 				quadManager.bufferMux.updateInput(input);
@@ -195,8 +195,9 @@ window.addEventListener('load', async function() {
 			} else if (value === "result - lines") {
 				const input = new Uint32Array([1, 0]);
 				quadManager.bufferMux.updateInput(input);
-			} else if (value === "vertex Workgroup") {
+			} else if (value === "Depth Texture") {
 				const input = new Uint32Array([3, 0]);
+				console.log('update')
 				quadManager.bufferMux.updateInput(input);
 			}
 		})
@@ -258,13 +259,15 @@ window.addEventListener('load', async function() {
 	canvas.width = canvas.clientWidth * devicePixelRatio;
 	canvas.height = canvas.clientHeight * devicePixelRatio;
 
-
+	console.log('canvas', canvas);
+	console.log('devicePixelRatio', devicePixelRatio);
 	const canvasOrigSize = {
 		width: Math.min(canvas.width, canvas.height),
 		height: Math.min(canvas.width, canvas.height)
-		// width: Math.min(canvas.width, canvas.height)*2.0,
-		// height: Math.min(canvas.width, canvas.height)*2.0
+		// width: Math.min(canvas.width, canvas.height)*8.0,
+		// height: Math.min(canvas.width, canvas.height)*8.0
 	}
+	console.log('canvasOrigSize', canvasOrigSize)
 	usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 	const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 	context.configure({
@@ -312,7 +315,7 @@ window.addEventListener('load', async function() {
 	quadTrees = await getQuadTreeData(); 
 
 	// let quadManager = new QuadManager(device, canvasOrigSize, mipLevel);
-	let quadManager = new QuadManager(device, canvasOrigSize);
+	let quadManager = new QuadManager(device);
 	quadManager.init(DEFAULT_COORD, quadTrees, params?.strategy || 'closest');
 
 
@@ -402,7 +405,7 @@ window.addEventListener('load', async function() {
 
 			await quadManager.unmap();
 			// quadManager = new QuadManager(device, textureSize, mipLevel, params.travelValues);
-			quadManager = new QuadManager(device, textureSize);
+			quadManager = new QuadManager(device);
 			quadManager.init(params.travelValues, quadTrees, params?.strategy || 'closest');
 			render = new Render(device, context, canvas, presentationFormat, depthSampler, quadManager.bufferMux);
 			const commandEncoderArg = device.createCommandEncoder();
@@ -415,31 +418,18 @@ window.addEventListener('load', async function() {
 			return;
 			// }else if(16*2 > frameCount){
 		}
-		// current_mipLevel++;
+		// current_mipLevel++;A
+		// await device.queue.onSubmittedWorkDone();
 		await quadManager.eval.pass(frameCount, commandEncoder);
 		// commandEncoder.writeTimestamp(querySet, 1)
 		dbug_mngr.addTimestamp(commandEncoder)
 		quadManager.genVertex.pass(frameCount, commandEncoder);
-		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.traversal, 32, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.features[0], 0, 32);
 		// mesure time 
-		// await quadManager.quadTree.pass(frameCount / 2, commandEncoder);
-		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.evalThreadIter, 0, 32);
-		// await dbug_mngr.fromBufferToLog(quadManager.bufferMux.result, 0, 32);
-		// await dbug_mngr.u32fromBufferToLog(quadManager.bufferMux.uniform, 0, 32);
-		// commandEncoder.writeTimestamp(querySet, 2);
 		dbug_mngr.addTimestamp(commandEncoder)
-		// resolve query TODO check such deltaNs not zero
-		// commandEncoder.resolveQuerySet(querySet, 0, 2, queryBuffer, 0);
-		// commandEncoder.copyBufferToBuffer(queryBuffer, 0, readSampleBuffer, 0, 8*sampleCount);
 		dbug_mngr.end(commandEncoder)
 
 		device.queue.submit([commandEncoder.finish()]);
 		dbug_mngr.saveSample(commandEncoder)
-		// await device.queue.onSubmittedWorkDone();	
-		// await readSampleBuffer.mapAsync(GPUMapMode.READ);
 		// const timestamps = new BigUint64Array(readSampleBuffer.getMappedRange());
 		// const deltaNs = Number(timestamps[1] - timestamps[0]);
 
@@ -449,17 +439,19 @@ window.addEventListener('load', async function() {
 		// renderpass locked 30 fps
 		if (currentTime - lastFrameTime > 1000 / 30) {
 			const renderCommandEncoder = device.createCommandEncoder();
-			// for (let i = 0; i < 1; i++) {
-			// quadManager.genVertex.pass(i, renderCommandEncoder);
-			// }
+			for (let i = 0; i < 1; i++) {
+			quadManager.genVertex.pass(i, renderCommandEncoder);
+			}
 			render.pass(frameCount, renderCommandEncoder)
 			device.queue.submit([renderCommandEncoder.finish()]);
 			lastFrameTime = currentTime;
-			let data = await quadManager.bufferMux.getTextureData();
+			// let data = await quadManager.bufferMux.getTextureData();
 			// console.log(data)
 		}
 		frameCount++;
 		stats.end();
+
+
 		if (timeInterval.length > 0 && params.output && currentTime - startTime >= timeInterval[0] ) {
 			const opBeforeTime = Date.now();
 			for (let i = 0; i < 100; i++) {
